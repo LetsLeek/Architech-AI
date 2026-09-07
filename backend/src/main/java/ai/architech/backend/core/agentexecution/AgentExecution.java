@@ -1,5 +1,6 @@
 package ai.architech.backend.core.agentexecution;
 
+import ai.architech.backend.core.ai.AiResponse;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -100,6 +101,12 @@ public class AgentExecution {
 		this.promptTokens = promptTokens;
 		this.completionTokens = completionTokens;
 		this.costUsd = costUsd;
+	}
+
+	/** Convenience overload: pulls provider/model/token counts straight from an AI Gateway response. */
+	public void recordModelUsage(AiResponse response, BigDecimal costUsd) {
+		recordModelUsage(
+				response.provider(), response.model(), response.promptTokens(), response.completionTokens(), costUsd);
 	}
 
 	public void succeed() {

@@ -19,7 +19,8 @@ class AiGatewayUnitTests {
 	@Test
 	void dispatchesToTheProviderTheProfileResolvesTo() {
 		when(modelProfileResolver.resolve("structured-reasoning")).thenReturn(new ResolvedModel("stub", "stub-model"));
-		AiProvider stubProvider = stubProvider("stub", (request, model) -> new AiResponse("stub", model, "ok", request.correlationId()));
+		AiProvider stubProvider = stubProvider(
+				"stub", (request, model) -> new AiResponse("stub", model, "ok", request.correlationId(), 10, 20));
 		AiGateway gateway = new AiGateway(modelProfileResolver, List.of(stubProvider));
 
 		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-1");
@@ -29,6 +30,8 @@ class AiGatewayUnitTests {
 		assertThat(response.model()).isEqualTo("stub-model");
 		assertThat(response.content()).isEqualTo("ok");
 		assertThat(response.correlationId()).isEqualTo("corr-1");
+		assertThat(response.promptTokens()).isEqualTo(10);
+		assertThat(response.completionTokens()).isEqualTo(20);
 	}
 
 	@Test
