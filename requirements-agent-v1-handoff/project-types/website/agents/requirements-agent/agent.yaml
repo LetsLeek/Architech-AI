@@ -1,0 +1,29 @@
+schemaVersion: 1
+
+id: requirements-agent
+name: Website Requirements Analyst
+version: 1
+
+description: >
+  Transforms customer-provided information into a normalized
+  customer profile and traceable website requirements.
+
+modelProfile: structured-reasoning
+
+limits:
+  maxOutputTokens: 8000
+
+skills:
+  - extract-business-requirements
+
+rules:
+  - requirements-integrity
+
+outputs:
+  artifacts:
+    - type: customer-profile
+      schema: ../../schemas/customer-profile.schema.json
+      required: true
+    - type: website-requirements
+      schema: ../../schemas/website-requirements.schema.json
+      required: true

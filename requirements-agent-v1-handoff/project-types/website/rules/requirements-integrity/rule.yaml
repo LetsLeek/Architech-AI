@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: requirements-integrity
+name: Requirements Integrity
+version: 1
+
+description: >
+  Defines evidence-integrity and non-invention constraints for
+  extracting customer facts and website requirements.

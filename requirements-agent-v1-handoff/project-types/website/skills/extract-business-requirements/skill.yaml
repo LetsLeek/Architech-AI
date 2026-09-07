@@ -1,0 +1,7 @@
+schemaVersion: 1
+id: extract-business-requirements
+name: Extract Business Requirements
+version: 1
+description: >
+  Extracts normalized customer information and traceable website
+  requirements from a supplied Source Context.
