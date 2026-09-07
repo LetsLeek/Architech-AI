@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/architech}
+    username: ${SPRING_DATASOURCE_USERNAME:architech}
+    password: ${SPRING_DATASOURCE_PASSWORD:architech}
+  jpa:
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
