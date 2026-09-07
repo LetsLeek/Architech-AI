@@ -28,6 +28,8 @@ class AgentDefinitionLoaderTests {
 				.extracting(AgentArtifactOutput::type)
 				.containsExactlyInAnyOrder("customer-profile", "website-requirements");
 		assertThat(definition.outputs().artifacts()).allMatch(AgentArtifactOutput::required);
+		assertThat(definition.roleContent()).contains("# Website Requirements Analyst");
+		assertThat(definition.roleContent()).contains("The agent analyzes evidence.");
 	}
 
 	@Test
