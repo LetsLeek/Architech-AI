@@ -1,25 +1,53 @@
-# Requirements Agent V1 Handoff
+# Architech AI
 
-This package contains the frozen Website Requirements Agent V1 specification and the minimum Core contracts required to implement it.
+A platform that builds websites for customers largely through AI agents. The first
+milestone is a Requirements Vertical Slice: a customer creates a Website Project, submits
+input, and a controlled Requirements Agent turns that input into two validated, versioned
+artifacts — a Customer Profile and a set of Website Requirements.
 
-Copy the contained `project-types/` and `docs/core/` paths into the corresponding locations of the AI Build Platform repository.
+## Repository layout
 
-## Contents
+```
+backend/                 Spring Boot platform backend (Java, Maven)
+frontend/                React + TypeScript + Vite platform frontend
+docker-compose.yml       Local Postgres for development
+docs/core/                Frozen, project-type-agnostic platform contracts
+                          (Source Context, Runner/Validation, Artifact Persistence, ...)
+project-types/website/    Frozen Website Requirements Agent V1 specification
+                          (agent config, role, rules, skill modules, JSON Schemas)
+```
 
-- Requirements Agent configuration and role instructions
-- Customer Profile JSON Schema
-- Website Requirements JSON Schema
-- Requirements extraction skill and 13 ordered modules
-- Requirements Integrity rule
-- Source Context / Source Reference Core contract
-- Runner / Validation Core contract
-- Candidate / Artifact Persistence Core contract
-- V1 freeze note
+`docs/core/` and `project-types/` are a frozen handoff package — see the notes inside
+`docs/core/REQUIREMENTS_AGENT_V1_FREEZE.md` before changing anything under those paths.
+Backend code is split the same way: platform-agnostic logic lives under
+`ai.architech.backend.core`, website-specific logic under
+`ai.architech.backend.projecttype.website`.
 
-## Important
+## Getting started
 
-Do not ask a coding agent to redesign these semantics during implementation. If an implementation detail is deliberately left open, choose the smallest project-type-agnostic implementation that preserves the contracts.
+Prerequisites: JDK 21+, Node 20+, Docker.
 
-The Skill Loader must actually include the module contents in the active skill context. Merely storing Markdown links without loading their content is not sufficient.
+```bash
+cp .env.example .env        # adjust if needed, defaults work out of the box
+docker compose up -d        # starts Postgres
 
-Relational rules intentionally left out of JSON Schema must be enforced by deterministic validators where specified by the contracts.
+cd backend
+./mvnw spring-boot:run      # runs Flyway migrations, then starts on :8080
+# -> curl http://localhost:8080/actuator/health
+
+cd ../frontend
+npm install
+npm run dev                 # starts on :5173
+```
+
+Backend tests (`./mvnw test`, run from `backend/`) require Postgres to be running via
+`docker compose up -d`.
+
+If the backend fails to start with a connection error, check that
+`docker compose ps` shows Postgres as healthy and that `.env` matches
+`docker-compose.yml`.
+
+## Database migrations
+
+Schema changes are made exclusively through new Flyway migration files under
+`backend/src/main/resources/db/migration/` — never by editing the database by hand.
