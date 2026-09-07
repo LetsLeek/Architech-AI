@@ -10,6 +10,17 @@ spring:
   flyway:
     locations: classpath:db/migration
 
+architech:
+  ai:
+    # Maps a logical model profile (declared in an agent.yaml, e.g. "structured-reasoning")
+    # to a concrete provider+model. "mock" is a placeholder provider with no real AI
+    # behind it - swapping in a real one (Anthropic, OpenAI, ...) is a config change here
+    # plus registering an AiProvider bean for it, never a change to any agent spec.
+    model-profiles:
+      structured-reasoning:
+        provider: mock
+        model: mock-model
+
 management:
   endpoints:
     web:
