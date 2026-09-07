@@ -20,6 +20,9 @@ architech:
       structured-reasoning:
         provider: mock
         model: mock-model
+  runner:
+    # Platform-owned retry budget - agents never decide this for themselves.
+    max-attempts: 3
 
 management:
   endpoints:
