@@ -3,18 +3,21 @@ package ai.architech.backend.core.agent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Resolves an {@link AgentDefinition} by id and version from any {@code agent.yaml} found
- * under {@code project-types/} on the classpath. Deliberately does not know about
- * "website" or any other specific project type - it just looks for the file matching the
- * requested id/version, wherever it happens to live.
+ * Resolves an {@link AgentDefinition} by id and version from any {@code agent.yaml} (plus
+ * its sibling {@code AGENT.md} role/persona text) found under {@code project-types/} on the
+ * classpath. Deliberately does not know about "website" or any other specific project type
+ * - it just looks for the file matching the requested id/version, wherever it happens to
+ * live.
  *
  * <p>Resolution is fail-fast: a missing or malformed definition is reported as an exception
  * from {@link #resolve} itself, before any caller can go on to invoke the agent.
@@ -23,6 +26,7 @@ import org.yaml.snakeyaml.Yaml;
 public class AgentDefinitionLoader {
 
 	private static final String AGENT_DEFINITION_PATTERN = "classpath*:project-types/**/agent.yaml";
+	private static final String ROLE_CONTENT_FILENAME = "AGENT.md";
 
 	private final ResourcePatternResolver resourceResolver;
 	private final Yaml yaml = new Yaml();
@@ -57,15 +61,28 @@ public class AgentDefinitionLoader {
 			throw new InvalidAgentDefinitionException(resource, "Failed to read agent definition", e);
 		}
 
+		String roleContent = readRoleContent(resource);
+
 		try {
-			return toDefinition(raw);
+			return toDefinition(raw, roleContent);
 		} catch (RuntimeException e) {
 			throw new InvalidAgentDefinitionException(resource, "Malformed agent definition", e);
 		}
 	}
 
+	private String readRoleContent(Resource resource) {
+		try {
+			Resource contentResource = resource.createRelative(ROLE_CONTENT_FILENAME);
+			try (InputStream in = contentResource.getInputStream()) {
+				return StreamUtils.copyToString(in, StandardCharsets.UTF_8);
+			}
+		} catch (IOException e) {
+			throw new InvalidAgentDefinitionException(resource, "Missing or unreadable " + ROLE_CONTENT_FILENAME, e);
+		}
+	}
+
 	@SuppressWarnings("unchecked")
-	private static AgentDefinition toDefinition(Map<String, Object> raw) {
+	private static AgentDefinition toDefinition(Map<String, Object> raw, String roleContent) {
 		Map<String, Object> limitsRaw = requireMap(raw, "limits");
 		Map<String, Object> outputsRaw = requireMap(raw, "outputs");
 		Object artifactsRaw = outputsRaw.get("artifacts");
@@ -91,7 +108,8 @@ public class AgentDefinitionLoader {
 				new AgentLimits((Integer) requireField(limitsRaw, "maxOutputTokens")),
 				(List<String>) raw.getOrDefault("skills", List.of()),
 				(List<String>) raw.getOrDefault("rules", List.of()),
-				new AgentOutputs(artifacts));
+				new AgentOutputs(artifacts),
+				roleContent);
 	}
 
 	@SuppressWarnings("unchecked")
