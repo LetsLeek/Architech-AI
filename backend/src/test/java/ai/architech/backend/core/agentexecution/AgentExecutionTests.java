@@ -3,6 +3,7 @@ package ai.architech.backend.core.agentexecution;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.architech.backend.core.ai.AiResponse;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -79,5 +80,19 @@ class AgentExecutionTests {
 		assertThat(execution.getPromptTokens()).isEqualTo(120);
 		assertThat(execution.getCompletionTokens()).isEqualTo(340);
 		assertThat(execution.getCostUsd()).isEqualByComparingTo("0.0042");
+	}
+
+	@Test
+	void recordsModelUsageDirectlyFromAnAiResponse() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "requirements-agent", 1);
+		AiResponse response = new AiResponse("mock", "mock-model", "content", "corr-1", 50, 75);
+
+		execution.recordModelUsage(response, new BigDecimal("0.01"));
+
+		assertThat(execution.getProvider()).isEqualTo("mock");
+		assertThat(execution.getModel()).isEqualTo("mock-model");
+		assertThat(execution.getPromptTokens()).isEqualTo(50);
+		assertThat(execution.getCompletionTokens()).isEqualTo(75);
+		assertThat(execution.getCostUsd()).isEqualByComparingTo("0.01");
 	}
 }

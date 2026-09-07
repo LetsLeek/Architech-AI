@@ -19,6 +19,7 @@ class MockAiProvider implements AiProvider {
 
 	@Override
 	public AiResponse invoke(AiRequest request, String model) {
-		return new AiResponse("mock", model, "", request.correlationId());
+		// No real usage to report - null, not zero, since this never actually ran a model.
+		return new AiResponse("mock", model, "", request.correlationId(), null, null);
 	}
 }

@@ -23,5 +23,7 @@ class AiGatewayIntegrationTests {
 		assertThat(response.provider()).isEqualTo("mock");
 		assertThat(response.model()).isEqualTo("mock-model");
 		assertThat(response.correlationId()).isEqualTo("corr-integration");
+		assertThat(response.promptTokens()).isNull();
+		assertThat(response.completionTokens()).isNull();
 	}
 }
