@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ApiError, createProject } from '../api/projects'
+import { errorMessage } from '../api/http'
+import { createProject } from '../api/projects'
 
 function ProjectsPage() {
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ function ProjectsPage() {
       const project = await createProject('website')
       navigate(`/projects/${project.id}`)
     } catch (err) {
-      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Failed to create project.')
+      setError(errorMessage(err))
       setSubmitting(false)
     }
   }
