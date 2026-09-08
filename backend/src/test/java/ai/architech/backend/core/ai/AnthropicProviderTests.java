@@ -124,6 +124,28 @@ class AnthropicProviderTests {
 	}
 
 	@Test
+	void stripsAConversationalPreambleBeforeAFencedJsonBlock() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		// the "text" value is the JSON string
+		// "Looking at this evidence, I'll extract the facts.\n\n```json\n{"customer-profile": {}}\n```"
+		String responseJson =
+				"{\"model\": \"claude-sonnet-5\", \"content\": [{\"type\": \"text\", "
+						+ "\"text\": \"Looking at this evidence, I'll extract the facts.\\n\\n```json\\n{\\\"customer-profile\\\": {}}\\n```\"}], "
+						+ "\"usage\": {\"input_tokens\": 1, \"output_tokens\": 1}}";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-7");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.content()).isEqualTo("{\"customer-profile\": {}}");
+	}
+
+	@Test
 	void leavesUnfencedTextUntouched() {
 		RestClient.Builder builder = RestClient.builder();
 		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
@@ -141,6 +163,26 @@ class AnthropicProviderTests {
 		AiResponse response = provider.invoke(request, "claude-sonnet-5");
 
 		assertThat(response.content()).isEqualTo("{\"customer-profile\": {}}");
+	}
+
+	@Test
+	void leavesTextWithNoBracesAtAllUntouched() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "content": [{"type": "text", "text": "I could not find any facts to extract."}], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-8");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.content()).isEqualTo("I could not find any facts to extract.");
 	}
 
 	@Test

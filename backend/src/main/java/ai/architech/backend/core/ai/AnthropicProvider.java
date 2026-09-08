@@ -30,14 +30,16 @@ import tools.jackson.databind.node.ObjectNode;
  * real error body said) never needs special handling here to stay out of anything a client
  * could see.
  *
- * <p>Strips a leading/trailing {@code ```json ... ```} markdown code fence from the response
- * text if present. Verified against the real API during AIW-127: despite prompt instructions
- * to output raw JSON only, this model (claude-sonnet-5) reliably wraps structured output in a
- * fenced code block anyway, and - unlike some older Claude models - rejects the classic
- * "assistant message prefill" workaround outright ("This model does not support assistant
- * message prefill"). Un-wrapping a known, provider-specific wire-format artifact here is
- * transport handling, not content repair - the deterministic validators downstream still see
- * (and reject, if warranted) whatever JSON was actually inside the fence, unmodified.
+ * <p>Extracts the substring between the first {@code {} and the last {@code }} from the response
+ * text, discarding everything outside it. Verified against the real API during AIW-127: despite
+ * prompt instructions to output raw JSON only, this model (claude-sonnet-5) reliably wraps
+ * structured output in a {@code ```json ... ```} markdown code fence anyway, sometimes preceded
+ * by a conversational preamble ({@code "Looking at this evidence, I'll extract..."}) before the
+ * fence even starts - and, unlike some older Claude models, it rejects the classic "assistant
+ * message prefill" workaround outright ("This model does not support assistant message
+ * prefill"). Un-wrapping a known, provider-specific wire-format artifact here is transport
+ * handling, not content repair - the deterministic validators downstream still see (and reject,
+ * if warranted) whatever JSON was actually inside the braces, unmodified.
  *
  * <p>Sends {@code "thinking": {"type": "disabled"}} on every request. Also discovered during
  * AIW-127: this model uses extended thinking by default even though nothing in this request
@@ -53,7 +55,6 @@ class AnthropicProvider implements AiProvider {
 
 	private static final String MESSAGES_URL = "https://api.anthropic.com/v1/messages";
 	private static final String ANTHROPIC_VERSION = "2023-06-01";
-	private static final String CODE_FENCE_MARKER = "```";
 
 	private final RestClient restClient;
 	private final AnthropicProperties properties;
@@ -114,7 +115,7 @@ class AnthropicProvider implements AiProvider {
 	}
 
 	private static AiResponse toAiResponse(JsonNode responseBody, String correlationId) {
-		String text = stripMarkdownCodeFence(extractText(responseBody.path("content")));
+		String text = extractJsonObject(extractText(responseBody.path("content")));
 		Integer promptTokens = intOrNull(responseBody.path("usage").path("input_tokens"));
 		Integer completionTokens = intOrNull(responseBody.path("usage").path("output_tokens"));
 		String actualModel = responseBody.path("model").asString();
@@ -133,22 +134,19 @@ class AnthropicProvider implements AiProvider {
 		return text.toString();
 	}
 
-	/** {@code ```json\n{...}\n```} (or a bare {@code ```\n{...}\n```}) becomes just {@code {...}} - anything not fenced this way passes through untouched. */
-	private static String stripMarkdownCodeFence(String text) {
-		String trimmed = text.strip();
-		if (!trimmed.startsWith(CODE_FENCE_MARKER)) {
+	/**
+	 * Slices from the first {@code {} to the last {@code }} (inclusive), discarding any
+	 * preamble, markdown fence, or trailing commentary around it. Falls back to the original
+	 * text untouched if no {@code {} is found at all, so a genuinely non-JSON response still
+	 * surfaces its own parse error downstream instead of being silently mangled.
+	 */
+	private static String extractJsonObject(String text) {
+		int start = text.indexOf('{');
+		int end = text.lastIndexOf('}');
+		if (start == -1 || end < start) {
 			return text;
 		}
-		int firstNewline = trimmed.indexOf('\n');
-		if (firstNewline == -1) {
-			return text;
-		}
-		String afterOpeningFence = trimmed.substring(firstNewline + 1);
-		int closingFenceIndex = afterOpeningFence.lastIndexOf(CODE_FENCE_MARKER);
-		if (closingFenceIndex == -1) {
-			return text;
-		}
-		return afterOpeningFence.substring(0, closingFenceIndex).strip();
+		return text.substring(start, end + 1);
 	}
 
 	private static Integer intOrNull(JsonNode node) {

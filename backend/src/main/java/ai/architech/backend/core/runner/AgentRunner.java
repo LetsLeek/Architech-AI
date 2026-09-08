@@ -160,13 +160,27 @@ public class AgentRunner {
 	 * or paraphrased - {@code schemaContent} is loaded verbatim by {@link AgentDefinitionLoader}).
 	 * {@code outputs.artifacts[].schema} is a generic part of any agent.yaml's contract, not
 	 * something Website-specific invented here.
+	 *
+	 * <p>Also states the required envelope explicitly: a single JSON object with one top-level
+	 * key per required artifact type, nothing else. This is {@link
+	 * ai.architech.backend.core.validation.OutputContractParser}'s own V1 implementation
+	 * choice, not part of any frozen contract - and verified necessary against the real API
+	 * during AIW-127: without it spelled out, the model sometimes emits each artifact as its
+	 * own separate top-level JSON value (occasionally each in its own markdown fence) instead
+	 * of nesting them under the required keys of one combined object.
 	 */
 	private static void appendOutputSchemas(StringBuilder instructions, AgentDefinition agentDefinition) {
-		for (AgentArtifactOutput output : agentDefinition.outputs().artifacts()) {
+		List<AgentArtifactOutput> outputs = agentDefinition.outputs().artifacts();
+		instructions
+				.append("\n\nRespond with exactly one JSON object and nothing else - no markdown code fences, "
+						+ "no comments, no prose before or after it. Its only top-level keys must be exactly: ")
+				.append(outputs.stream().map(output -> '"' + output.type() + '"').reduce((a, b) -> a + ", " + b).orElse(""))
+				.append(". Each of those keys' values must be valid against its own JSON Schema below.");
+		for (AgentArtifactOutput output : outputs) {
 			instructions
-					.append("\n\nYour \"")
+					.append("\n\nSchema for \"")
 					.append(output.type())
-					.append("\" output must be valid against exactly this JSON Schema:\n")
+					.append("\":\n")
 					.append(output.schemaContent());
 		}
 	}
