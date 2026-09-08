@@ -28,6 +28,21 @@ architech:
       structured-reasoning:
         provider: mock
         model: mock-model
+    # Per-1000-token USD pricing, keyed provider -> model. Harmless to keep here even while
+    # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
+    # provider/model actually answered, and returns null (never fabricated) for anything not
+    # listed here. Anthropic's own published pricing as of 2026-09-08.
+    pricing:
+      anthropic:
+        claude-sonnet-5:
+          prompt-cost-per1000-tokens: 0.002
+          completion-cost-per1000-tokens: 0.01
+        claude-haiku-4-5-20251001:
+          prompt-cost-per1000-tokens: 0.001
+          completion-cost-per1000-tokens: 0.005
+        claude-opus-5:
+          prompt-cost-per1000-tokens: 0.005
+          completion-cost-per1000-tokens: 0.025
   runner:
     # Platform-owned retry budget - agents never decide this for themselves.
     max-attempts: 3
@@ -40,3 +55,23 @@ management:
   endpoint:
     health:
       show-details: never
+
+---
+# Opt-in only, never active by default (so a fresh clone/CI stays on the mock provider with
+# zero config) - activate locally with SPRING_PROFILES_ACTIVE=real-ai plus ANTHROPIC_API_KEY
+# set (see .env.example). Keeping this as a separate profile document, rather than changing
+# the base model-profiles above, means "use real AI" is always an explicit, visible opt-in -
+# never something a committed config change could silently turn on for everyone.
+spring:
+  config:
+    activate:
+      on-profile: real-ai
+
+architech:
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+    model-profiles:
+      structured-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
