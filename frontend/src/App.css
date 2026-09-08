@@ -98,3 +98,27 @@
   margin-bottom: 4px;
   word-break: break-word;
 }
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-running {
+  color: #9a6700;
+  background: rgba(154, 103, 0, 0.15);
+}
+
+.status-succeeded {
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.15);
+}
+
+.status-failed {
+  color: #d1242f;
+  background: rgba(209, 36, 47, 0.15);
+}
