@@ -2,7 +2,12 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { errorMessage } from '../api/http'
 import { listFileInputs, uploadFileInput, type FileInput } from '../api/projectInputs'
 
-function FileInputSection({ projectId }: { projectId: string }) {
+interface FileInputSectionProps {
+  projectId: string
+  onCountChange?: (count: number) => void
+}
+
+function FileInputSection({ projectId, onCountChange }: FileInputSectionProps) {
   const [inputs, setInputs] = useState<FileInput[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,6 +30,10 @@ function FileInputSection({ projectId }: { projectId: string }) {
       cancelled = true
     }
   }, [projectId])
+
+  useEffect(() => {
+    onCountChange?.(inputs.length)
+  }, [inputs.length, onCountChange])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

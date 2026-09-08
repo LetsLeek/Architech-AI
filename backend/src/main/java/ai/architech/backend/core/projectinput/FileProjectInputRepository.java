@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface FileProjectInputRepository extends JpaRepository<FileProjectInput, UUID> {
 
 	List<FileProjectInput> findByProjectIdOrderByCreatedAtAsc(UUID projectId);
+
+	boolean existsByProjectId(UUID projectId);
 }
