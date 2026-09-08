@@ -2,7 +2,12 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { errorMessage } from '../api/http'
 import { listFreeTextInputs, submitFreeTextInput, type FreeTextInput } from '../api/projectInputs'
 
-function FreeTextInputSection({ projectId }: { projectId: string }) {
+interface FreeTextInputSectionProps {
+  projectId: string
+  onCountChange?: (count: number) => void
+}
+
+function FreeTextInputSection({ projectId, onCountChange }: FreeTextInputSectionProps) {
   const [inputs, setInputs] = useState<FreeTextInput[]>([])
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -25,6 +30,10 @@ function FreeTextInputSection({ projectId }: { projectId: string }) {
       cancelled = true
     }
   }, [projectId])
+
+  useEffect(() => {
+    onCountChange?.(inputs.length)
+  }, [inputs.length, onCountChange])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

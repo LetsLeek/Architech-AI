@@ -12,7 +12,12 @@ function emptyRow(): FieldRow {
   return { id: crypto.randomUUID(), key: '', value: '' }
 }
 
-function StructuredInputSection({ projectId }: { projectId: string }) {
+interface StructuredInputSectionProps {
+  projectId: string
+  onCountChange?: (count: number) => void
+}
+
+function StructuredInputSection({ projectId, onCountChange }: StructuredInputSectionProps) {
   const [inputs, setInputs] = useState<StructuredInput[]>([])
   const [rows, setRows] = useState<FieldRow[]>([emptyRow()])
   const [submitting, setSubmitting] = useState(false)
@@ -35,6 +40,10 @@ function StructuredInputSection({ projectId }: { projectId: string }) {
       cancelled = true
     }
   }, [projectId])
+
+  useEffect(() => {
+    onCountChange?.(inputs.length)
+  }, [inputs.length, onCountChange])
 
   function updateRow(id: string, patch: Partial<Pick<FieldRow, 'key' | 'value'>>) {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))

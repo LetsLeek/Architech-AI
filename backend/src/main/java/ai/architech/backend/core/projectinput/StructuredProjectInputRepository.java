@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface StructuredProjectInputRepository extends JpaRepository<StructuredProjectInput, UUID> {
 
 	List<StructuredProjectInput> findByProjectIdOrderByCreatedAtAsc(UUID projectId);
+
+	boolean existsByProjectId(UUID projectId);
 }

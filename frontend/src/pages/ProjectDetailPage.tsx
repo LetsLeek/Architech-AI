@@ -1,15 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { errorMessage } from '../api/http'
 import { getProject, type Project } from '../api/projects'
 import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
+import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
 import StructuredInputSection from '../components/StructuredInputSection'
 
 function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const [project, setProject] = useState<Project | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Tracked here (rather than inside RequirementsAnalysisSection) because "is there any
+  // input yet" spans all three input types, each owning its own list independently.
+  const [freeTextCount, setFreeTextCount] = useState(0)
+  const [structuredCount, setStructuredCount] = useState(0)
+  const [fileCount, setFileCount] = useState(0)
 
   useEffect(() => {
     if (!projectId) {
@@ -31,6 +38,10 @@ function ProjectDetailPage() {
       cancelled = true
     }
   }, [projectId])
+
+  const handleFreeTextCountChange = useCallback((count: number) => setFreeTextCount(count), [])
+  const handleStructuredCountChange = useCallback((count: number) => setStructuredCount(count), [])
+  const handleFileCountChange = useCallback((count: number) => setFileCount(count), [])
 
   if (error) {
     return (
@@ -60,11 +71,14 @@ function ProjectDetailPage() {
         <dd>{new Date(project.createdAt).toLocaleString()}</dd>
       </dl>
 
-      <FreeTextInputSection projectId={project.id} />
-      <StructuredInputSection projectId={project.id} />
-      <FileInputSection projectId={project.id} />
+      <FreeTextInputSection projectId={project.id} onCountChange={handleFreeTextCountChange} />
+      <StructuredInputSection projectId={project.id} onCountChange={handleStructuredCountChange} />
+      <FileInputSection projectId={project.id} onCountChange={handleFileCountChange} />
 
-      <p>Execution status and results coming soon.</p>
+      <RequirementsAnalysisSection
+        projectId={project.id}
+        hasInput={freeTextCount + structuredCount + fileCount > 0}
+      />
     </section>
   )
 }
