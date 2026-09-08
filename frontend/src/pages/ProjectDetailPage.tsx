@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { ApiError, getProject, type Project } from '../api/projects'
+import { errorMessage } from '../api/http'
+import { getProject, type Project } from '../api/projects'
+import FileInputSection from '../components/FileInputSection'
+import FreeTextInputSection from '../components/FreeTextInputSection'
+import StructuredInputSection from '../components/StructuredInputSection'
 
 function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -20,7 +24,7 @@ function ProjectDetailPage() {
       })
       .catch((err: unknown) => {
         if (!cancelled) {
-          setError(err instanceof ApiError || err instanceof Error ? err.message : 'Failed to load project.')
+          setError(errorMessage(err))
         }
       })
     return () => {
@@ -55,7 +59,12 @@ function ProjectDetailPage() {
         <dt>Created</dt>
         <dd>{new Date(project.createdAt).toLocaleString()}</dd>
       </dl>
-      <p>Requirements input, execution status and results coming soon.</p>
+
+      <FreeTextInputSection projectId={project.id} />
+      <StructuredInputSection projectId={project.id} />
+      <FileInputSection projectId={project.id} />
+
+      <p>Execution status and results coming soon.</p>
     </section>
   )
 }
