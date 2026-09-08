@@ -48,10 +48,14 @@ class BoundedRetryAgentRunnerTests {
 
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.RUNNING);
 
-		long executionsForThisAttempt = agentExecutionRepository.findAll().stream()
-				.filter(e -> e.getAgentId().equals("requirements-agent"))
+		// Scoped to this test's own freshly-created project, not a table-wide agentId filter -
+		// "requirements-agent" is also the real agent id used outside tests (e.g. manually
+		// exercising the app against the same dev database), so filtering by agentId alone
+		// makes this assertion depend on the table being otherwise empty of such rows.
+		long executionsForThisProject = agentExecutionRepository.findAll().stream()
+				.filter(e -> e.getProjectId().equals(project.getId()))
 				.count();
-		assertThat(executionsForThisAttempt).isEqualTo(1);
+		assertThat(executionsForThisProject).isEqualTo(1);
 	}
 
 	@Test
