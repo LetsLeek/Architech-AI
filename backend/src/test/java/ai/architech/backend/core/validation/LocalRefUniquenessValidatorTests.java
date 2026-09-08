@@ -29,4 +29,38 @@ class LocalRefUniquenessValidatorTests {
 	void acceptsAnEmptyList() {
 		assertThat(validator.validate(List.of()).valid()).isTrue();
 	}
+
+	@Test
+	void extractsLocalRefsFromNestedCandidateJsonAndAcceptsDistinctOnes() {
+		String json =
+				"""
+				{"locations": [{"localRef": "loc-1"}], "offerings": [{"localRef": "loc-2"}]}
+				""";
+
+		LocalRefValidationResult result = validator.validate(json);
+
+		assertThat(result.valid()).isTrue();
+		assertThat(result.issues()).isEmpty();
+	}
+
+	@Test
+	void extractsLocalRefsFromNestedCandidateJsonAndRejectsADuplicate() {
+		String json =
+				"""
+				{"locations": [{"localRef": "loc-1"}], "offerings": [{"localRef": "loc-1"}]}
+				""";
+
+		LocalRefValidationResult result = validator.validate(json);
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues()).extracting(LocalRefValidationIssue::localRef).containsExactly("loc-1");
+	}
+
+	@Test
+	void reportsUnparseableCandidateJsonAsAFailureRatherThanThrowing() {
+		LocalRefValidationResult result = validator.validate("not json {{{");
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues()).isNotEmpty();
+	}
 }
