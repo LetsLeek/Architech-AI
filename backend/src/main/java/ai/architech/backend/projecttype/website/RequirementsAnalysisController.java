@@ -6,6 +6,7 @@ import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.FileProjectInputRepository;
 import ai.architech.backend.core.projectinput.ProjectInputRepository;
 import ai.architech.backend.core.projectinput.StructuredProjectInputRepository;
+import ai.architech.backend.core.runner.RetryBudgetExhaustedException;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
  * call is effectively instant, so the race window is negligible. A real lock would be
  * over-engineering for a risk this small; revisit if a real (slow) AI provider and concurrent
  * usage both become real.
+ *
+ * <p>A model/runtime failure (the retry budget exhausted without ever getting a candidate) is
+ * translated to 502 with a static, generic message - distinct in both HTTP status and response
+ * shape from a completed run that failed deterministic validation (201, {@link
+ * RequirementsAnalysisResponse} with {@code succeeded: false}). See AIW-56.
  */
 @RestController
 @RequestMapping("/api/projects/{projectId}/requirements-analysis")
@@ -68,7 +74,20 @@ class RequirementsAnalysisController {
 					HttpStatus.CONFLICT, "A requirements analysis is already running for this project");
 		}
 
-		RequirementsAnalysisResult result = requirementsAnalysisRunner.run(projectId);
+		RequirementsAnalysisResult result;
+		try {
+			result = requirementsAnalysisRunner.run(projectId);
+		} catch (RetryBudgetExhaustedException e) {
+			// Deliberately a hand-written, static message - never e.getMessage() or e.getCause()
+			// - so nothing from the model/runtime layer (which, once a real AI provider exists,
+			// could carry provider-internal detail) can ever reach the client (AIW-56 AC: no
+			// secrets/internals leak; model/runtime failure stays distinguishable from a
+			// validation failure by both HTTP status and response shape - see
+			// RequirementsAnalysisResponse for the latter).
+			throw new ResponseStatusException(
+					HttpStatus.BAD_GATEWAY,
+					"Requirements analysis could not run: the model/runtime failed on every permitted attempt. No candidate output was produced.");
+		}
 		return ResponseEntity.status(HttpStatus.CREATED).body(RequirementsAnalysisResponse.from(result));
 	}
 
