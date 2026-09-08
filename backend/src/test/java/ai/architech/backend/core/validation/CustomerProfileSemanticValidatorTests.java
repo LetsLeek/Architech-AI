@@ -208,6 +208,26 @@ class CustomerProfileSemanticValidatorTests {
 	}
 
 	@Test
+	void acceptsASingletonProvenanceFieldQualifiedWithItsSingletonName() {
+		String json =
+				"""
+				{
+				  "business": {}, "contact": {}, "locations": [], "offerings": [], "socialLinks": [],
+				  "providedClaims": [], "unknowns": [], "conflicts": [], "openingHours": [],
+				  "provenance": [
+				    {"field": "business.name", "sourceRefs": ["SRC-1"]},
+				    {"field": "contact.phone", "sourceRefs": ["SRC-1"]}
+				  ]
+				}
+				""";
+
+		CustomerProfileValidationResult result = validator.validate(json);
+
+		assertThat(result.valid()).isTrue();
+		assertThat(result.issues()).isEmpty();
+	}
+
+	@Test
 	void rejectsAnAmbiguousUnknownWithoutSourceRefs() {
 		String json =
 				"""

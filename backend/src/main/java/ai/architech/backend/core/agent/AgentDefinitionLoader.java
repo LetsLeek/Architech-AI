@@ -64,25 +64,34 @@ public class AgentDefinitionLoader {
 		String roleContent = readRoleContent(resource);
 
 		try {
-			return toDefinition(raw, roleContent);
+			return toDefinition(raw, roleContent, resource);
 		} catch (RuntimeException e) {
 			throw new InvalidAgentDefinitionException(resource, "Malformed agent definition", e);
 		}
 	}
 
 	private String readRoleContent(Resource resource) {
+		return readRelative(resource, ROLE_CONTENT_FILENAME);
+	}
+
+	/** {@code schemaPath} is the raw path from agent.yaml (e.g. "../../schemas/x.schema.json") - resolved the same way as {@link #readRoleContent}. */
+	private String readSchemaContent(Resource resource, String schemaPath) {
+		return readRelative(resource, schemaPath);
+	}
+
+	private String readRelative(Resource resource, String relativePath) {
 		try {
-			Resource contentResource = resource.createRelative(ROLE_CONTENT_FILENAME);
+			Resource contentResource = resource.createRelative(relativePath);
 			try (InputStream in = contentResource.getInputStream()) {
 				return StreamUtils.copyToString(in, StandardCharsets.UTF_8);
 			}
 		} catch (IOException e) {
-			throw new InvalidAgentDefinitionException(resource, "Missing or unreadable " + ROLE_CONTENT_FILENAME, e);
+			throw new InvalidAgentDefinitionException(resource, "Missing or unreadable " + relativePath, e);
 		}
 	}
 
 	@SuppressWarnings("unchecked")
-	private static AgentDefinition toDefinition(Map<String, Object> raw, String roleContent) {
+	private AgentDefinition toDefinition(Map<String, Object> raw, String roleContent, Resource resource) {
 		Map<String, Object> limitsRaw = requireMap(raw, "limits");
 		Map<String, Object> outputsRaw = requireMap(raw, "outputs");
 		Object artifactsRaw = outputsRaw.get("artifacts");
@@ -92,10 +101,14 @@ public class AgentDefinitionLoader {
 
 		List<AgentArtifactOutput> artifacts = ((List<Map<String, Object>>) artifactsRaw)
 				.stream()
-				.map(a -> new AgentArtifactOutput(
-						(String) requireField(a, "type"),
-						(String) requireField(a, "schema"),
-						(Boolean) a.getOrDefault("required", Boolean.FALSE)))
+				.map(a -> {
+					String schemaPath = (String) requireField(a, "schema");
+					return new AgentArtifactOutput(
+							(String) requireField(a, "type"),
+							schemaPath,
+							readSchemaContent(resource, schemaPath),
+							(Boolean) a.getOrDefault("required", Boolean.FALSE));
+				})
 				.toList();
 
 		return new AgentDefinition(
