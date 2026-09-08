@@ -39,7 +39,9 @@ class CandidatePromoterTests {
 		candidateOutputRepository.saveAndFlush(
 				new CandidateOutput(execution.getId(), "customer-profile", "{\"raw\":true}"));
 
-		assertThat(artifactRepository.findAll()).isEmpty();
+		// scoped to this test's own project - a table-wide findAll().isEmpty() would depend on
+		// no unrelated Artifact existing anywhere in the (shared, dev-usable) database
+		assertThat(artifactRepository.findByProjectIdAndType(project.getId(), "customer-profile")).isEmpty();
 	}
 
 	@Test
@@ -75,6 +77,6 @@ class CandidatePromoterTests {
 		candidateOutputRepository.saveAndFlush(
 				new CandidateOutput(execution.getId(), "customer-profile", "not valid json at all"));
 
-		assertThat(artifactRepository.findAll()).isEmpty();
+		assertThat(artifactRepository.findByProjectIdAndType(project.getId(), "customer-profile")).isEmpty();
 	}
 }

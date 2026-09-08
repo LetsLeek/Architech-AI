@@ -60,7 +60,10 @@ class ArtifactVersionFactoryTests {
 
 		assertThat(v2.getArtifactId()).isEqualTo(v1.getArtifactId());
 		assertThat(v2.getVersionNumber()).isEqualTo(2);
-		assertThat(artifactRepository.findAll()).hasSize(1);
+		// scoped to this project+type - a table-wide findAll().hasSize(1) would depend on no
+		// unrelated Artifact existing anywhere in the (shared, dev-usable) database
+		Artifact artifact = artifactRepository.findByProjectIdAndType(project.getId(), "customer-profile").orElseThrow();
+		assertThat(artifact.getId()).isEqualTo(v1.getArtifactId());
 	}
 
 	@Test
