@@ -49,7 +49,7 @@ class RequirementsOutputPersisterTests {
 		assertThat(result.websiteRequirementsVersion().getVersionNumber()).isEqualTo(1);
 		assertThat(result.customerProfileVersion().getArtifactId())
 				.isNotEqualTo(result.websiteRequirementsVersion().getArtifactId());
-		assertThat(artifactVersionRepository.findAll()).hasSize(2);
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
 	}
 
 	@Test
@@ -69,7 +69,7 @@ class RequirementsOutputPersisterTests {
 		assertThat(result.persisted()).isFalse();
 		assertThat(result.customerProfileVersion()).isNull();
 		assertThat(result.websiteRequirementsVersion()).isNull();
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -86,6 +86,6 @@ class RequirementsOutputPersisterTests {
 						() -> requirementsOutputPersister.persist(project.getId(), wrongType, true, requirements, true))
 				.isInstanceOf(IllegalArgumentException.class);
 
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 }

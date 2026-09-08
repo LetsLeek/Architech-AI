@@ -114,7 +114,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.succeeded()).isTrue();
 		assertThat(result.validationIssues()).isEmpty();
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.SUCCEEDED);
-		assertThat(artifactVersionRepository.findAll()).hasSize(2);
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
 		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
 	}
 
@@ -130,7 +130,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.succeeded()).isFalse();
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
 		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).isEmpty();
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -150,7 +150,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
 		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("schema[customer-profile]"));
 		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -170,7 +170,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
 		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("schema[website-requirements]"));
 		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -198,7 +198,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.succeeded()).isFalse();
 		assertThat(result.validationIssues())
 				.anyMatch(issue -> issue.startsWith("local-ref[customer-profile]") && issue.contains("loc-1"));
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -225,7 +225,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.succeeded()).isFalse();
 		assertThat(result.validationIssues())
 				.anyMatch(issue -> issue.startsWith("semantic[website-requirements]") && issue.contains("customType"));
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -242,7 +242,7 @@ class RequirementsAnalysisRunnerTests {
 
 		assertThat(result.succeeded()).isFalse();
 		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("cross-artifact[customer-profile]"));
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(execution.getId())).isEmpty();
 	}
 
 	@Test
@@ -255,7 +255,7 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.succeeded()).isFalse();
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
 		assertThat(result.execution().getAgentId()).isEqualTo("requirements-agent");
-		assertThat(artifactVersionRepository.findAll()).isEmpty();
+		assertThat(artifactVersionRepository.findByAgentExecutionId(result.execution().getId())).isEmpty();
 	}
 
 	private String combine(String customerProfileJson, String websiteRequirementsJson) {

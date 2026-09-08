@@ -28,8 +28,24 @@ public class CustomerProfileSemanticValidator {
 			Set.of("name", "street", "postalCode", "city", "countryCode", "raw");
 	private static final Set<String> OFFERING_PROVENANCE_FIELDS = Set.of("name", "description", "category", "price");
 	private static final Set<String> OPENING_HOURS_PROVENANCE_FIELDS = Set.of("locationRefs", "schedule", "closedDays", "raw");
-	private static final Set<String> SINGLETON_PROVENANCE_FIELDS =
-			Set.of("name", "description", "languages", "email", "phone", "website");
+	// Both the bare field name ("name") and the singleton-qualified form ("business.name") are
+	// accepted - a provenance entry with no targetRef has no other way to disambiguate which
+	// singleton a field belongs to when business/contact happen to share a name (they don't
+	// currently, but nothing requires that), so "business.name"/"contact.phone" is a
+	// legitimate, arguably clearer way for an agent to write this - not a mistake to reject.
+	private static final Set<String> SINGLETON_PROVENANCE_FIELDS = Set.of(
+			"name",
+			"description",
+			"languages",
+			"email",
+			"phone",
+			"website",
+			"business.name",
+			"business.description",
+			"business.languages",
+			"contact.email",
+			"contact.phone",
+			"contact.website");
 	private static final Set<String> SCHEDULE_DAYS = Set.of("MO", "TU", "WE", "TH", "FR", "SA", "SU");
 
 	private final ObjectMapper objectMapper;

@@ -9,6 +9,8 @@ public interface ArtifactVersionRepository extends JpaRepository<ArtifactVersion
 
 	List<ArtifactVersion> findByArtifactIdOrderByVersionNumberDesc(UUID artifactId);
 
+	List<ArtifactVersion> findByAgentExecutionId(UUID agentExecutionId);
+
 	Optional<ArtifactVersion> findByArtifactIdAndVersionNumber(UUID artifactId, int versionNumber);
 
 	Optional<ArtifactVersion> findTopByArtifactIdOrderByVersionNumberDesc(UUID artifactId);

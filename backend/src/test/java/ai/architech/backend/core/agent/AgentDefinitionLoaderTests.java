@@ -30,6 +30,18 @@ class AgentDefinitionLoaderTests {
 		assertThat(definition.outputs().artifacts()).allMatch(AgentArtifactOutput::required);
 		assertThat(definition.roleContent()).contains("# Website Requirements Analyst");
 		assertThat(definition.roleContent()).contains("The agent analyzes evidence.");
+
+		// AIW-127: each declared output's schema file is resolved and loaded, not just referenced by path
+		AgentArtifactOutput customerProfile = definition.outputs().artifacts().stream()
+				.filter(output -> output.type().equals("customer-profile"))
+				.findFirst()
+				.orElseThrow();
+		assertThat(customerProfile.schemaContent()).contains("\"title\": \"Customer Profile\"");
+		AgentArtifactOutput websiteRequirements = definition.outputs().artifacts().stream()
+				.filter(output -> output.type().equals("website-requirements"))
+				.findFirst()
+				.orElseThrow();
+		assertThat(websiteRequirements.schemaContent()).contains("\"title\": \"Website Requirements\"");
 	}
 
 	@Test

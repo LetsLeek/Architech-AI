@@ -5,11 +5,7 @@ import com.networknt.schema.InputFormat;
 import com.networknt.schema.Schema;
 import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.util.List;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -20,6 +16,11 @@ import tools.jackson.databind.node.ObjectNode;
  * (customer-profile.schema.json / website-requirements.schema.json), draft 2020-12 - the
  * dialect both schema files declare. Detects and reports only: never repairs, normalizes,
  * or drops offending fields from the candidate on its own.
+ *
+ * <p>{@code schemaJson} is the schema's raw text - callers get this from
+ * {@code AgentArtifactOutput.schemaContent()} (resolved once by {@code AgentDefinitionLoader}
+ * relative to agent.yaml, the same content also sent to the model as part of the prompt -
+ * AIW-127), not a classpath {@code Resource} this class would have to load itself.
  *
  * <p>Both frozen schema files declare a bare filename as {@code $id} (e.g.
  * {@code "customer-profile.schema.json"}), which this validator library rejects as "not a
@@ -39,8 +40,8 @@ public class ArtifactSchemaValidator {
 		this.objectMapper = objectMapper;
 	}
 
-	public SchemaValidationResult validate(Resource schemaResource, String candidateJson) {
-		Schema schema = loadSchema(schemaResource);
+	public SchemaValidationResult validate(String schemaJson, String candidateJson) {
+		Schema schema = loadSchema(schemaJson);
 
 		List<Error> errors;
 		try {
@@ -61,15 +62,11 @@ public class ArtifactSchemaValidator {
 						.toList());
 	}
 
-	private Schema loadSchema(Resource schemaResource) {
-		try (InputStream in = schemaResource.getInputStream()) {
-			JsonNode schemaNode = objectMapper.readTree(in);
-			if (schemaNode instanceof ObjectNode objectNode) {
-				objectNode.remove("$id");
-			}
-			return schemaRegistry.getSchema(schemaNode);
-		} catch (IOException e) {
-			throw new UncheckedIOException("Failed to load schema " + schemaResource, e);
+	private Schema loadSchema(String schemaJson) {
+		JsonNode schemaNode = objectMapper.readTree(schemaJson);
+		if (schemaNode instanceof ObjectNode objectNode) {
+			objectNode.remove("$id");
 		}
+		return schemaRegistry.getSchema(schemaNode);
 	}
 }

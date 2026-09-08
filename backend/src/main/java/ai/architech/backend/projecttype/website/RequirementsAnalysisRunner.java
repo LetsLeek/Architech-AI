@@ -28,8 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -64,10 +64,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class RequirementsAnalysisRunner {
 
+	private static final Logger log = LoggerFactory.getLogger(RequirementsAnalysisRunner.class);
+
 	static final String AGENT_ID = "requirements-agent";
 	static final int AGENT_VERSION = 1;
-
-	private static final String SCHEMA_CLASSPATH_PREFIX = "classpath:project-types/website/schemas/";
 
 	private final EvidenceSnapshotFactory evidenceSnapshotFactory;
 	private final BoundedRetryAgentRunner boundedRetryAgentRunner;
@@ -81,7 +81,6 @@ public class RequirementsAnalysisRunner {
 	private final CandidateOutputRepository candidateOutputRepository;
 	private final RequirementsOutputPersister requirementsOutputPersister;
 	private final AgentExecutionRepository agentExecutionRepository;
-	private final ResourceLoader resourceLoader;
 
 	RequirementsAnalysisRunner(
 			EvidenceSnapshotFactory evidenceSnapshotFactory,
@@ -95,8 +94,7 @@ public class RequirementsAnalysisRunner {
 			CrossArtifactValidator crossArtifactValidator,
 			CandidateOutputRepository candidateOutputRepository,
 			RequirementsOutputPersister requirementsOutputPersister,
-			AgentExecutionRepository agentExecutionRepository,
-			ResourceLoader resourceLoader) {
+			AgentExecutionRepository agentExecutionRepository) {
 		this.evidenceSnapshotFactory = evidenceSnapshotFactory;
 		this.boundedRetryAgentRunner = boundedRetryAgentRunner;
 		this.agentDefinitionLoader = agentDefinitionLoader;
@@ -109,7 +107,6 @@ public class RequirementsAnalysisRunner {
 		this.candidateOutputRepository = candidateOutputRepository;
 		this.requirementsOutputPersister = requirementsOutputPersister;
 		this.agentExecutionRepository = agentExecutionRepository;
-		this.resourceLoader = resourceLoader;
 	}
 
 	/** Creates the immutable evidence snapshot, runs the agent, then validates and persists. */
@@ -139,6 +136,12 @@ public class RequirementsAnalysisRunner {
 		contractResult.issues().forEach(issue -> issues.add("output-contract: " + issue));
 
 		if (!contractResult.valid()) {
+			// The raw candidate is otherwise lost forever the moment this returns - nothing
+			// else persists it when output-contract validation itself fails (a
+			// schema-conformant-enough candidate at least becomes an audited CandidateOutput
+			// row; this one never gets that far). Logging it is the only audit trail available
+			// for "what did the model actually say" in this case.
+			log.warn("Requirements Agent output failed output-contract validation for execution {}: {}", execution.getId(), runnerResult.candidateOutput());
 			return failExecution(execution, issues);
 		}
 
@@ -193,7 +196,7 @@ public class RequirementsAnalysisRunner {
 		String type = artifactOutput.type();
 		List<String> artifactIssues = new ArrayList<>();
 
-		artifactSchemaValidator.validate(resolveSchema(artifactOutput), content).issues()
+		artifactSchemaValidator.validate(artifactOutput.schemaContent(), content).issues()
 				.forEach(issue -> artifactIssues.add("schema[" + type + "] " + issue.path() + ": " + issue.message()));
 
 		localRefUniquenessValidator.validate(content).issues()
@@ -208,20 +211,6 @@ public class RequirementsAnalysisRunner {
 		}
 
 		return artifactIssues;
-	}
-
-	/**
-	 * {@code AgentArtifactOutput.schema()} is the raw relative path string from agent.yaml
-	 * (e.g. "../../schemas/customer-profile.schema.json") - the {@code Resource} that would
-	 * let us resolve it relatively isn't retained on the parsed {@link AgentDefinition}. Both
-	 * frozen schemas live at the one well-known location the Maven build copies
-	 * {@code project-types/} to on the classpath, so resolving by filename there is simpler
-	 * and just as correct as re-deriving the relative resolution.
-	 */
-	private Resource resolveSchema(AgentArtifactOutput artifactOutput) {
-		String schemaPath = artifactOutput.schema();
-		String filename = schemaPath.substring(schemaPath.lastIndexOf('/') + 1);
-		return resourceLoader.getResource(SCHEMA_CLASSPATH_PREFIX + filename);
 	}
 
 	private RequirementsAnalysisResult failExecution(AgentExecution execution, List<String> issues) {

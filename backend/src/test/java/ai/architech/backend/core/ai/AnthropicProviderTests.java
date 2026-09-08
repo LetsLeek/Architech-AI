@@ -44,6 +44,7 @@ class AnthropicProviderTests {
 				{
 				  "model": "claude-sonnet-5",
 				  "max_tokens": 1000,
+				  "thinking": {"type": "disabled"},
 				  "system": "Follow the rules.",
 				  "messages": [{"role": "user", "content": "Describe the business."}]
 				}
@@ -87,7 +88,10 @@ class AnthropicProviderTests {
 
 		// no system-role message at all - "system" must be entirely absent, not an empty string
 		server.expect(requestTo(MESSAGES_URL))
-				.andExpect(content().json("{\"model\":\"claude-sonnet-5\",\"max_tokens\":10,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}", true))
+				.andExpect(content()
+						.json(
+								"{\"model\":\"claude-sonnet-5\",\"max_tokens\":10,\"thinking\":{\"type\":\"disabled\"},\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}",
+								true))
 				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
 
 		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 10, "corr-2");
@@ -95,6 +99,48 @@ class AnthropicProviderTests {
 		provider.invoke(request, "claude-sonnet-5");
 
 		server.verify();
+	}
+
+	@Test
+	void stripsAJsonMarkdownCodeFenceFromTheResponseText() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		// the "text" value is the JSON string ```json\n{"customer-profile": {}}\n``` - written
+		// as a fully-escaped JSON string literal so the response body itself is valid JSON
+		String responseJson =
+				"{\"model\": \"claude-sonnet-5\", \"content\": [{\"type\": \"text\", "
+						+ "\"text\": \"```json\\n{\\\"customer-profile\\\": {}}\\n```\"}], "
+						+ "\"usage\": {\"input_tokens\": 1, \"output_tokens\": 1}}";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-5");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.content()).isEqualTo("{\"customer-profile\": {}}");
+	}
+
+	@Test
+	void leavesUnfencedTextUntouched() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "content": [{"type": "text", "text": "{\\"customer-profile\\": {}}"}], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-6");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.content()).isEqualTo("{\"customer-profile\": {}}");
 	}
 
 	@Test
