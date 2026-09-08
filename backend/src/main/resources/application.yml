@@ -9,6 +9,14 @@ spring:
     open-in-view: false
   flyway:
     locations: classpath:db/migration
+  web:
+    error:
+      # Default is "never" - the frontend needs the actual message (e.g.
+      # UnsupportedProjectTypeException's text) to show a clear error, not just a bare status
+      # code. No sensitive internals leak here: only exceptions this platform raises itself
+      # (typically @ResponseStatus'd 4xx) carry a message worth showing; stack traces stay off.
+      # Renamed from server.error.* in Spring Boot 4.
+      include-message: always
 
 architech:
   ai:
