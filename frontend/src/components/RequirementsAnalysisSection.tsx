@@ -16,7 +16,13 @@ type AnalysisState =
   | { kind: 'runtime-failure'; message: string }
   | { kind: 'start-error'; message: string }
 
-function RequirementsAnalysisSection({ projectId, hasInput }: { projectId: string; hasInput: boolean }) {
+interface RequirementsAnalysisSectionProps {
+  projectId: string
+  hasInput: boolean
+  onSucceeded?: () => void
+}
+
+function RequirementsAnalysisSection({ projectId, hasInput, onSucceeded }: RequirementsAnalysisSectionProps) {
   const [state, setState] = useState<AnalysisState>({ kind: 'idle' })
 
   async function handleStart() {
@@ -24,6 +30,9 @@ function RequirementsAnalysisSection({ projectId, hasInput }: { projectId: strin
     try {
       const result = await startRequirementsAnalysis(projectId)
       setState({ kind: 'completed', result })
+      if (result.succeeded) {
+        onSucceeded?.()
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 502) {
         setState({ kind: 'runtime-failure', message: err.message })

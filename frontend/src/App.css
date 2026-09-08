@@ -122,3 +122,25 @@
   color: #d1242f;
   background: rgba(209, 36, 47, 0.15);
 }
+
+.artifact-meta {
+  color: var(--text);
+  font-size: 0.9em;
+  margin-bottom: 12px;
+}
+
+.profile-block {
+  margin-bottom: 20px;
+}
+
+.profile-block h3 {
+  margin: 0 0 6px;
+  font-size: 1em;
+  color: var(--text-h);
+}
+
+.provenance-note {
+  color: var(--text);
+  font-size: 0.85em;
+  margin: 0 0 8px;
+}

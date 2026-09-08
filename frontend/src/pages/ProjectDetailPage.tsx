@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { errorMessage } from '../api/http'
 import { getProject, type Project } from '../api/projects'
+import CustomerProfileView from '../components/CustomerProfileView'
 import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
 import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
@@ -17,6 +18,7 @@ function ProjectDetailPage() {
   const [freeTextCount, setFreeTextCount] = useState(0)
   const [structuredCount, setStructuredCount] = useState(0)
   const [fileCount, setFileCount] = useState(0)
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!projectId) {
@@ -78,7 +80,10 @@ function ProjectDetailPage() {
       <RequirementsAnalysisSection
         projectId={project.id}
         hasInput={freeTextCount + structuredCount + fileCount > 0}
+        onSucceeded={() => setProfileRefreshKey((key) => key + 1)}
       />
+
+      <CustomerProfileView projectId={project.id} refreshKey={profileRefreshKey} />
     </section>
   )
 }
