@@ -23,6 +23,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Integration coverage for the frozen Requirements V1 pipeline (AIW-52). Every scenario here
+ * runs the real validators/persistence against a real Postgres - only the AI Gateway call
+ * itself is a hand-built {@link RunnerResult} rather than a live model, since the platform's
+ * only registered provider is the deterministic mock (it always returns empty content and so
+ * can never itself produce a validation-passing candidate); this keeps every test
+ * deterministic without depending on an unbounded live AI loop, per the ticket's own
+ * acceptance criterion.
+ *
+ * <p>Not duplicated here: "retry creates a distinct AgentExecution" is already proven by
+ * {@code BoundedRetryAgentRunnerTests#createsOneNewAgentExecutionPerAttemptAndThrowsAfterExhaustingTheBudget}
+ * (AIW-38) - {@link ai.architech.backend.core.runner.BoundedRetryAgentRunner}, which
+ * {@link RequirementsAnalysisRunner#run} delegates retries to unmodified, has no
+ * Requirements-Agent-specific behavior to re-prove here.
+ */
 @SpringBootTest
 @Transactional
 class RequirementsAnalysisRunnerTests {
@@ -135,6 +150,81 @@ class RequirementsAnalysisRunnerTests {
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
 		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("schema[customer-profile]"));
 		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
+		assertThat(artifactVersionRepository.findAll()).isEmpty();
+	}
+
+	@Test
+	void failsButStillRecordsCandidateOutputsAsAuditWhenTheWebsiteRequirementsFailSchemaValidation() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		UUID snapshotId = seedTwoSourceRefs(project);
+		AgentExecution execution = startedExecution(project);
+
+		// mirror of the customer-profile-invalid case above, other direction: valid Customer
+		// Profile, Website Requirements missing most of its required top-level keys.
+		String candidateOutput = combine(VALID_CUSTOMER_PROFILE, "{\"goals\": []}");
+
+		RequirementsAnalysisResult result =
+				requirementsAnalysisRunner.validateAndPersist(snapshotId, new RunnerResult(execution, candidateOutput));
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
+		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("schema[website-requirements]"));
+		assertThat(candidateOutputRepository.findByAgentExecutionId(execution.getId())).hasSize(2);
+		assertThat(artifactVersionRepository.findAll()).isEmpty();
+	}
+
+	@Test
+	void failsWhenALocalRefIsDuplicatedWithinAnArtifact() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		UUID snapshotId = seedTwoSourceRefs(project);
+		AgentExecution execution = startedExecution(project);
+
+		// schema-valid (both locations satisfy the schema's anyOf via "name") and cites no
+		// sourceRefs at all, so schema/cross-artifact stay clean - only the local-ref layer
+		// should flag anything here.
+		String duplicateLocalRefProfile =
+				"""
+				{
+				  "business": {}, "contact": {},
+				  "locations": [{"localRef": "loc-1", "name": "HQ"}, {"localRef": "loc-1", "name": "Branch"}],
+				  "offerings": [], "openingHours": [], "socialLinks": [], "providedClaims": [],
+				  "unknowns": [], "conflicts": [], "provenance": []
+				}""";
+		String candidateOutput = combine(duplicateLocalRefProfile, VALID_WEBSITE_REQUIREMENTS);
+
+		RequirementsAnalysisResult result =
+				requirementsAnalysisRunner.validateAndPersist(snapshotId, new RunnerResult(execution, candidateOutput));
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.validationIssues())
+				.anyMatch(issue -> issue.startsWith("local-ref[customer-profile]") && issue.contains("loc-1"));
+		assertThat(artifactVersionRepository.findAll()).isEmpty();
+	}
+
+	@Test
+	void failsWhenAnArtifactFailsOnlySemanticValidation() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		UUID snapshotId = seedTwoSourceRefs(project);
+		AgentExecution execution = startedExecution(project);
+
+		// schema-valid (customType is optional in the schema itself) and cites only SRC-1, so
+		// schema/local-ref/cross-artifact all stay clean - only the semantic
+		// type=custom<=>customType consistency rule should flag this.
+		String customTypeMissingRequirements =
+				"""
+				{
+				  "goals": [], "targetAudiences": [], "functionalRequirements": [],
+				  "languages": [], "constraints": [], "unknowns": [], "conflicts": [],
+				  "contentRequirements": [{"localRef": "cr-1", "type": "custom", "description": "x", "strength": "must", "sourceRefs": ["SRC-1"]}]
+				}""";
+		String candidateOutput = combine(VALID_CUSTOMER_PROFILE, customTypeMissingRequirements);
+
+		RequirementsAnalysisResult result =
+				requirementsAnalysisRunner.validateAndPersist(snapshotId, new RunnerResult(execution, candidateOutput));
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.validationIssues())
+				.anyMatch(issue -> issue.startsWith("semantic[website-requirements]") && issue.contains("customType"));
 		assertThat(artifactVersionRepository.findAll()).isEmpty();
 	}
 
