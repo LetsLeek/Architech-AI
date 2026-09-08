@@ -7,6 +7,7 @@ import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
 import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
 import StructuredInputSection from '../components/StructuredInputSection'
+import WebsiteRequirementsView from '../components/WebsiteRequirementsView'
 
 function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -84,6 +85,7 @@ function ProjectDetailPage() {
       />
 
       <CustomerProfileView projectId={project.id} refreshKey={profileRefreshKey} />
+      <WebsiteRequirementsView projectId={project.id} refreshKey={profileRefreshKey} />
     </section>
   )
 }

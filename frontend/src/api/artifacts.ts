@@ -92,6 +92,86 @@ export interface CustomerProfile {
   provenance: ProvenanceItem[]
 }
 
+export type Strength = 'must' | 'should' | 'could'
+
+export interface Goal {
+  localRef: string
+  description: string
+  strength: Strength
+  sourceRefs: string[]
+}
+
+export interface Audience {
+  localRef: string
+  description: string
+  sourceRefs: string[]
+}
+
+export interface ContentRequirement {
+  localRef: string
+  type: string
+  customType?: string
+  description: string
+  strength: Strength
+  sourceRefs: string[]
+}
+
+export interface FunctionalRequirement {
+  localRef: string
+  type: string
+  customType?: string
+  description: string
+  strength: Strength
+  sourceRefs: string[]
+}
+
+export interface Language {
+  code: string
+  strength: Strength
+  sourceRefs: string[]
+}
+
+export interface Constraint {
+  localRef: string
+  category: string
+  description: string
+  strength: Strength
+  sourceRefs: string[]
+}
+
+// Shaped differently from the Customer Profile's unknown/conflict (no "field" requirement,
+// an "affects" list of localRefs instead) - kept as separate types rather than reusing
+// UnknownItem/ConflictItem, which would misrepresent this artifact's actual schema.
+export interface RequirementUnknown {
+  kind: 'missing' | 'ambiguous'
+  description: string
+  field?: string
+  affects?: string[]
+  sourceRefs?: string[]
+}
+
+export interface RequirementConflictStatement {
+  description: string
+  sourceRefs: string[]
+}
+
+export interface RequirementConflict {
+  description: string
+  affects?: string[]
+  statements: RequirementConflictStatement[]
+}
+
+export interface WebsiteRequirements {
+  goals: Goal[]
+  targetAudiences: Audience[]
+  contentRequirements: ContentRequirement[]
+  functionalRequirements: FunctionalRequirement[]
+  languages: Language[]
+  constraints: Constraint[]
+  unknowns: RequirementUnknown[]
+  conflicts: RequirementConflict[]
+}
+
 export interface ArtifactVersionInfo<T> {
   artifactId: string
   type: string
@@ -102,4 +182,8 @@ export interface ArtifactVersionInfo<T> {
 
 export function getCustomerProfile(projectId: string): Promise<ArtifactVersionInfo<CustomerProfile>> {
   return requestJson(`/api/projects/${encodeURIComponent(projectId)}/artifacts/customer-profile`)
+}
+
+export function getWebsiteRequirements(projectId: string): Promise<ArtifactVersionInfo<WebsiteRequirements>> {
+  return requestJson(`/api/projects/${encodeURIComponent(projectId)}/artifacts/website-requirements`)
 }
