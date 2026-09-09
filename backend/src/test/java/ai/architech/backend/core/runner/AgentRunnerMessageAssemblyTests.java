@@ -56,7 +56,9 @@ class AgentRunnerMessageAssemblyTests {
 
 		assertThat(systemMessage.content()).contains(customerProfileSchema);
 		assertThat(systemMessage.content()).contains(websiteRequirementsSchema);
-		assertThat(systemMessage.content()).contains("\"customer-profile\" output must be valid against exactly this JSON Schema");
-		assertThat(systemMessage.content()).contains("\"website-requirements\" output must be valid against exactly this JSON Schema");
+		assertThat(systemMessage.content()).contains("Schema for \"customer-profile\"");
+		assertThat(systemMessage.content()).contains("Schema for \"website-requirements\"");
+		assertThat(systemMessage.content())
+				.contains("Its only top-level keys must be exactly: \"customer-profile\", \"website-requirements\"");
 	}
 }
