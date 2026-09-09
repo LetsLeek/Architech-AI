@@ -3,6 +3,7 @@ package ai.architech.backend.core.project;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,8 +52,15 @@ class ProjectControllerTests {
 	void rejectsAnUnsupportedProjectType() throws Exception {
 		String body = objectMapper.writeValueAsString(new CreateProjectRequest("mobile-app"));
 
+		// asserts on the full AIW-59 error envelope, not just the status - proves
+		// GlobalExceptionHandler is actually wired into the real Spring context here, not just
+		// unit-tested in isolation (see GlobalExceptionHandlerTests).
 		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(body))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.errorCode").value("UNSUPPORTED_PROJECT_TYPE"))
+				.andExpect(jsonPath("$.message").value("Unsupported project type: mobile-app"))
+				.andExpect(jsonPath("$.correlationId", notNullValue()))
+				.andExpect(header().exists("X-Correlation-Id"));
 	}
 
 	@Test

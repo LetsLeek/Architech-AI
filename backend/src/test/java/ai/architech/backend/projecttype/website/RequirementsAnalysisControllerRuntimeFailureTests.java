@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import ai.architech.backend.core.agentexecution.AgentExecutionRepository;
+import ai.architech.backend.core.error.ApplicationException;
+import ai.architech.backend.core.error.ErrorCode;
 import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.FileProjectInputRepository;
 import ai.architech.backend.core.projectinput.ProjectInputRepository;
@@ -13,8 +15,6 @@ import ai.architech.backend.core.projectinput.StructuredProjectInputRepository;
 import ai.architech.backend.core.runner.RetryBudgetExhaustedException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Plain-Mockito, no-Spring-context unit test: a {@link RetryBudgetExhaustedException} (model/
@@ -54,11 +54,11 @@ class RequirementsAnalysisControllerRuntimeFailureTests {
 				requirementsAnalysisRunner);
 
 		assertThatThrownBy(() -> controller.start(projectId))
-				.isInstanceOf(ResponseStatusException.class)
+				.isInstanceOf(ApplicationException.class)
 				.satisfies(thrown -> {
-					ResponseStatusException responseStatusException = (ResponseStatusException) thrown;
-					assertThat(responseStatusException.getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
-					assertThat(responseStatusException.getReason()).doesNotContain("sk-live-totally-a-secret-provider-key");
+					ApplicationException applicationException = (ApplicationException) thrown;
+					assertThat(applicationException.errorCode()).isEqualTo(ErrorCode.MODEL_RUNTIME_FAILURE);
+					assertThat(applicationException.getMessage()).doesNotContain("sk-live-totally-a-secret-provider-key");
 				});
 	}
 }

@@ -3,6 +3,7 @@ package ai.architech.backend.core.evidence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.project.Project;
 import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.FileProjectInput;
@@ -72,8 +73,7 @@ class SourceContextFactoryTests {
 
 	@Test
 	void throwsForAnUnknownEvidenceSnapshot() {
-		assertThatThrownBy(() -> sourceContextFactory.build(UUID.randomUUID()))
-				.isInstanceOf(EvidenceSnapshotNotFoundException.class);
+		assertThatThrownBy(() -> sourceContextFactory.build(UUID.randomUUID())).isInstanceOf(ApplicationException.class);
 	}
 
 	private static SourceItem itemFor(SourceContext context, UUID id) {

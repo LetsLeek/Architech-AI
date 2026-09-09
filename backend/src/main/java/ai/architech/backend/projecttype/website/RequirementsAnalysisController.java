@@ -2,6 +2,8 @@ package ai.architech.backend.projecttype.website;
 
 import ai.architech.backend.core.agentexecution.AgentExecutionRepository;
 import ai.architech.backend.core.agentexecution.AgentExecutionStatus;
+import ai.architech.backend.core.error.ApplicationException;
+import ai.architech.backend.core.error.ErrorCode;
 import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.FileProjectInputRepository;
 import ai.architech.backend.core.projectinput.ProjectInputRepository;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Triggers one Requirements Analysis run for a Website Project (AIW-55) - the trigger endpoint
@@ -64,14 +65,16 @@ class RequirementsAnalysisController {
 	@PostMapping
 	ResponseEntity<RequirementsAnalysisResponse> start(@PathVariable UUID projectId) {
 		if (!projectRepository.existsById(projectId)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No project with id " + projectId);
+			throw new ApplicationException(ErrorCode.PROJECT_NOT_FOUND, "No project with id " + projectId);
 		}
 		if (!hasAnyInput(projectId)) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Project has no customer input to analyze yet");
+			throw new ApplicationException(
+					ErrorCode.PROJECT_HAS_NO_INPUT, "Project has no customer input to analyze yet");
 		}
 		if (agentExecutionRepository.existsByProjectIdAndStatus(projectId, AgentExecutionStatus.RUNNING)) {
-			throw new ResponseStatusException(
-					HttpStatus.CONFLICT, "A requirements analysis is already running for this project");
+			throw new ApplicationException(
+					ErrorCode.REQUIREMENTS_ANALYSIS_ALREADY_RUNNING,
+					"A requirements analysis is already running for this project");
 		}
 
 		RequirementsAnalysisResult result;
@@ -84,8 +87,8 @@ class RequirementsAnalysisController {
 			// secrets/internals leak; model/runtime failure stays distinguishable from a
 			// validation failure by both HTTP status and response shape - see
 			// RequirementsAnalysisResponse for the latter).
-			throw new ResponseStatusException(
-					HttpStatus.BAD_GATEWAY,
+			throw new ApplicationException(
+					ErrorCode.MODEL_RUNTIME_FAILURE,
 					"Requirements analysis could not run: the model/runtime failed on every permitted attempt. No candidate output was produced.");
 		}
 		return ResponseEntity.status(HttpStatus.CREATED).body(RequirementsAnalysisResponse.from(result));
