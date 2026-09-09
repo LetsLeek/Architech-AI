@@ -85,7 +85,7 @@ class AgentExecutionTests {
 	@Test
 	void recordsModelUsageDirectlyFromAnAiResponse() {
 		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "requirements-agent", 1);
-		AiResponse response = new AiResponse("mock", "mock-model", "content", "corr-1", 50, 75);
+		AiResponse response = new AiResponse("mock", "mock-model", "content", "corr-1", 50, 75, null, null);
 
 		execution.recordModelUsage(response, new BigDecimal("0.01"));
 

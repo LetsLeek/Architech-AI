@@ -22,7 +22,13 @@ public class CostCalculator {
 		this.properties = properties;
 	}
 
-	public BigDecimal calculateUsd(String provider, String model, Integer promptTokens, Integer completionTokens) {
+	public BigDecimal calculateUsd(
+			String provider,
+			String model,
+			Integer promptTokens,
+			Integer completionTokens,
+			Integer cacheCreationInputTokens,
+			Integer cacheReadInputTokens) {
 		if (promptTokens == null || completionTokens == null) {
 			return null;
 		}
@@ -32,14 +38,31 @@ public class CostCalculator {
 			return null;
 		}
 
+		BigDecimal cacheWriteCost = cacheTokenCost(pricing.cacheWriteCostPer1000Tokens(), cacheCreationInputTokens);
+		BigDecimal cacheReadCost = cacheTokenCost(pricing.cacheReadCostPer1000Tokens(), cacheReadInputTokens);
+		if (cacheWriteCost == null || cacheReadCost == null) {
+			return null;
+		}
+
 		BigDecimal promptCost = perToken(pricing.promptCostPer1000Tokens(), promptTokens);
 		BigDecimal completionCost = perToken(pricing.completionCostPer1000Tokens(), completionTokens);
-		return promptCost.add(completionCost);
+		return promptCost.add(completionCost).add(cacheWriteCost).add(cacheReadCost);
 	}
 
 	private ModelPricing lookup(String provider, String model) {
 		Map<String, ModelPricing> byModel = properties.pricing().get(provider);
 		return byModel == null ? null : byModel.get(model);
+	}
+
+	/** {@code null} tokens (provider doesn't report caching) or zero tokens cost nothing, without requiring cache pricing to be configured at all. Nonzero tokens with no configured cache price return {@code null} - a real cost was incurred that this can't calculate, so it must not be silently priced at zero. */
+	private static BigDecimal cacheTokenCost(BigDecimal costPer1000, Integer tokens) {
+		if (tokens == null || tokens == 0) {
+			return BigDecimal.ZERO;
+		}
+		if (costPer1000 == null) {
+			return null;
+		}
+		return perToken(costPer1000, tokens);
 	}
 
 	private static BigDecimal perToken(BigDecimal costPer1000, int tokens) {

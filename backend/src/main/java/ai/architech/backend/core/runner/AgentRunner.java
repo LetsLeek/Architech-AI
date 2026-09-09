@@ -109,7 +109,12 @@ public class AgentRunner {
 			AiResponse response = aiGateway.invoke(request);
 
 			BigDecimal cost = costCalculator.calculateUsd(
-					response.provider(), response.model(), response.promptTokens(), response.completionTokens());
+					response.provider(),
+					response.model(),
+					response.promptTokens(),
+					response.completionTokens(),
+					response.cacheCreationInputTokens(),
+					response.cacheReadInputTokens());
 			execution.recordModelUsage(response, cost);
 			agentExecutionRepository.save(execution);
 
