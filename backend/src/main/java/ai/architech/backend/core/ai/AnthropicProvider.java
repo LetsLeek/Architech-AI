@@ -49,6 +49,15 @@ import tools.jackson.databind.node.ObjectNode;
  * output is single-shot deterministic JSON per an explicit schema; there is no reasoning benefit
  * here worth budgeting for, so thinking is switched off outright rather than compensated for by
  * inflating {@code maxOutputTokens}.
+ *
+ * <p>Marks the concatenated system prompt as cacheable (AIW-129): {@code system} is sent as a
+ * single-block content array with {@code cache_control: {type: "ephemeral"}} on that block,
+ * rather than a plain string - Anthropic only supports cache breakpoints on the block form.
+ * The system prompt (agent role, rules, skills, both full output schemas) is ~13k tokens and
+ * identical across every call for a given agent version; only the evidence in the user message
+ * changes. Verified against the real API: an identical second call re-used the cached prefix
+ * ({@code usage.cache_read_input_tokens} matched the first call's {@code
+ * cache_creation_input_tokens}) instead of paying full input-token price again.
  */
 @Component
 class AnthropicProvider implements AiProvider {
@@ -109,17 +118,30 @@ class AnthropicProvider implements AiProvider {
 			}
 		}
 		if (!system.isEmpty()) {
-			body.put("system", system.toString());
+			ObjectNode systemBlock =
+					body.putArray("system").addObject().put("type", "text").put("text", system.toString());
+			systemBlock.putObject("cache_control").put("type", "ephemeral");
 		}
 		return body;
 	}
 
 	private static AiResponse toAiResponse(JsonNode responseBody, String correlationId) {
 		String text = extractJsonObject(extractText(responseBody.path("content")));
-		Integer promptTokens = intOrNull(responseBody.path("usage").path("input_tokens"));
-		Integer completionTokens = intOrNull(responseBody.path("usage").path("output_tokens"));
+		JsonNode usage = responseBody.path("usage");
+		Integer promptTokens = intOrNull(usage.path("input_tokens"));
+		Integer completionTokens = intOrNull(usage.path("output_tokens"));
+		Integer cacheCreationInputTokens = intOrNull(usage.path("cache_creation_input_tokens"));
+		Integer cacheReadInputTokens = intOrNull(usage.path("cache_read_input_tokens"));
 		String actualModel = responseBody.path("model").asString();
-		return new AiResponse("anthropic", actualModel, text, correlationId, promptTokens, completionTokens);
+		return new AiResponse(
+				"anthropic",
+				actualModel,
+				text,
+				correlationId,
+				promptTokens,
+				completionTokens,
+				cacheCreationInputTokens,
+				cacheReadInputTokens);
 	}
 
 	private static String extractText(JsonNode contentBlocks) {

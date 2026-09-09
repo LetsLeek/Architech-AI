@@ -32,17 +32,27 @@ architech:
     # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
     # provider/model actually answered, and returns null (never fabricated) for anything not
     # listed here. Anthropic's own published pricing as of 2026-09-08.
+    #
+    # cache-write/cache-read price the two prompt-cache token counts AnthropicProvider reports
+    # separately (AIW-129) - Anthropic's standard ephemeral (5-minute) cache multipliers: writing
+    # to the cache costs 1.25x a regular prompt token, reading from it costs 0.1x.
     pricing:
       anthropic:
         claude-sonnet-5:
           prompt-cost-per1000-tokens: 0.002
           completion-cost-per1000-tokens: 0.01
+          cache-write-cost-per1000-tokens: 0.0025
+          cache-read-cost-per1000-tokens: 0.0002
         claude-haiku-4-5-20251001:
           prompt-cost-per1000-tokens: 0.001
           completion-cost-per1000-tokens: 0.005
+          cache-write-cost-per1000-tokens: 0.00125
+          cache-read-cost-per1000-tokens: 0.0001
         claude-opus-5:
           prompt-cost-per1000-tokens: 0.005
           completion-cost-per1000-tokens: 0.025
+          cache-write-cost-per1000-tokens: 0.00625
+          cache-read-cost-per1000-tokens: 0.0005
   runner:
     # Platform-owned retry budget - agents never decide this for themselves.
     max-attempts: 3

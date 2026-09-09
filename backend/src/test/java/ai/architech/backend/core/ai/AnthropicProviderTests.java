@@ -36,7 +36,10 @@ class AnthropicProviderTests {
 				{
 				  "model": "claude-sonnet-5",
 				  "content": [{"type": "text", "text": "Hello there"}],
-				  "usage": {"input_tokens": 42, "output_tokens": 7}
+				  "usage": {
+				    "input_tokens": 42, "output_tokens": 7,
+				    "cache_creation_input_tokens": 100, "cache_read_input_tokens": 0
+				  }
 				}
 				""";
 		String expectedRequestJson =
@@ -45,7 +48,7 @@ class AnthropicProviderTests {
 				  "model": "claude-sonnet-5",
 				  "max_tokens": 1000,
 				  "thinking": {"type": "disabled"},
-				  "system": "Follow the rules.",
+				  "system": [{"type": "text", "text": "Follow the rules.", "cache_control": {"type": "ephemeral"}}],
 				  "messages": [{"role": "user", "content": "Describe the business."}]
 				}
 				""";
@@ -72,7 +75,30 @@ class AnthropicProviderTests {
 		assertThat(response.correlationId()).isEqualTo("corr-1");
 		assertThat(response.promptTokens()).isEqualTo(42);
 		assertThat(response.completionTokens()).isEqualTo(7);
+		assertThat(response.cacheCreationInputTokens()).isEqualTo(100);
+		assertThat(response.cacheReadInputTokens()).isEqualTo(0);
 		server.verify();
+	}
+
+	@Test
+	void reportsNullCacheTokensWhenTheResponseDoesNotIncludeThem() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-9");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.cacheCreationInputTokens()).isNull();
+		assertThat(response.cacheReadInputTokens()).isNull();
 	}
 
 	@Test
