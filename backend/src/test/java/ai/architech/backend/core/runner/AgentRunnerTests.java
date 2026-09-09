@@ -5,9 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.architech.backend.core.agentexecution.AgentExecutionRepository;
 import ai.architech.backend.core.agentexecution.AgentExecutionStatus;
+import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.evidence.EvidenceSnapshot;
 import ai.architech.backend.core.evidence.EvidenceSnapshotFactory;
-import ai.architech.backend.core.evidence.EvidenceSnapshotNotFoundException;
 import ai.architech.backend.core.project.Project;
 import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.ProjectInput;
@@ -75,6 +75,6 @@ class AgentRunnerTests {
 	@Test
 	void throwsForAnUnknownEvidenceSnapshot() {
 		assertThatThrownBy(() -> agentRunner.run(UUID.randomUUID(), "requirements-agent", 1))
-				.isInstanceOf(EvidenceSnapshotNotFoundException.class);
+				.isInstanceOf(ApplicationException.class);
 	}
 }

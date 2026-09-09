@@ -10,8 +10,9 @@ import ai.architech.backend.core.ai.AiMessage;
 import ai.architech.backend.core.ai.AiRequest;
 import ai.architech.backend.core.ai.AiResponse;
 import ai.architech.backend.core.ai.CostCalculator;
+import ai.architech.backend.core.error.ApplicationException;
+import ai.architech.backend.core.error.ErrorCode;
 import ai.architech.backend.core.evidence.EvidenceSnapshot;
-import ai.architech.backend.core.evidence.EvidenceSnapshotNotFoundException;
 import ai.architech.backend.core.evidence.EvidenceSnapshotRepository;
 import ai.architech.backend.core.evidence.ReferencedSourceContext;
 import ai.architech.backend.core.evidence.ReferencedSourceItem;
@@ -81,7 +82,9 @@ public class AgentRunner {
 	public RunnerResult run(UUID evidenceSnapshotId, String agentId, int agentVersion) {
 		EvidenceSnapshot snapshot = evidenceSnapshotRepository
 				.findById(evidenceSnapshotId)
-				.orElseThrow(() -> new EvidenceSnapshotNotFoundException(evidenceSnapshotId));
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.EVIDENCE_SNAPSHOT_NOT_FOUND,
+						"No evidence snapshot found for id '" + evidenceSnapshotId + "'"));
 
 		AgentExecution execution = new AgentExecution(snapshot.getProjectId(), agentId, agentVersion);
 		agentExecutionRepository.save(execution);

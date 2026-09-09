@@ -1,5 +1,7 @@
 package ai.architech.backend.core.evidence;
 
+import ai.architech.backend.core.error.ApplicationException;
+import ai.architech.backend.core.error.ErrorCode;
 import ai.architech.backend.core.projectinput.FileProjectInput;
 import ai.architech.backend.core.projectinput.FileProjectInputRepository;
 import ai.architech.backend.core.projectinput.ProjectInput;
@@ -38,7 +40,9 @@ public class SourceContextFactory {
 	public SourceContext build(UUID evidenceSnapshotId) {
 		EvidenceSnapshot snapshot = evidenceSnapshotRepository
 				.findById(evidenceSnapshotId)
-				.orElseThrow(() -> new EvidenceSnapshotNotFoundException(evidenceSnapshotId));
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.EVIDENCE_SNAPSHOT_NOT_FOUND,
+						"No evidence snapshot found for id '" + evidenceSnapshotId + "'"));
 
 		List<SourceItem> items = new ArrayList<>();
 

@@ -1,5 +1,7 @@
 package ai.architech.backend.core.project;
 
+import ai.architech.backend.core.error.ApplicationException;
+import ai.architech.backend.core.error.ErrorCode;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -31,7 +33,8 @@ class ProjectController {
 	@PostMapping
 	ResponseEntity<ProjectResponse> create(@RequestBody CreateProjectRequest request) {
 		if (!SUPPORTED_PROJECT_TYPES.contains(request.projectType())) {
-			throw new UnsupportedProjectTypeException(request.projectType());
+			throw new ApplicationException(
+					ErrorCode.UNSUPPORTED_PROJECT_TYPE, "Unsupported project type: " + request.projectType());
 		}
 
 		Project project = projectRepository.save(new Project(request.projectType()));
