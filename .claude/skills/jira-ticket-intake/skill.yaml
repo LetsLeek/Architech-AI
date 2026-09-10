@@ -1,0 +1,36 @@
+schemaVersion: 1
+
+id: jira-ticket-intake
+name: Jira Ticket Intake
+version: 1
+
+description: >
+  Loads and normalizes the complete Jira work context for one issue key
+  into a deterministic implementation-context structure, before any code
+  change begins.
+
+inputs:
+  - name: issueKey
+    type: string
+    description: "A Jira issue key, e.g. 'AIW-123'."
+    required: true
+
+outputs:
+  - name: implementationContext
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - ticket claims only, explicitly not verified against the
+      repository.
+
+preconditions:
+  - Jira MCP tools (mcp__atlassian__*) are available and authenticated for this session.
+  - issueKey matches this project's key pattern (e.g. AIW-<number>).
+
+stopConditions:
+  - issueKey does not resolve to an existing, accessible issue.
+  - A linked "blocks"/"is blocked by" dependency this ticket depends on is not Done and its absence materially affects how the target ticket should be implemented.
+  - The ticket's own summary, description and acceptance criteria contradict each other on scope in a way that cannot be resolved without a human decision.
+
+allowedActionCategories:
+  - external-read
