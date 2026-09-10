@@ -415,16 +415,21 @@ alone satisfies AIW-101's AC on release metadata identifying repository/commit/w
 independent of whether the attestation layer below is available.
 
 **2. Attempted: native GitHub attestations (`actions/attest-build-provenance` +
-`actions/attest-sbom`).** Unlike CodeQL/dependency review/secret scanning (AIW-93/94/95), this
-is **not** a GitHub Advanced Security feature - it needs only `attestations: write` + `id-token:
-write` permissions on the job and doesn't require pushing to a registry (`subject-digest` +
-`subject-name` is an explicitly supported input shape per the action's own `action.yml`, with
-`push-to-registry` defaulting to `false`). Both steps run with `continue-on-error: true`: if this
-repo's plan genuinely can't produce these attestations, the job still passes on the strength of
-layer 1 above, rather than blocking merge over a feature this ticket can't fully control.
-*[Confirmed against this ticket's own PR: see the PR's Backend Docker image job for whether both
-attestation steps actually succeeded - update this note with the real outcome once observed,
-same evidence-based approach AIW-99 used for its before/after timing table.]*
+`actions/attest`, the latter replacing the now-deprecated `actions/attest-sbom` - switched
+before merge after this ticket's own PR surfaced the deprecation warning).** Unlike
+CodeQL/dependency review/secret scanning (AIW-93/94/95), this genuinely is **not** a GitHub
+Advanced Security feature - it needs only `attestations: write` + `id-token: write` permissions
+on the job and doesn't require pushing to a registry (`subject-digest` + `subject-name` is an
+explicitly supported input per the action's own `action.yml`). Both steps run with
+`continue-on-error: true`, and that mattered in practice: **confirmed blocked on this repo**,
+with a precise, unambiguous error rather than a generic failure -
+`Failed to persist attestation: Feature not available for user-owned private repositories. To
+enable this feature, please make this repository public.` This is a **third, distinct**
+plan-gap pattern in this repo (alongside the GHAS gap from AIW-93/94/95): not GHAS-gated, but
+gated specifically for *user-owned* (personal-account) private repositories - an org-owned
+private repo, or making this one public, would unlock it. Since `continue-on-error: true` was
+already in place, the job still passed on the strength of layer 1 above; nothing needed fixing
+to keep this ticket's own required check green.
 
 **Verification procedure for an artifact's origin:**
 1. Download the `backend-sbom-provenance` artifact from the `Backend Docker image` job of the
@@ -440,10 +445,12 @@ same evidence-based approach AIW-99 used for its before/after timing table.]*
    `org.opencontainers.image.revision` OCI label (AIW-68) baked in at build time - it should
    equal `provenance.json`'s `commit` field; a mismatch between the label, the digest-derived
    rebuild, and the git history itself is the actual tamper signal to look for.
-4. If native attestations succeeded (see the confirmed note above), `gh attestation verify
-   oci:architech-backend@<digest> --owner LetsLeek` (or the artifact-path form against a locally
-   rebuilt image) cryptographically verifies the attestation's Sigstore signature chain back to
-   this specific workflow run - stronger than steps 1-3 alone, when available.
+4. `gh attestation verify oci:architech-backend@<digest> --owner LetsLeek` would
+   cryptographically verify the attestation's Sigstore signature chain back to the specific
+   workflow run - stronger than steps 1-3 alone, but **not usable today**: native attestations
+   are confirmed blocked on this repo (see above). Steps 1-3 are the actual verification
+   procedure until either this repo moves to an org, or goes public, or a registry (AIW-70)
+   makes `push-to-registry`-based attestation available instead.
 
 ## Security severity policy
 
