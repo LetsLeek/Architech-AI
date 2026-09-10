@@ -88,6 +88,12 @@ jobs:
     name: Backend Docker image
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # AIW-101: job-level permissions replace the workflow-level default for this job, not add
+    # to it - contents: read is restated alongside the two new scopes attestations need.
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
 
     env:
       TRIVY_VERSION: "0.74.0"
@@ -149,3 +155,72 @@ jobs:
         # right now - bump the base image / apk package, the same way AIW-96 itself fixed its
         # own baseline findings via the Dockerfile's `apk upgrade` step.
         run: trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 architech-backend:${{ github.sha }}
+
+      - name: Compute image digest
+        # AIW-101: no registry exists yet (AIW-70), so there's no RepoDigest from a push - the
+        # image's own content-addressed ID (config digest) is the stable identifier this job
+        # can produce without one, and what SBOM/provenance below are both tied to.
+        id: image
+        run: echo "digest=$(docker inspect --format='{{.Id}}' architech-backend:${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SBOM (CycloneDX)
+        # AIW-101: reuses the Trivy binary already installed above - one maintained tool for
+        # both vulnerability scanning (AIW-96) and SBOM generation, not two separate ones.
+        run: trivy image --format cyclonedx --output sbom.cdx.json architech-backend:${{ github.sha }}
+
+      - name: Write release metadata
+        # AIW-101 AC: "release metadata identifies repository, commit SHA, workflow and built
+        # artifact digest" - kept as a plain retained file independent of whether the
+        # attestation steps below succeed, so this requirement is met either way.
+        run: |
+          cat > provenance.json <<JSON
+          {
+            "repository": "${{ github.repository }}",
+            "commit": "${{ github.sha }}",
+            "workflow": "${{ github.workflow }}",
+            "runId": "${{ github.run_id }}",
+            "runUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "artifactName": "architech-backend",
+            "imageDigest": "${{ steps.image.outputs.digest }}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+
+      - name: Upload SBOM and release metadata
+        # 30 days, matching the other small, audit-relevant text artifacts (AIW-100's
+        # retention-by-type table) - not the 14-day default.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-sbom-provenance
+          path: |
+            sbom.cdx.json
+            provenance.json
+          retention-days: 30
+
+      - name: Attest build provenance
+        # AIW-101: GitHub's native build-provenance attestations aren't part of GitHub
+        # Advanced Security (unlike CodeQL/dependency review/secret scanning - AIW-93/94/95)
+        # and don't require a registry push; they need only `attestations: write` + `id-token:
+        # write` on this job and a subject digest, both already true here. continue-on-error:
+        # true so a plan limitation degrades to "not attested" rather than blocking merge -
+        # provenance.json above already satisfies the AC's metadata requirement independent of
+        # whether this succeeds.
+        id: attest_provenance
+        continue-on-error: true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: architech-backend
+          subject-digest: ${{ steps.image.outputs.digest }}
+
+      - name: Attest SBOM
+        # actions/attest-sbom is deprecated in favor of the generic actions/attest (same
+        # inputs work unchanged) - discovered via this step's own deprecation warning on
+        # AIW-101's PR, switched before merge rather than leaving a known-deprecated action in.
+        id: attest_sbom
+        continue-on-error: true
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: architech-backend
+          subject-digest: ${{ steps.image.outputs.digest }}
+          sbom-path: sbom.cdx.json

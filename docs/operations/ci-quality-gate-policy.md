@@ -399,6 +399,59 @@ flowing into a summary can at worst look visually odd in that PR's own check out
 execute anything, affect another PR, or reach a secret (see AIW-99's own confirmation: no
 workflow here references `secrets.*` or uses `pull_request_target`).
 
+## SBOM and build provenance (AIW-101)
+
+Two independent layers, on the same `docker-build` job that already builds and vulnerability-
+scans the image (AIW-68/96) - only after that image's HIGH/CRITICAL gate passes, since there's
+no reason to attest provenance for an image that's already blocked from merging:
+
+**1. Always present: `backend-sbom-provenance` artifact (30-day retention).** A CycloneDX SBOM
+(`trivy image --format cyclonedx` - reuses the Trivy binary AIW-96 already installs, one
+maintained tool rather than a second one) plus a plain `provenance.json` with repository, commit
+SHA, workflow name, run ID/URL, artifact name, and the image's own content digest (`docker
+inspect --format='{{.Id}}'` - there's no registry yet per AIW-70, so no `RepoDigest` from a push
+exists; the image's own config digest is the stable identifier available without one). This
+alone satisfies AIW-101's AC on release metadata identifying repository/commit/workflow/digest,
+independent of whether the attestation layer below is available.
+
+**2. Attempted: native GitHub attestations (`actions/attest-build-provenance` +
+`actions/attest`, the latter replacing the now-deprecated `actions/attest-sbom` - switched
+before merge after this ticket's own PR surfaced the deprecation warning).** Unlike
+CodeQL/dependency review/secret scanning (AIW-93/94/95), this genuinely is **not** a GitHub
+Advanced Security feature - it needs only `attestations: write` + `id-token: write` permissions
+on the job and doesn't require pushing to a registry (`subject-digest` + `subject-name` is an
+explicitly supported input per the action's own `action.yml`). Both steps run with
+`continue-on-error: true`, and that mattered in practice: **confirmed blocked on this repo**,
+with a precise, unambiguous error rather than a generic failure -
+`Failed to persist attestation: Feature not available for user-owned private repositories. To
+enable this feature, please make this repository public.` This is a **third, distinct**
+plan-gap pattern in this repo (alongside the GHAS gap from AIW-93/94/95): not GHAS-gated, but
+gated specifically for *user-owned* (personal-account) private repositories - an org-owned
+private repo, or making this one public, would unlock it. Since `continue-on-error: true` was
+already in place, the job still passed on the strength of layer 1 above; nothing needed fixing
+to keep this ticket's own required check green.
+
+**Verification procedure for an artifact's origin:**
+1. Download the `backend-sbom-provenance` artifact from the `Backend Docker image` job of the
+   commit's CI run (or from `backend-coverage`/other artifacts' sibling run) - `provenance.json`
+   states the exact commit and image digest that build produced.
+2. Rebuild locally (`docker build --build-arg GIT_SHA=$(git rev-parse HEAD) -t
+   architech-backend:verify backend/`) and compare `docker inspect --format='{{.Id}}'
+   architech-backend:verify` against `provenance.json`'s `imageDigest` - a match confirms the
+   image is reproducible from that exact source commit (this only holds because the Dockerfile
+   has no ambient/non-deterministic build inputs beyond `GIT_SHA` itself - see AIW-68's own
+   design note on this).
+3. Independently, `docker inspect architech-backend:verify` also shows the
+   `org.opencontainers.image.revision` OCI label (AIW-68) baked in at build time - it should
+   equal `provenance.json`'s `commit` field; a mismatch between the label, the digest-derived
+   rebuild, and the git history itself is the actual tamper signal to look for.
+4. `gh attestation verify oci:architech-backend@<digest> --owner LetsLeek` would
+   cryptographically verify the attestation's Sigstore signature chain back to the specific
+   workflow run - stronger than steps 1-3 alone, but **not usable today**: native attestations
+   are confirmed blocked on this repo (see above). Steps 1-3 are the actual verification
+   procedure until either this repo moves to an org, or goes public, or a registry (AIW-70)
+   makes `push-to-registry`-based attestation available instead.
+
 ## Security severity policy
 
 A **new** HIGH or CRITICAL finding (SAST, dependency, container image, or DAST) blocks the PR or
