@@ -56,6 +56,11 @@ class OpenAiProvider implements AiProvider {
 	}
 
 	@Override
+	public boolean isConfigured() {
+		return !properties.apiKey().isBlank();
+	}
+
+	@Override
 	public AiResponse invoke(AiRequest request, String model) {
 		if (properties.apiKey().isBlank()) {
 			throw new AiProviderNotConfiguredException(name());
