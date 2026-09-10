@@ -1,0 +1,46 @@
+version: 2
+
+# AIW-94: security-vulnerability-triggered PRs are handled separately by the repo's
+# "Dependabot security updates" setting (enabled via the API, not here) - this file only
+# configures *routine* version-update PRs, on a controlled weekly cadence rather than
+# Dependabot's daily default, with each ecosystem's PR volume capped so updates stay reviewable
+# instead of becoming background noise.
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Patch/minor bumps rarely need individual review - one grouped PR per week instead of
+      # one per dependency. A major bump (more likely to need actual code changes) stays its
+      # own PR so it doesn't get lost inside a group.
+      routine-updates:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      routine-updates:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      routine-updates:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # AIW-93 pinned every `uses:` to a full commit SHA (supply-chain hardening) - Dependabot
+    # still tracks and bumps SHA-pinned actions correctly, updating the trailing version
+    # comment alongside the SHA, so that hardening and staying current aren't in tension.
