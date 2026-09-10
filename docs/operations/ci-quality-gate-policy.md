@@ -21,7 +21,7 @@ not automatically required at another:
 |---|---|---|
 | Backend tests (`backend-ci.yml`, AIW-22) | Existing, required | Yes |
 | Frontend build (lint + type-check + build, `frontend-ci.yml`, AIW-23) | Existing, required | Yes |
-| Backend Docker image build (`backend-ci.yml`'s `docker-build` job, AIW-68) | Existing, required | Yes |
+| Backend Docker image build + vulnerability scan (`docker-build` job, AIW-68 + AIW-96 - see [below](#container-image-scanning-trivy-image-mode)) | Existing, required | Yes (build failure always; scan failure for fixable HIGH/CRITICAL findings) |
 | Frontend unit/component tests (Vitest + RTL, AIW-88) | Existing, required | Yes |
 | Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
 | SAST (Semgrep - see [below](#sast-codeql-vs-semgrep-fallback), AIW-93) | Existing, required | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
@@ -44,7 +44,6 @@ checks belong here rather than on every PR iteration:
 
 | Check | Status | Blocking? |
 |---|---|---|
-| Container image vulnerability scan (Trivy, AIW-96) | Planned | Yes for new HIGH/CRITICAL findings |
 | Visual regression baseline (AIW-102) | Planned | **Warning-only** initially (small, stable screen set per AIW-102's own scope) |
 | Playwright E2E against an isolated local stack (mock AI, disposable Postgres, AIW-92) | Existing (`e2e-ci.yml`) | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | SBOM + build provenance (AIW-101) | Planned | Generated, not itself a pass/fail gate - a release without one is incomplete, not rejected |
@@ -172,6 +171,37 @@ than suppressing them: `backend/pom.xml` now overrides Spring Boot's managed `to
 verified the gate both ways (temporarily reverting the Tomcat override reproduced the exit-1
 failure before the fix was restored), so like AIW-93 this gate is blocking from day one rather
 than warning-only.
+
+## Container image scanning: Trivy image mode
+
+Unlike SAST/dependency-review/secret-scanning, this one isn't a GHAS-availability fallback -
+scanning a locally-built image doesn't touch any GitHub-native feature. AIW-96 extends the
+existing `docker-build` job (`backend-ci.yml`, AIW-68) with Trivy in **image** mode (distinct
+from AIW-94's **filesystem** mode - `pom.xml`/lockfiles vs. an actual container's OS packages
+and JAR), scanning the exact image `docker-build` just produced, by tag, before anything could
+push or retag it - the only "immutable identity" available today, since AIW-70's registry (and
+therefore a real digest) doesn't exist yet. Follows AIW-93/94/95's report+gate pattern (SARIF
+artifact; a `--severity HIGH,CRITICAL --exit-code 1` pass gates the job) with one addition:
+`--ignore-unfixed`, so a HIGH/CRITICAL finding with no available fix is visible in the report
+but never blocks - matching AIW-96's own AC ("vulnerabilities... with an available fix block
+release"): unfixed findings are tracked/triaged, not actionable today, so they can't be blocking.
+
+Landed in the **PR gate**, not Build/release - the already-required `docker-build` job runs on
+every PR regardless, so extending it with a scan of the image it already built is not
+meaningfully heavier than what's already blocking merges, and it means a vulnerable image never
+gets merged instead of being caught after the fact. Once AIW-70's registry exists, a genuine
+promotion-time re-scan by pushed digest can be added as a further, later gate - this doesn't
+replace that, it's what's achievable with what exists today.
+
+**Baseline:** the first scan found 5 fixable HIGH vulnerabilities in the runtime image's Alpine
+OS packages (openssl/libssl3/libcrypto3, libexpat) - the `eclipse-temurin:21-jre-alpine` base
+image's packages were older than Alpine's current advisories. Fixed the same way AIW-93/94/95
+fixed their own baseline findings: `backend/Dockerfile`'s runtime stage now runs `apk update &&
+apk upgrade --no-cache` right after `FROM`, pulling current patched packages at build time
+instead of waiting for the next upstream base-image refresh - this actually resolved every
+finding at every severity (34 → 0), not just the 5 blocking ones. Verified the rebuilt image
+still starts and reports healthy against a real Postgres before locking this in. Like
+AIW-93/94/95, this gate is blocking from day one against a genuinely clean baseline.
 
 ## Secret scanning: Gitleaks fallback
 
