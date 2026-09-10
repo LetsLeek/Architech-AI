@@ -47,6 +47,28 @@ If the backend fails to start with a connection error, check that
 `docker compose ps` shows Postgres as healthy and that `.env` matches
 `docker-compose.yml`.
 
+## Backend Docker image
+
+`backend/Dockerfile` is a multi-stage build producing a small, non-root runtime image
+(AIW-68) - only the built jar ships, never the JDK/Maven build tooling or any secret.
+
+```bash
+cd backend
+docker build --build-arg GIT_SHA=$(git rev-parse HEAD) -t architech-backend:$(git rev-parse --short HEAD) .
+docker run --network host \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/architech \
+  -e SPRING_DATASOURCE_USERNAME=architech \
+  -e SPRING_DATASOURCE_PASSWORD=architech \
+  architech-backend:$(git rev-parse --short HEAD)
+```
+
+`GIT_SHA` is baked in as an `org.opencontainers.image.revision` label (`docker inspect`) so a
+built image's exact source commit is always recoverable, independent of whatever tag it's
+later given. The image tag itself (`$(git rev-parse --short HEAD)` above) is a build-time
+convention, not something the Dockerfile enforces. CI (`backend-ci.yml`'s `docker-build` job)
+builds this same image on every push/PR to prove it stays reproducible - it never pushes
+anywhere; publishing to a real registry is AIW-70's concern once one exists.
+
 ## Database migrations
 
 Schema changes are made exclusively through new Flyway migration files under

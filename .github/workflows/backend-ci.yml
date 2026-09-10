@@ -45,3 +45,17 @@ jobs:
       - name: Build and test
         working-directory: backend
         run: ./mvnw --batch-mode --no-transfer-progress test
+
+  docker-build:
+    name: Backend Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Builds only - proves the image is reproducible in CI (AIW-68 AC), never pushed to any
+      # registry here. Pushing to Azure Container Registry is AIW-70's own concern, once that
+      # registry and its credentials actually exist.
+      - name: Build image
+        working-directory: backend
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t architech-backend:${{ github.sha }} .
