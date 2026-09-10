@@ -30,6 +30,21 @@ Use `*.test.ts` for pure logic (no DOM) and `*.test.tsx` for anything that rende
 ## Running
 
 ```bash
-npm test          # vitest run - single pass, used in CI
-npx vitest         # watch mode, for local development
+npm test              # vitest run - single pass
+npm run test:coverage # same, plus a coverage report - used in CI
+npx vitest             # watch mode, for local development
 ```
+
+## Coverage (AIW-89)
+
+`vite.config.ts`'s `test.coverage` block enforces global thresholds (v8 provider, `statements`/
+`branches`/`functions`/`lines`). The current numbers are a **locked-in floor from the first real
+measurement**, not the target — most components have no tests yet, so coverage is intentionally
+low today. Raise the thresholds as coverage grows; never lower them. See
+[`docs/operations/ci-quality-gate-policy.md`](../../../docs/operations/ci-quality-gate-policy.md)
+for the full ratchet strategy.
+
+**Coverage percentage is not the goal.** A file can be 100% covered by tests that assert nothing
+meaningful, and a low-coverage file can still be well-tested at the interactions that actually
+matter. Use coverage to spot code nobody has thought to test yet, not as a substitute for writing
+tests that actually exercise real user-facing behavior.

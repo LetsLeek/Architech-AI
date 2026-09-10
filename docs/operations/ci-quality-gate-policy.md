@@ -28,7 +28,8 @@ not automatically required at another:
 | Dependency vulnerability check (AIW-94) | Planned | Yes for new HIGH/CRITICAL findings |
 | Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
 | Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
-| Frontend/backend coverage thresholds (AIW-89/90) | Planned | **Warning-only** until a real baseline exists, then ratcheted - see below |
+| Frontend coverage thresholds (AIW-89) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
+| Backend coverage thresholds (AIW-90) | Planned | **Warning-only** until a real baseline exists, then ratcheted - see below |
 
 This deliberately incorporates AIW-22/23/24's existing checks rather than duplicating them - the
 `backend-ci.yml`/`frontend-ci.yml` workflows and `develop`'s branch protection required-status-
@@ -59,15 +60,23 @@ Säule 1 (Azure infrastructure) actually exists:
 
 ## Coverage and threshold ratchet
 
-No coverage tooling exists yet (AIW-88..91 are still planned), so there is no enforced threshold
-today. Once they land: **lock in whatever the first real measurement is as the floor** (a PR may
-not drop coverage below the current baseline), then ratchet the floor upward over time toward an
-initial target of **~70% line / ~60% branch coverage** - not 100%, and not enforced retroactively
-against code that predates the tooling. Coverage regressions are blocking from day one (never
-allowed to silently get worse); reaching the target itself is gradual, warning-only progress
-until it's actually met. The same ratchet logic applies to accessibility (AIW-98) and visual
-regression (AIW-102): start warning-only against a real baseline, promote to blocking once that
-baseline is proven stable.
+**Lock in whatever the first real measurement is as the floor** (a PR may not drop coverage below
+the current baseline), then ratchet the floor upward over time toward an initial target of
+**~70% line / ~60% branch coverage** - not 100%, and not enforced retroactively against code that
+predates the tooling. Coverage regressions are blocking from day one (never allowed to silently
+get worse); reaching the target itself is gradual, warning-only progress until it's actually met.
+The same ratchet logic applies to accessibility (AIW-98) and visual regression (AIW-102): start
+warning-only against a real baseline, promote to blocking once that baseline is proven stable.
+
+**Frontend (AIW-89), current floor:** measured at 9.42% statements / 6.19% branches / 5.5%
+functions / 10% lines (`frontend/vite.config.ts`'s `test.coverage.thresholds`, rounded down
+slightly for stability) - almost nothing had tests before AIW-88/89 landed, so this floor is
+intentionally far below the ~70%/60% target. It climbs ticket-by-ticket as more
+components/modules get real tests, not in one jump. **Coverage is a tool for finding untested
+code, not a target in itself** - a file being 100% "covered" says nothing about whether its tests
+assert anything meaningful; always prefer a real behavioral test over chasing a percentage.
+
+**Backend (AIW-90):** not yet measured - floor to be set the same way once JaCoCo lands.
 
 ## Security severity policy
 
