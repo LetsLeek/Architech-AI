@@ -29,7 +29,7 @@ not automatically required at another:
 | Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
 | Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | Frontend coverage thresholds (AIW-89) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
-| Backend coverage thresholds (AIW-90) | Planned | **Warning-only** until a real baseline exists, then ratcheted - see below |
+| Backend coverage thresholds (AIW-90) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 
 This deliberately incorporates AIW-22/23/24's existing checks rather than duplicating them - the
 `backend-ci.yml`/`frontend-ci.yml` workflows and `develop`'s branch protection required-status-
@@ -76,7 +76,12 @@ components/modules get real tests, not in one jump. **Coverage is a tool for fin
 code, not a target in itself** - a file being 100% "covered" says nothing about whether its tests
 assert anything meaningful; always prefer a real behavioral test over chasing a percentage.
 
-**Backend (AIW-90):** not yet measured - floor to be set the same way once JaCoCo lands.
+**Backend (AIW-90), current floor:** measured at 95.5% line / 85.6% branch coverage
+(`backend/pom.xml`'s `jacoco-maven-plugin` `check` execution, rounded down slightly for
+stability: 93%/80%) - unlike the frontend, this baseline already exceeds the ~70%/60% target,
+since the existing 167 tests (built up across M1 and the AIW-59/87/88 work) already exercise most
+of the codebase through Spring-context tests. The floor is locked to this real measurement, not
+artificially lowered to the target.
 
 ## Security severity policy
 

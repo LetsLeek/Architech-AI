@@ -95,6 +95,69 @@
 			</plugin>
 			<plugin>
 				<!--
+					AIW-90: measures coverage across the existing `test` phase (which already
+					covers unit + Spring-context/integration-style tests together - there is no
+					separate unit/integration split in this project yet) and enforces the
+					thresholds below during `verify`, so `./mvnw verify` (what CI runs) fails on
+					a regression the same way `npm run test:coverage` does on the frontend
+					(AIW-89).
+				-->
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.15</version>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<!--
+								Floor locked to the first real measurement (see
+								docs/operations/ci-quality-gate-policy.md's coverage ratchet
+								strategy) - raise these as coverage grows, never lower them.
+							-->
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.93</minimum>
+										</limit>
+										<limit>
+											<counter>BRANCH</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>0.80</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+							<excludes>
+								<!-- trivial `SpringApplication.run(...)` bootstrap, no branching logic -->
+								<exclude>ai/architech/backend/BackendApplication.class</exclude>
+							</excludes>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<!--
 					project-types/ holds the frozen, project-type-specific agent/rule/skill
 					definitions (see repo root README). They live outside backend/ since they are
 					not Java and not backend-specific - copying them onto the classpath here lets
