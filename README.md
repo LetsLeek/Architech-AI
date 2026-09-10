@@ -85,3 +85,9 @@ them out of code, the frontend bundle, git history, and logs.
 See [`docs/operations/azure-environment-architecture.md`](docs/operations/azure-environment-architecture.md)
 for the platform's DEV/STAGING/PROD model, resource group and naming conventions, and the
 current one-subscription / future prod-subscription-split plan.
+
+## CI quality and security gate policy
+
+See [`docs/operations/ci-quality-gate-policy.md`](docs/operations/ci-quality-gate-policy.md) for
+the layered required-check policy (PR / build-release / STAGING-PROD promotion), coverage and
+security-severity rules, and the emergency bypass procedure.
