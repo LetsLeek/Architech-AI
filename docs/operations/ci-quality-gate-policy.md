@@ -335,16 +335,16 @@ reviewed reason.
 immediately before this ticket's changes vs. immediately after, both from `gh run view --json
 jobs`:
 
-| Job | Before | After |
+| Job | Before | After (PR #62) |
 |---|---|---|
-| Backend tests | 75s | see PR |
-| Backend Docker image | 101s | see PR |
-| Frontend build | 19s | see PR |
-| Frontend tests | 18s | see PR |
-| Playwright E2E | 97s | see PR |
-| SAST (Semgrep) | 37s | see PR |
-| Dependency scan (Trivy) | 37s | see PR |
-| Secret scan (Gitleaks) | 8s | see PR |
+| Backend tests | 75s | 75s |
+| Backend Docker image | 101s | 120s |
+| Frontend build | 19s | 27s |
+| Frontend tests | 18s | 26s |
+| Playwright E2E | 97s | 104s |
+| SAST (Semgrep) | 37s | 38s |
+| Dependency scan (Trivy) | 37s | 24s |
+| Secret scan (Gitleaks) | 8s | 7s |
 
 The concurrency/cache changes are not expected to meaningfully change a single, non-superseded
 run's own wall time (the caching gaps fixed were on a job that already had partial caching,
@@ -352,7 +352,8 @@ and cancel-in-progress only saves time across *superseded* runs, which a single 
 can't show) - their value shows up as reduced total runner-minutes billed over many pushes
 during active development (redundant superseded runs no longer run to completion), not as a
 per-run speedup. The table above exists to prove nothing regressed, not to claim a speedup that
-this kind of change doesn't produce.
+this kind of change doesn't produce - and that's what it shows: every job landed within normal
+CI variance of its baseline (±10-25s on jobs in the 20-120s range), no regression.
 
 ## Security severity policy
 
