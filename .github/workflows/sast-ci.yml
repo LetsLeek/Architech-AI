@@ -13,10 +13,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   semgrep:
     name: SAST (Semgrep)
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     container:
       image: semgrep/semgrep:1.176.1
     env:

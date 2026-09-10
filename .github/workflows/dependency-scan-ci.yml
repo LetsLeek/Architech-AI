@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   TRIVY_VERSION: "0.74.0"
   TRIVY_SHA256: "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a"
@@ -24,6 +28,7 @@ jobs:
   trivy:
     name: Dependency scan (Trivy)
     runs-on: ubuntu-latest
+    timeout-minutes: 8
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

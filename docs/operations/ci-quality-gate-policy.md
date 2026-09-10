@@ -267,6 +267,94 @@ exists yet - the current baseline is 0 findings across all 84 commits in the rep
 this gate is blocking from day one like AIW-93/94, verified both ways (a deliberately
 introduced AWS-style key pattern was caught before removal).
 
+## Workflow hardening and optimization (AIW-99)
+
+Applies uniformly across all six workflows (`backend-ci.yml`, `frontend-ci.yml`, `e2e-ci.yml`,
+`sast-ci.yml`, `dependency-scan-ci.yml`, `secret-scan-ci.yml`):
+
+**Concurrency.** Every workflow now has:
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+```
+A new push to the same branch/PR cancels whatever's already running for it instead of letting a
+now-superseded run finish uselessly - pure cost/time savings, no behavior change to what
+actually gets checked.
+
+**Least-privilege permissions.** The repo's own default (`default_workflow_permissions: read`,
+confirmed via `GET /repos/.../actions/permissions/workflow`) already means a workflow with no
+explicit `permissions:` block only gets read access - but an explicit `permissions: contents:
+read` on every workflow (all six now have it) makes that self-documenting and audit-proof
+against the *default* ever being changed later, rather than relying on it silently.
+
+**Dependency caching.** `backend-ci.yml`, `frontend-ci.yml`, and `dependency-scan-ci.yml`
+already had `cache: maven`/`cache: npm` on their `setup-java`/`setup-node` steps.
+`e2e-ci.yml`'s `setup-node` step was missing it entirely (its `setup-java` step already had
+`cache: maven`) - fixed, with both `frontend/package-lock.json` and `e2e/package-lock.json`
+listed as cache-dependency paths, since that job installs both packages. All caching uses the
+setup actions' own built-in cache handling, which already degrades to a normal (slower, not
+broken) install on a cache miss - nothing here can fail a job just because the cache is cold.
+
+**Timeouts.** Every job now has `timeout-minutes`, sized from actually-observed run times (see
+the before/after table below) with headroom for normal CI variance - a genuinely hung job now
+fails within single-digit minutes instead of potentially running for GitHub's 360-minute
+default.
+
+**Action pinning policy**, formalized (already practiced since AIW-93, not previously written
+down as a standing rule): every third-party `uses:` - including first-party `actions/*` ones -
+is pinned to a full 40-character commit SHA with a trailing `# vX` comment, never a mutable tag
+or branch. Verify a tag's resolved commit with `gh api repos/{owner}/{repo}/commits/{tag}`
+before pinning (cross-check against `git/refs/tags/{tag}` when in doubt, since an annotated
+tag's ref SHA points at the tag object, not the commit, and the two must match). Semgrep's
+`p/owasp-top-ten` ruleset (already run on every PR via `sast-ci.yml`) includes a rule that
+flags exactly this pattern (`github-actions-mutable-action-tag`) - re-confirmed 0 findings
+across all six workflow files as part of landing this ticket, so the policy isn't just written
+down, it's continuously enforced by a gate that already exists.
+
+**Path filtering: deliberately not used.** Every workflow triggers on every push/PR to
+`main`/`develop` regardless of which files changed. AIW-99's own AC warns against path filters
+that "accidentally skip required cross-stack checks" - given SAST/dependency/secret scanning
+all reasonably need to see the *whole* repo state (a vulnerable dependency or a leaked secret
+doesn't respect a `paths:` filter), and E2E/accessibility exercise both frontend and backend
+together, no combination of path filters here could be scoped safely without real risk of a
+required check silently not running on a PR that actually needed it. The AC's caution is a
+reason not to add them, not an oversight to fix.
+
+**Untrusted PR code cannot reach production secrets.** No workflow references `secrets.*`
+anywhere (`grep -rn "secrets\." .github/workflows/` - zero matches) - there is nothing to leak,
+since none of these jobs authenticate to anything (no registry push, no cloud credentials; see
+AIW-96's own note on this for the Docker build specifically). All six workflows trigger on plain
+`pull_request` (`grep -rn "pull_request_target" .github/workflows/` - zero matches), never the
+more permissive `pull_request_target`, which is the trigger that would otherwise hand a
+fork-originated PR the base branch's secrets/permissions. This stays true as new workflows are
+added - `pull_request_target` should never be reached for in this repo without a specific,
+reviewed reason.
+
+**Before/after (evidence, not estimate)** - per-job wall time, most recent run of each workflow
+immediately before this ticket's changes vs. immediately after, both from `gh run view --json
+jobs`:
+
+| Job | Before | After (PR #62) |
+|---|---|---|
+| Backend tests | 75s | 75s |
+| Backend Docker image | 101s | 120s |
+| Frontend build | 19s | 27s |
+| Frontend tests | 18s | 26s |
+| Playwright E2E | 97s | 104s |
+| SAST (Semgrep) | 37s | 38s |
+| Dependency scan (Trivy) | 37s | 24s |
+| Secret scan (Gitleaks) | 8s | 7s |
+
+The concurrency/cache changes are not expected to meaningfully change a single, non-superseded
+run's own wall time (the caching gaps fixed were on a job that already had partial caching,
+and cancel-in-progress only saves time across *superseded* runs, which a single measurement
+can't show) - their value shows up as reduced total runner-minutes billed over many pushes
+during active development (redundant superseded runs no longer run to completion), not as a
+per-run speedup. The table above exists to prove nothing regressed, not to claim a speedup that
+this kind of change doesn't produce - and that's what it shows: every job landed within normal
+CI variance of its baseline (±10-25s on jobs in the 20-120s range), no regression.
+
 ## Security severity policy
 
 A **new** HIGH or CRITICAL finding (SAST, dependency, container image, or DAST) blocks the PR or

@@ -6,10 +6,23 @@ on:
   pull_request:
     branches: [main, develop]
 
+# AIW-99: a new push to the same PR/branch makes any run already in flight for it redundant -
+# cancelling it frees the runner immediately instead of letting it finish uselessly.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Backend tests
     runs-on: ubuntu-latest
+    # AIW-99: observed ~75s at time of writing - generous multiple so real CI variance (cold
+    # runner, dependency-download hiccups) doesn't cause a flaky timeout, while still failing
+    # clearly well before GitHub's 360-minute default would let a genuinely hung job sit there.
+    timeout-minutes: 8
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -41,6 +54,7 @@ jobs:
   docker-build:
     name: Backend Docker image
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       TRIVY_VERSION: "0.74.0"
