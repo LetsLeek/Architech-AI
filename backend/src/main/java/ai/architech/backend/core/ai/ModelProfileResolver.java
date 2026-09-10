@@ -21,6 +21,11 @@ public class ModelProfileResolver {
 		if (config == null) {
 			throw new UnknownModelProfileException(modelProfile);
 		}
-		return new ResolvedModel(config.provider(), config.model());
+		return toResolvedModel(config);
+	}
+
+	private static ResolvedModel toResolvedModel(AiProperties.ModelProfileConfig config) {
+		ResolvedModel fallback = config.fallback() == null ? null : toResolvedModel(config.fallback());
+		return new ResolvedModel(config.provider(), config.model(), fallback);
 	}
 }

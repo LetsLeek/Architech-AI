@@ -18,7 +18,8 @@ class AiGatewayUnitTests {
 
 	@Test
 	void dispatchesToTheProviderTheProfileResolvesTo() {
-		when(modelProfileResolver.resolve("structured-reasoning")).thenReturn(new ResolvedModel("stub", "stub-model"));
+		when(modelProfileResolver.resolve("structured-reasoning"))
+				.thenReturn(new ResolvedModel("stub", "stub-model", null));
 		AiProvider stubProvider = stubProvider(
 				"stub", (request, model) -> new AiResponse("stub", model, "ok", request.correlationId(), 10, 20, null, null));
 		AiGateway gateway = new AiGateway(modelProfileResolver, List.of(stubProvider));
@@ -36,7 +37,7 @@ class AiGatewayUnitTests {
 
 	@Test
 	void throwsWhenTheResolvedProviderHasNoRegisteredBean() {
-		when(modelProfileResolver.resolve("structured-reasoning")).thenReturn(new ResolvedModel("nonexistent", "x"));
+		when(modelProfileResolver.resolve("structured-reasoning")).thenReturn(new ResolvedModel("nonexistent", "x", null));
 		AiGateway gateway = new AiGateway(modelProfileResolver, List.of());
 
 		AiRequest request = new AiRequest("structured-reasoning", List.of(), 100, "corr-1");
@@ -46,11 +47,53 @@ class AiGatewayUnitTests {
 
 	@Test
 	void normalizesAProviderFailureIntoAiGatewayException() {
-		when(modelProfileResolver.resolve("structured-reasoning")).thenReturn(new ResolvedModel("stub", "stub-model"));
+		when(modelProfileResolver.resolve("structured-reasoning"))
+				.thenReturn(new ResolvedModel("stub", "stub-model", null));
 		AiProvider failingProvider = stubProvider("stub", (request, model) -> {
 			throw new IllegalStateException("provider blew up");
 		});
 		AiGateway gateway = new AiGateway(modelProfileResolver, List.of(failingProvider));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(), 100, "corr-1");
+
+		assertThatThrownBy(() -> gateway.invoke(request))
+				.isInstanceOf(AiGatewayException.class)
+				.hasCauseInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void fallsBackToTheConfiguredProviderWhenThePrimaryFails() {
+		when(modelProfileResolver.resolve("structured-reasoning"))
+				.thenReturn(new ResolvedModel("primary", "primary-model", new ResolvedModel("fallback", "fallback-model", null)));
+		AiProvider failingPrimary = stubProvider("primary", (request, model) -> {
+			throw new IllegalStateException("primary blew up");
+		});
+		AiProvider fallbackProvider = stubProvider(
+				"fallback",
+				(request, model) -> new AiResponse("fallback", model, "from fallback", request.correlationId(), 5, 5, null, null));
+		AiGateway gateway = new AiGateway(modelProfileResolver, List.of(failingPrimary, fallbackProvider));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(), 100, "corr-1");
+		AiResponse response = gateway.invoke(request);
+
+		// the fallback's own response comes back unmodified - which provider actually answered
+		// is never hidden (AIW-66 AC).
+		assertThat(response.provider()).isEqualTo("fallback");
+		assertThat(response.model()).isEqualTo("fallback-model");
+		assertThat(response.content()).isEqualTo("from fallback");
+	}
+
+	@Test
+	void normalizesIntoAiGatewayExceptionWhenBothPrimaryAndFallbackFail() {
+		when(modelProfileResolver.resolve("structured-reasoning"))
+				.thenReturn(new ResolvedModel("primary", "primary-model", new ResolvedModel("fallback", "fallback-model", null)));
+		AiProvider failingPrimary = stubProvider("primary", (request, model) -> {
+			throw new IllegalStateException("primary blew up");
+		});
+		AiProvider failingFallback = stubProvider("fallback", (request, model) -> {
+			throw new IllegalStateException("fallback blew up too");
+		});
+		AiGateway gateway = new AiGateway(modelProfileResolver, List.of(failingPrimary, failingFallback));
 
 		AiRequest request = new AiRequest("structured-reasoning", List.of(), 100, "corr-1");
 
