@@ -1,0 +1,16 @@
+# AIW-91: activated via the "test" profile (set globally for the Failsafe JVM fork, see
+# pom.xml's failsafe systemPropertyVariables) - profile-specific files are *merged* on top of
+# src/main/resources/application.yml rather than replacing it, so the architech.* settings
+# (runner.max-attempts, ai.model-profiles, ...) still come from the base file; only the
+# datasource is overridden here. The `jdbc:tc:` URL prefix is Testcontainers' JDBC driver - it
+# transparently starts (and reuses, within one JVM fork) a disposable Postgres container
+# instead of connecting to a real one, so integration tests need neither a manually-started
+# `docker compose` Postgres nor any Java-side container wiring. Flyway then runs its
+# migrations against that fresh container the same way it always does against a real
+# datasource, giving every test run a genuinely clean schema.
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///architech_test
+    username: test
+    password: test
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver

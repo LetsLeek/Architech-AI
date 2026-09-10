@@ -23,7 +23,7 @@ not automatically required at another:
 | Frontend build (lint + type-check + build, `frontend-ci.yml`, AIW-23) | Existing, required | Yes |
 | Backend Docker image build (`backend-ci.yml`'s `docker-build` job, AIW-68) | Existing, required | Yes |
 | Frontend unit/component tests (Vitest + RTL, AIW-88) | Planned | Yes, once it lands |
-| Backend integration tests against real Postgres (Testcontainers, AIW-91) | Planned | Yes, once it lands |
+| Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
 | SAST/CodeQL (AIW-93) | Planned | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
 | Dependency vulnerability check (AIW-94) | Planned | Yes for new HIGH/CRITICAL findings |
 | Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
@@ -33,7 +33,8 @@ not automatically required at another:
 
 This deliberately incorporates AIW-22/23/24's existing checks rather than duplicating them - the
 `backend-ci.yml`/`frontend-ci.yml` workflows and `develop`'s branch protection required-status-
-checks list (`Backend tests`, `Frontend build`, `Backend Docker image`) are the actual PR gate;
+checks list (`Backend tests`, `Frontend build`, `Backend Docker image`, `Frontend tests`) are the
+actual PR gate;
 this document records the policy behind that configuration, not a second parallel mechanism.
 
 ## Build/release gate

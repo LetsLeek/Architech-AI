@@ -11,26 +11,6 @@ jobs:
     name: Backend tests
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_DB: architech
-          POSTGRES_USER: architech
-          POSTGRES_PASSWORD: architech
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U architech -d architech"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/architech
-      SPRING_DATASOURCE_USERNAME: architech
-      SPRING_DATASOURCE_PASSWORD: architech
-
     steps:
       - uses: actions/checkout@v7
 
@@ -44,8 +24,10 @@ jobs:
 
       - name: Build, test and check coverage
         working-directory: backend
-        # `verify` runs the `test` phase plus jacoco:check (AIW-90) - a coverage regression
-        # below the locked-in floor fails the build the same way a test failure does.
+        # `verify` runs unit tests (Surefire) + integration tests against a disposable
+        # Testcontainers Postgres (Failsafe, AIW-91) + jacoco:check (AIW-90) - a test failure
+        # in either phase, or a coverage regression below the locked-in floor, fails the build.
+        # No manually-provisioned Postgres needed here anymore - Testcontainers owns its own.
         run: ./mvnw --batch-mode --no-transfer-progress verify
 
       - name: Upload coverage report
