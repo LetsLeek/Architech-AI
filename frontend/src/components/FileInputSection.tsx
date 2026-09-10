@@ -60,7 +60,10 @@ function FileInputSection({ projectId, onCountChange }: FileInputSectionProps) {
     <section className="input-section">
       <h2>File evidence</h2>
       <form onSubmit={handleSubmit}>
-        <input type="file" ref={fileInputRef} />
+        <label>
+          Evidence file
+          <input type="file" ref={fileInputRef} />
+        </label>
         <button type="submit" disabled={submitting}>
           {submitting ? 'Uploading…' : 'Upload file'}
         </button>

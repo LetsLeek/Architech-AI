@@ -45,6 +45,22 @@ app - evidence submission and a run reaching a real, deterministic terminal stat
 a fabricated success. It still exercises every UI transition (idle → running → completed) a
 successful run would.
 
+## Accessibility checks (AIW-98)
+
+`accessibility.spec.ts` runs `@axe-core/playwright` against every critical screen after it's
+fully rendered (not mid-load). **Automated checks here are a floor, not a replacement** for
+manual keyboard navigation and screen-reader review - axe-core can only catch mechanically
+detectable issues (missing labels, invalid ARIA, contrast, ...), not things like "does this
+flow actually make sense operated by keyboard alone."
+
+Only `serious`/`critical` impact violations fail the test, matching AIW-87's severity-tiering
+policy applied to axe's own impact scale - `moderate`/`minor` findings are still collected and
+attached to the test result (`testInfo.attach('axe-violations', ...)`) for triage, never
+silently dropped, just non-blocking. A documented exception (disabling a specific rule) needs an
+inline comment explaining why it isn't a real barrier and what the follow-up path is, the same
+way `.gitleaksignore`/`nosemgrep` require a reason elsewhere in this repo - none exist today,
+the baseline is 0 violations at any severity across every screen.
+
 ## Sharding
 
 Not needed yet (one spec, one worker in CI - see `playwright.config.ts`'s comment on why

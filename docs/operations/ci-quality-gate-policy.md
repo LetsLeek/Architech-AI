@@ -27,14 +27,14 @@ not automatically required at another:
 | SAST (Semgrep - see [below](#sast-codeql-vs-semgrep-fallback), AIW-93) | Existing, required | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
 | Dependency vulnerability check (Trivy - see [below](#dependency-vulnerability-scanning-trivy-fallback), AIW-94) | Existing, required | Yes for new HIGH/CRITICAL findings |
 | Secret scanning (Gitleaks - see [below](#secret-scanning-gitleaks-fallback), AIW-95) | Existing, required | Yes - any detected secret blocks |
-| Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
+| Playwright E2E against an isolated local stack (mock AI, disposable Postgres, AIW-92) + accessibility checks (axe-core, AIW-98 - see [below](#accessibility-checks-axe-core-in-playwright)) | Existing, required (promoted from warning-only - 10/10 green runs since AIW-92 landed) | Yes - E2E failure always; new serious/critical a11y violations |
 | Frontend coverage thresholds (AIW-89) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | Backend coverage thresholds (AIW-90) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 
 This deliberately incorporates AIW-22/23/24's existing checks rather than duplicating them - the
-`backend-ci.yml`/`frontend-ci.yml` workflows and `develop`'s branch protection required-status-
-checks list (`Backend tests`, `Frontend build`, `Backend Docker image`, `Frontend tests`) are the
-actual PR gate;
+CI workflows and `develop`'s branch protection required-status-checks list (`Backend tests`,
+`Frontend build`, `Backend Docker image`, `Frontend tests`, `SAST (Semgrep)`,
+`Dependency scan (Trivy)`, `Secret scan (Gitleaks)`, `Playwright E2E`) are the actual PR gate;
 this document records the policy behind that configuration, not a second parallel mechanism.
 
 ## Build/release gate
@@ -45,7 +45,6 @@ checks belong here rather than on every PR iteration:
 | Check | Status | Blocking? |
 |---|---|---|
 | Visual regression baseline (AIW-102) | Planned | **Warning-only** initially (small, stable screen set per AIW-102's own scope) |
-| Playwright E2E against an isolated local stack (mock AI, disposable Postgres, AIW-92) | Existing (`e2e-ci.yml`) | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | SBOM + build provenance (AIW-101) | Planned | Generated, not itself a pass/fail gate - a release without one is incomplete, not rejected |
 
 ## STAGING/PROD promotion gate
@@ -85,13 +84,43 @@ since the existing 167 tests (built up across M1 and the AIW-59/87/88 work) alre
 of the codebase through Spring-context tests. The floor is locked to this real measurement, not
 artificially lowered to the target.
 
-**Playwright E2E (AIW-92):** lands warning-only in the Build/release gate rather than blocking
-the PR gate - it boots the real frontend, backend and a disposable Postgres together (heavier
-and slower than the PR gate's checks, and this is the suite's first run in the repo, so it
-hasn't yet proven itself flake-free). Promote it to blocking once it's been stable for a
-run-window; see [`e2e/README.md`](../../e2e/README.md) for why its "happy path" asserts on a
-validation-failure terminal state (the platform's only registered AI provider outside an opt-in
-real-AI profile is a deterministic mock) rather than a fabricated success.
+**Playwright E2E (AIW-92):** landed warning-only initially (first run of this suite in the repo,
+heavier/slower than the PR gate's other checks, hadn't yet proven itself flake-free). Promoted
+to required as of AIW-98, after 10/10 green runs across every PR since it landed - the ratchet's
+own stated exit condition ("promote to blocking once stable for a run-window") was met. See
+[`e2e/README.md`](../../e2e/README.md) for why its "happy path" asserts on a validation-failure
+terminal state (the platform's only registered AI provider outside an opt-in real-AI profile is
+a deterministic mock) rather than a fabricated success.
+
+## Accessibility checks: axe-core in Playwright
+
+`@axe-core/playwright` runs against every critical screen (`e2e/tests/accessibility.spec.ts`) in
+the same Playwright suite/job as AIW-92's E2E journey test - promoted to required alongside it
+(see immediately above), rather than needing its own separate warning-only ratchet period,
+because its own baseline measured clean from the first run.
+
+**Severity tiering, same shape as SAST/dependency/container scanning:** only `serious`/`critical`
+impact violations fail the build, matching AIW-87's HIGH/CRITICAL-blocks policy applied to
+axe's own impact scale; `moderate`/`minor` findings are attached to the test result in full
+(`testInfo.attach('axe-violations', ...)`) so they stay visible for triage without blocking
+merges over cosmetic issues.
+
+**Automated checks are a floor, not a substitute** for manual keyboard-navigation and
+screen-reader review - axe-core can only catch mechanically detectable issues (missing labels,
+invalid ARIA, contrast, structural landmarks, ...), never whether a flow is actually usable
+operated by keyboard/screen-reader alone. `e2e/README.md` states this explicitly next to the
+tests themselves, not just here.
+
+**Baseline:** the first scan found one real critical violation (`FileInputSection`'s file input
+had no accessible label) and two moderate ones (missing `<main>` landmark). Fixed the same way
+every other AIW-93..97-era gate fixed its own baseline rather than suppressing it: added a
+`<label>` wrapping the file input, and wrapped the routed page content in `<main>` in `App.tsx`.
+0 violations at any severity as of AIW-98, across both critical screens.
+
+**Documented exceptions**, if one is ever genuinely needed (a rule disabled via
+`.disableRules([...])` or `.exclude(...)` on a specific `AxeBuilder` call), require an inline
+comment explaining why the flagged element isn't a real barrier and what the follow-up path is -
+same convention as `.gitleaksignore`/`nosemgrep` elsewhere in this repo. None exist today.
 
 ## SAST: CodeQL vs. Semgrep fallback
 
