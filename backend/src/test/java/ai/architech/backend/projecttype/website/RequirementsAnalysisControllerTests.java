@@ -1,5 +1,6 @@
 package ai.architech.backend.projecttype.website;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,7 +64,15 @@ class RequirementsAnalysisControllerTests {
 				.andExpect(jsonPath("$.executionId").exists())
 				.andExpect(jsonPath("$.status").value("FAILED"))
 				.andExpect(jsonPath("$.succeeded").value(false))
-				.andExpect(jsonPath("$.validationIssues").isNotEmpty());
+				.andExpect(jsonPath("$.validationIssues").isNotEmpty())
+				// AIW-130: the mock provider still reports its own name/model even though this
+				// run fails deterministic validation - only real usage numbers (which mock never
+				// reports) stay null, never fabricated as zero.
+				.andExpect(jsonPath("$.provider").value("mock"))
+				.andExpect(jsonPath("$.model").value("mock-model"))
+				.andExpect(jsonPath("$.promptTokens").value(nullValue()))
+				.andExpect(jsonPath("$.completionTokens").value(nullValue()))
+				.andExpect(jsonPath("$.costUsd").value(nullValue()));
 	}
 
 	@Test
