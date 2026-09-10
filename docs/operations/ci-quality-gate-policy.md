@@ -25,7 +25,7 @@ not automatically required at another:
 | Frontend unit/component tests (Vitest + RTL, AIW-88) | Existing, required | Yes |
 | Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
 | SAST (Semgrep - see [below](#sast-codeql-vs-semgrep-fallback), AIW-93) | Existing, required | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
-| Dependency vulnerability check (AIW-94) | Planned | Yes for new HIGH/CRITICAL findings |
+| Dependency vulnerability check (Trivy - see [below](#dependency-vulnerability-scanning-trivy-fallback), AIW-94) | Existing, required | Yes for new HIGH/CRITICAL findings |
 | Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
 | Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | Frontend coverage thresholds (AIW-89) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
@@ -134,6 +134,44 @@ existing workflows, all pinned to full commit SHAs as part of landing this gate 
 carried forward as suppressed debt. Since the baseline is genuinely clean, this gate is blocking
 from day one rather than following the warning-only-until-proven ratchet used for
 coverage/E2E/a11y.
+
+## Dependency vulnerability scanning: Trivy fallback
+
+Same GHAS gap as [CodeQL](#sast-codeql-vs-semgrep-fallback): GitHub's native "Dependency review"
+action needs GitHub Advanced Security on a private repository - confirmed via
+`GET /repos/.../dependency-graph/compare/{basehead}` returning 403 the same way the code-scanning
+endpoints do. `dependency-scan-ci.yml` uses **Trivy** (filesystem mode) as the approved fallback,
+chosen because it covers both Maven (`backend/pom.xml`) and npm (`frontend/`, `e2e/`
+`package-lock.json`) in one tool and one pass, following the identical two-pass report+gate
+pattern AIW-93 established (full SARIF report uploaded as a build artifact; a second,
+severity-filtered `--severity HIGH,CRITICAL --exit-code 1` pass gates the build). Unlike
+GitHub's native dependency review, this isn't scoped to just the PR's diff - it scans every
+manifest on every run, which is a strictly stronger check (also catches a vulnerability newly
+*disclosed* against an already-present dependency, not only one newly *introduced* by a PR).
+
+`--include-dev-deps` is set explicitly - Trivy's default silently excludes npm
+`devDependencies` (e2e/'s only dependency, `@playwright/test`, is one, so without this flag that
+whole target scans as empty), which would leave real supply-chain exposure (arbitrary code
+execution during `npm ci`/test runs) unchecked.
+
+Dependabot itself is **not** affected by the GHAS gap - vulnerability alerts and automated
+security updates are enabled directly via repo settings (`PUT
+/repos/.../vulnerability-alerts` and `/automated-security-fixes`, confirmed available - these
+endpoints are readable/writable on this plan, just off by default), and
+[`.github/dependabot.yml`](../../.github/dependabot.yml) configures routine weekly
+version-update PRs (grouped by minor/patch, capped `open-pull-requests-limit`) across all four
+ecosystems in this repo (Maven, the two npm packages, and GitHub Actions itself - which keeps
+AIW-93's SHA-pinned actions current without losing the pinning).
+
+**Baseline:** the first scan found 3 CRITICAL Tomcat CVEs (CVE-2026-65182/65905/68525, via
+`org.apache.tomcat.embed:tomcat-embed-core` 11.0.24, transitively pinned by
+spring-boot-starter-parent). Fixed the same way AIW-93 fixed its own baseline findings rather
+than suppressing them: `backend/pom.xml` now overrides Spring Boot's managed `tomcat.version` to
+11.0.25 (removable once a spring-boot-starter-parent release manages that version itself).
+0 findings at any severity as of AIW-94, across all three manifests including dev dependencies -
+verified the gate both ways (temporarily reverting the Tomcat override reproduced the exit-1
+failure before the fix was restored), so like AIW-93 this gate is blocking from day one rather
+than warning-only.
 
 ## Security severity policy
 

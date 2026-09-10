@@ -28,6 +28,14 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!--
+			AIW-94: overrides spring-boot-starter-parent's managed 11.0.24, which carries
+			CVE-2026-65182/65905/68525 (all CRITICAL) - bumped ahead of Spring Boot's own next
+			release since Trivy's dependency scan gate needs a real CVE-free baseline to start
+			from. Safe to remove once a spring-boot-starter-parent release manages >= 11.0.25
+			itself.
+		-->
+		<tomcat.version>11.0.25</tomcat.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
