@@ -82,6 +82,18 @@ function RequirementsAnalysisSection({ projectId, hasInput, onSucceeded }: Requi
               {state.result.status}
             </span>
           </p>
+          {/* AIW-130: only shown when the execution actually reached a real AI call - the mock
+              provider still reports its own name/model, but token/cost fields stay null rather
+              than a fabricated zero, so they're only rendered when present. */}
+          {state.result.provider && (
+            <p className="ai-usage">
+              {state.result.provider} / {state.result.model}
+              {state.result.promptTokens != null && state.result.completionTokens != null && (
+                <> · {state.result.promptTokens + state.result.completionTokens} tokens</>
+              )}
+              {state.result.costUsd != null && <> · ${state.result.costUsd.toFixed(4)}</>}
+            </p>
+          )}
           {!state.result.succeeded && (
             <>
               <p>Validation failed - no canonical output was produced.</p>
