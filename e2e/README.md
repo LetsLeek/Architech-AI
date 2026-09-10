@@ -85,21 +85,31 @@ AIW-92's journey test took before being promoted once proven stable - AIW-98).
   project detail page's `<dl>` (this run's own random project ID + creation timestamp) is
   masked with a documented inline comment explaining why - nothing else on either screen is
   masked, since nothing else legitimately varies run to run.
-- **Baselines must be generated in the same environment CI actually renders in**, not on a
-  developer's own machine - font rendering differs enough between OSes/distros to produce
-  false-positive diffs on literally the first run otherwise. Generate/update them inside the
-  official Playwright Docker image (matches the OS/font package set `playwright install
-  --with-deps` installs on the `ubuntu-latest` GitHub Actions runner CI itself uses):
-  ```bash
-  docker compose up -d   # from the repo root
-  cd frontend && npm run dev &      # leave running
-  cd ../backend && ./mvnw spring-boot:run &   # leave running
-  cd ../e2e
-  docker run --rm --network host -v "$(pwd)/..":/work -w /work/e2e \
-    mcr.microsoft.com/playwright:v1.63.0-noble sh -c "npm ci && npm run test:visual:update"
-  ```
-  The container runs as root, so fix ownership of the written PNGs afterward:
-  `docker run --rm -v "$(pwd)":/e2e alpine chown -R $(id -u):$(id -g) /e2e/tests/*-snapshots`.
+- **Baselines must match what CI itself renders, not a developer's own machine** - font
+  rendering differs enough between environments to produce false-positive diffs otherwise, and
+  this was proven, not just anticipated: AIW-102's own first CI run failed both visual tests
+  (~2% of pixels) against baselines generated inside the official Playwright Docker image
+  locally - close to CI's `ubuntu-latest` + `playwright install --with-deps` environment, but
+  not byte-identical (different font substitution). **CI's own render is the actual source of
+  truth**, so the reliable baseline procedure is:
+  1. Generate a first attempt locally inside the official Playwright Docker image (closer to CI
+     than a developer's own OS, and lets you iterate without waiting on CI every time):
+     ```bash
+     docker compose up -d   # from the repo root
+     cd frontend && npm run dev &      # leave running
+     cd ../backend && ./mvnw spring-boot:run &   # leave running
+     cd ../e2e
+     docker run --rm --network host -v "$(pwd)/..":/work -w /work/e2e \
+       mcr.microsoft.com/playwright:v1.63.0-noble sh -c "npm ci && npm run test:visual:update"
+     ```
+     The container runs as root, so fix ownership afterward:
+     `docker run --rm -v "$(pwd)":/e2e alpine chown -R $(id -u):$(id -g) /e2e/tests/*-snapshots`.
+  2. Push and let the `Visual Regression` CI job run. If it still fails, that job's own
+     `test-results/` (uploaded as the `visual-regression-report` artifact) contains the
+     `*-actual.png` CI itself rendered - `gh run download <run-id> -n visual-regression-report`,
+     then copy each `*-actual.png` over the matching committed baseline in
+     `tests/visual.spec.ts-snapshots/` (renaming to that file's own name) and commit that. This
+     is exactly how AIW-102's own initial baselines were corrected.
 
 **Baseline updates require explicit review, never automatic acceptance**: there is no CI step
 that runs `--update-snapshots` and commits the result - a developer runs the command above

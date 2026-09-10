@@ -466,6 +466,17 @@ Unlike those, visual comparisons stay inherently more exposed to environment-dri
 this needs its own proof-of-stability window before following the same promotion path AIW-92's
 journey test took. Revisit once it's accumulated a comparable stable run-history.
 
+**Baseline flakiness was real, not just theoretical**: AIW-102's own first CI run failed both
+visual tests (~2% pixel diff) against baselines generated inside the official Playwright Docker
+image locally - close to what CI's `ubuntu-latest` + `playwright install --with-deps` renders,
+but not byte-identical (font substitution differences). Corrected by using CI's own
+`*-actual.png` output (downloaded from the failed run's `visual-regression-report` artifact) as
+the new baseline directly, rather than continuing to guess from a local approximation - this is
+now the documented, repeatable procedure in `e2e/README.md`, and exactly why this gate stays
+warning-only rather than starting blocking like AIW-93/94/95/96 did: those all measured a
+genuinely clean, reliable baseline on the first real attempt; this one didn't, on the very first
+try, confirming the flakiness concern the AC itself anticipated.
+
 **Visual tests don't replace behavioral/unit/accessibility tests** - they run alongside
 `critical-flow.spec.ts` (AIW-92) and `accessibility.spec.ts` (AIW-98), which already prove the
 same flow actually works and is accessible; visual tests catch drift *on top of* that, nothing
