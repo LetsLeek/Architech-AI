@@ -26,7 +26,7 @@ not automatically required at another:
 | Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
 | SAST (Semgrep - see [below](#sast-codeql-vs-semgrep-fallback), AIW-93) | Existing, required | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
 | Dependency vulnerability check (Trivy - see [below](#dependency-vulnerability-scanning-trivy-fallback), AIW-94) | Existing, required | Yes for new HIGH/CRITICAL findings |
-| Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
+| Secret scanning (Gitleaks - see [below](#secret-scanning-gitleaks-fallback), AIW-95) | Existing, required | Yes - any detected secret blocks |
 | Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | Frontend coverage thresholds (AIW-89) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | Backend coverage thresholds (AIW-90) | Existing, required | Yes - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
@@ -172,6 +172,41 @@ than suppressing them: `backend/pom.xml` now overrides Spring Boot's managed `to
 verified the gate both ways (temporarily reverting the Tomcat override reproduced the exit-1
 failure before the fix was restored), so like AIW-93 this gate is blocking from day one rather
 than warning-only.
+
+## Secret scanning: Gitleaks fallback
+
+Same GHAS gap as [CodeQL](#sast-codeql-vs-semgrep-fallback) and
+[dependency review](#dependency-vulnerability-scanning-trivy-fallback) - GitHub's native Secret
+Scanning / Push Protection needs GitHub Advanced Security on a private repository. Confirmed
+directly rather than inferred: a `PATCH` attempt to enable
+`security_and_analysis.secret_scanning` returns `422 Secret scanning is not available for this
+repository`. `secret-scan-ci.yml` uses **Gitleaks** as the approved fallback, scanning full git
+history (`fetch-depth: 0`, not just the PR diff) on every push/PR - a secret later removed from
+HEAD but still sitting somewhere in git log still gets caught, which matters for a check whose
+whole point is protecting source control, not just the current tree.
+
+Unlike Semgrep/Trivy, there's no severity tier to split into a report-only pass and a gate
+pass: every Gitleaks match is already verified/high-confidence by construction, so the scan
+itself is the gate (any match fails the job) - a SARIF report still uploads as a build artifact
+(`if: always()`, since Gitleaks writes it before exiting non-zero on a match) purely for
+visibility, given GitHub's Security tab isn't reachable without GHAS either.
+
+**If the gate (or anyone) finds a real credential**, not a test fixture: rotate/revoke it at
+the provider immediately - removing it from the latest commit is not sufficient, since it
+already exists in git history and possibly in anyone's local clone or CI logs. Only after
+rotation does cleaning history (if truly necessary) become a lower-priority follow-up. This
+mirrors the real incident already documented in
+[`secret-management.md`](secret-management.md#no-key-ever-appears-in-code-the-frontend-bundle-git-history-or-logs).
+
+**Suppressing a match** (a genuine false positive, or a documented test fixture using an
+obvious dummy value) goes in a `.gitleaksignore` file at repo root, one fingerprint per line
+with a comment above it explaining why - like Semgrep's `nosemgrep` convention, a bare
+suppression with no reason isn't acceptable, and since `.gitleaksignore` is a tracked file, any
+change to it goes through the same PR review as everything else (satisfies AIW-95's
+"bypass/allowlist changes are auditable and reviewed" AC without extra tooling). No such file
+exists yet - the current baseline is 0 findings across all 84 commits in the repo's history, so
+this gate is blocking from day one like AIW-93/94, verified both ways (a deliberately
+introduced AWS-style key pattern was caught before removal).
 
 ## Security severity policy
 
