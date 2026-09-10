@@ -42,9 +42,19 @@ jobs:
           cache: maven
           cache-dependency-path: backend/pom.xml
 
-      - name: Build and test
+      - name: Build, test and check coverage
         working-directory: backend
-        run: ./mvnw --batch-mode --no-transfer-progress test
+        # `verify` runs the `test` phase plus jacoco:check (AIW-90) - a coverage regression
+        # below the locked-in floor fails the build the same way a test failure does.
+        run: ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/target/site/jacoco/
+          retention-days: 14
 
   docker-build:
     name: Backend Docker image

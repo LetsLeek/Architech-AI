@@ -41,7 +41,8 @@ npm run dev                 # starts on :5173
 ```
 
 Backend tests (`./mvnw test`, run from `backend/`) require Postgres to be running via
-`docker compose up -d`.
+`docker compose up -d`. `./mvnw verify` additionally runs the JaCoCo coverage check (AIW-90) -
+the human-readable report lands at `backend/target/site/jacoco/index.html`, never committed.
 
 If the backend fails to start with a connection error, check that
 `docker compose ps` shows Postgres as healthy and that `.env` matches
