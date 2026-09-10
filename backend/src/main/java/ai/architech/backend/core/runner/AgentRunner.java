@@ -9,6 +9,7 @@ import ai.architech.backend.core.ai.AiGateway;
 import ai.architech.backend.core.ai.AiMessage;
 import ai.architech.backend.core.ai.AiRequest;
 import ai.architech.backend.core.ai.AiResponse;
+import ai.architech.backend.core.ai.AiUsageBudgetGuard;
 import ai.architech.backend.core.ai.CostCalculator;
 import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.error.ErrorCode;
@@ -56,6 +57,7 @@ public class AgentRunner {
 	private final SourceRefAssigner sourceRefAssigner;
 	private final AiGateway aiGateway;
 	private final CostCalculator costCalculator;
+	private final AiUsageBudgetGuard aiUsageBudgetGuard;
 	private final AgentExecutionRepository agentExecutionRepository;
 
 	AgentRunner(
@@ -67,6 +69,7 @@ public class AgentRunner {
 			SourceRefAssigner sourceRefAssigner,
 			AiGateway aiGateway,
 			CostCalculator costCalculator,
+			AiUsageBudgetGuard aiUsageBudgetGuard,
 			AgentExecutionRepository agentExecutionRepository) {
 		this.agentDefinitionLoader = agentDefinitionLoader;
 		this.skillLoader = skillLoader;
@@ -76,6 +79,7 @@ public class AgentRunner {
 		this.sourceRefAssigner = sourceRefAssigner;
 		this.aiGateway = aiGateway;
 		this.costCalculator = costCalculator;
+		this.aiUsageBudgetGuard = aiUsageBudgetGuard;
 		this.agentExecutionRepository = agentExecutionRepository;
 	}
 
@@ -88,6 +92,18 @@ public class AgentRunner {
 
 		AgentExecution execution = new AgentExecution(snapshot.getProjectId(), agentId, agentVersion);
 		agentExecutionRepository.save(execution);
+
+		// Deliberately outside the try/catch below: a budget breach is a definitive refusal to
+		// even attempt this call, never a transient failure worth BoundedRetryAgentRunner
+		// retrying (it only catches AgentRunnerException, which this is not - see
+		// AiUsageBudgetGuard's own javadoc).
+		try {
+			aiUsageBudgetGuard.checkBeforeInvoking(snapshot.getProjectId(), agentId);
+		} catch (ApplicationException e) {
+			execution.fail(e.getMessage());
+			agentExecutionRepository.save(execution);
+			throw e;
+		}
 
 		try {
 			execution.start();

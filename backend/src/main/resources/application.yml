@@ -53,6 +53,22 @@ architech:
           completion-cost-per1000-tokens: 0.025
           cache-write-cost-per1000-tokens: 0.00625
           cache-read-cost-per1000-tokens: 0.0005
+    # AIW-65: guards against a misbehaving agent or execution loop running up unbounded real
+    # cost. Meaningless against the mock provider by construction, not special-cased here -
+    # AgentExecution.costUsd is only ever non-null once a real AiProvider reports usage, so a
+    # mock-only project/agent always sums to zero and never trips either limit below. Kept on
+    # by default (not opt-in like the real-ai profile itself) since it costs nothing to check
+    # and only ever matters the moment a real provider actually is wired in - exactly the
+    # moment this protection is needed most. Adjust these numbers, or set either to null to
+    # disable that specific bound, once real usage patterns are better known.
+    budget:
+      per-project:
+        soft-limit-usd: 2.00
+        hard-limit-usd: 5.00
+      per-agent:
+        requirements-agent:
+          soft-limit-usd: 2.00
+          hard-limit-usd: 5.00
   runner:
     # Platform-owned retry budget - agents never decide this for themselves.
     max-attempts: 3
