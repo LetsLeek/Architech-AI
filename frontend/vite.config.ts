@@ -1,5 +1,7 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+// `vitest/config`'s defineConfig re-exports Vite's own, merged with the `test` option's types -
+// plain `vite`'s defineConfig doesn't know about `test` at all.
+import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,5 +12,12 @@ export default defineConfig({
     proxy: {
       '/api': 'http://localhost:8080',
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    // AIW-88: `*.test.ts(x)` colocated next to the source file it tests - see src/test/README.md
+    // for the full convention.
+    css: false,
   },
 })
