@@ -1,0 +1,53 @@
+name: SAST
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# AIW-93: this repo is private without GitHub Advanced Security (confirmed via the repos API -
+# security_and_analysis is null, the code-scanning API 403s), so native CodeQL code scanning
+# isn't available here - see docs/operations/ci-quality-gate-policy.md's SAST section for the
+# approved fallback (Semgrep OSS) and how findings stay visible without the Security tab.
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.176.1
+    env:
+      SEMGREP_SEND_METRICS: "off"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Full scan (report, never blocks)
+        # Every finding, any severity - purely to produce the SARIF report below. Exits 0
+        # regardless of findings (no --error), since the actual gate is the next step.
+        run: >
+          semgrep scan --config p/java --config p/typescript --config p/owasp-top-ten
+          --exclude node_modules --exclude target --exclude dist
+          --sarif --output semgrep.sarif .
+
+      - name: Upload SARIF report
+        # `if: always()` so the report is still available when the gate step below fails the job.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 14
+
+      - name: Gate on new HIGH/CRITICAL-equivalent findings
+        # Semgrep's ERROR severity is this project's HIGH/CRITICAL, per AIW-87's security
+        # severity policy - --severity ERROR filters to just that tier, --error then fails the
+        # build if any remain. WARNING/INFO findings are visible in the SARIF report above but
+        # never block, matching the "logged and triaged, not auto-blocking" MEDIUM/LOW policy.
+        run: >
+          semgrep scan --config p/java --config p/typescript --config p/owasp-top-ten
+          --exclude node_modules --exclude target --exclude dist
+          --severity ERROR --error .
