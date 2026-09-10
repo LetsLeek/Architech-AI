@@ -29,6 +29,18 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<!-- `testcontainers.version` is already defined by spring-boot-starter-parent; this just imports the matching BOM. -->
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>2.0.5</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -85,6 +97,24 @@
 			<artifactId>spring-boot-starter-flyway-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<!--
+				AIW-91: `src/test/resources/application.yml` points the datasource at a
+				`jdbc:tc:postgresql:...` URL - this module's `ContainerDatabaseDriver`
+				intercepts that URL and transparently backs it with a disposable Testcontainers
+				Postgres, so integration tests need neither a manually-started `docker compose`
+				Postgres nor any Java-side container wiring.
+			-->
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-jdbc</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- Provides the actual Postgres container definition the `tc:postgresql:` URL prefix resolves to. -->
+			<groupId>org.testcontainers</groupId>
+			<artifactId>testcontainers-postgresql</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -95,12 +125,13 @@
 			</plugin>
 			<plugin>
 				<!--
-					AIW-90: measures coverage across the existing `test` phase (which already
-					covers unit + Spring-context/integration-style tests together - there is no
-					separate unit/integration split in this project yet) and enforces the
-					thresholds below during `verify`, so `./mvnw verify` (what CI runs) fails on
-					a regression the same way `npm run test:coverage` does on the frontend
-					(AIW-89).
+					AIW-91: unit tests (Surefire, `*Tests.java`) and integration tests against a
+					real disposable Postgres (Failsafe, `*IT.java`) now run as two separate,
+					separately-reported phases instead of one combined `test` run - see the
+					surefire/failsafe plugin configs below. Both agents write into the *same*
+					jacoco.exec (the integration one with append=true) so `report`/`check` below
+					still see combined coverage, matching the baseline AIW-90 originally locked
+					in across what was then one undifferentiated test run.
 				-->
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
@@ -108,13 +139,28 @@
 				<executions>
 					<execution>
 						<id>prepare-agent</id>
+						<configuration>
+							<propertyName>surefireArgLine</propertyName>
+						</configuration>
 						<goals>
 							<goal>prepare-agent</goal>
 						</goals>
 					</execution>
 					<execution>
+						<id>prepare-agent-integration</id>
+						<phase>pre-integration-test</phase>
+						<configuration>
+							<propertyName>failsafeArgLine</propertyName>
+							<destFile>${project.build.directory}/jacoco.exec</destFile>
+							<append>true</append>
+						</configuration>
+						<goals>
+							<goal>prepare-agent-integration</goal>
+						</goals>
+					</execution>
+					<execution>
 						<id>report</id>
-						<phase>test</phase>
+						<phase>verify</phase>
 						<goals>
 							<goal>report</goal>
 						</goals>
@@ -153,6 +199,42 @@
 								<exclude>ai/architech/backend/BackendApplication.class</exclude>
 							</excludes>
 						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>@{surefireArgLine}</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
+				<!--
+					AIW-91: runs `*IT.java` (Failsafe's default include pattern) - the 31
+					@SpringBootTest classes against the real, disposable Testcontainers Postgres
+					configured in src/test/resources/application.yml - separately from the plain
+					`*Tests.java` unit tests Surefire runs in the `test` phase, so CI output keeps
+					them distinguishable (separate plugin executions/log sections) per AIW-91's AC.
+					`integration-test`+`verify` are both bound so a failing IT still fails the
+					build even though `integration-test` alone doesn't (Failsafe's usual pattern).
+				-->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.5.6</version>
+				<configuration>
+					<argLine>@{failsafeArgLine}</argLine>
+					<!-- Activates src/test/resources/application-test.yml (Testcontainers datasource), merged on top of the base application.yml. -->
+					<systemPropertyVariables>
+						<spring.profiles.active>test</spring.profiles.active>
+					</systemPropertyVariables>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
 					</execution>
 				</executions>
 			</plugin>

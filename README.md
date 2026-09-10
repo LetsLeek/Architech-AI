@@ -40,9 +40,15 @@ npm install
 npm run dev                 # starts on :5173
 ```
 
-Backend tests (`./mvnw test`, run from `backend/`) require Postgres to be running via
-`docker compose up -d`. `./mvnw verify` additionally runs the JaCoCo coverage check (AIW-90) -
-the human-readable report lands at `backend/target/site/jacoco/index.html`, never committed.
+Backend tests are split into unit tests (`./mvnw test`, run from `backend/` - no Postgres
+needed) and integration tests against real Postgres semantics (`./mvnw verify`, AIW-91) - the
+latter spins up its own disposable Postgres via Testcontainers automatically (needs only a
+running Docker daemon, not `docker compose up -d`) and applies Flyway migrations to it fresh
+every run. `./mvnw verify` also runs the JaCoCo coverage check (AIW-90) across both - the
+human-readable report lands at `backend/target/site/jacoco/index.html`, never committed.
+Naming convention: `*Tests.java` = unit test (Surefire, `test` phase); `*IT.java` = integration
+test (Failsafe, `integration-test`/`verify` phases) - this is how the two stay separately
+identifiable in CI output rather than a mixed single run.
 
 If the backend fails to start with a connection error, check that
 `docker compose ps` shows Postgres as healthy and that `.env` matches
