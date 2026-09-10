@@ -51,6 +51,39 @@ jobs:
           path: backend/target/site/jacoco/
           retention-days: 14
 
+      - name: Upload test reports
+        # AIW-100: raw Surefire/Failsafe output (per-test result + full stack trace on
+        # failure) - lets a developer see exactly what failed without re-running locally.
+        # Short retention: only useful for debugging a recent failure, never needed later.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+          retention-days: 7
+
+      - name: Write coverage summary to job summary
+        # AIW-100: a developer sees line/branch % directly on the run's summary page instead
+        # of having to download and open the HTML coverage artifact just to see the headline
+        # numbers - no source snippets or file-level detail here, just the two aggregate
+        # percentages already reported (nothing more sensitive than what AIW-90 already made
+        # a public-to-the-team build artifact).
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            awk -F',' 'NR==1{for(i=1;i<=NF;i++)h[i]=$i} NR>1{for(i=3;i<=NF;i++)s[h[i]]+=$i} END{
+              line_pct = 100*s["LINE_COVERED"]/(s["LINE_COVERED"]+s["LINE_MISSED"]);
+              branch_pct = 100*s["BRANCH_COVERED"]/(s["BRANCH_COVERED"]+s["BRANCH_MISSED"]);
+              printf "## Backend coverage\n\n";
+              printf "| Metric | Covered | Missed | %% |\n|---|---|---|---|\n";
+              printf "| Line | %d | %d | %.1f%% |\n", s["LINE_COVERED"], s["LINE_MISSED"], line_pct;
+              printf "| Branch | %d | %d | %.1f%% |\n", s["BRANCH_COVERED"], s["BRANCH_MISSED"], branch_pct;
+            }' target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   docker-build:
     name: Backend Docker image
     runs-on: ubuntu-latest
@@ -86,12 +119,27 @@ jobs:
         run: trivy image --scanners vuln --format sarif --output trivy-image.sarif architech-backend:${{ github.sha }}
 
       - name: Upload SARIF report
+        # AIW-100: 30 days, not the 14-day default - small text file with real audit value.
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: trivy-image-sarif
           path: trivy-image.sarif
-          retention-days: 14
+          retention-days: 30
+
+      - name: Write findings to job summary
+        if: always()
+        run: |
+          total=$(jq '[.runs[0].results[]] | length' trivy-image.sarif)
+          {
+            echo "## Backend Docker image findings (Trivy)"
+            echo ""
+            echo "Total findings (any severity): **${total}**"
+            echo ""
+            if [ "$total" -gt 0 ]; then
+              jq -r '.runs[0].results[] | "<details><summary>\(.ruleId) (\(.level // "note")) - \(.locations[0].physicalLocation.artifactLocation.uri)</summary>\n\n\(.message.text)\n\n</details>\n"' trivy-image.sarif | head -c 60000
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Gate on fixable HIGH/CRITICAL findings
         # --ignore-unfixed: a HIGH/CRITICAL finding with no available fix isn't something this

@@ -355,6 +355,50 @@ per-run speedup. The table above exists to prove nothing regressed, not to claim
 this kind of change doesn't produce - and that's what it shows: every job landed within normal
 CI variance of its baseline (±10-25s on jobs in the 20-120s range), no regression.
 
+## CI report publishing (AIW-100)
+
+Makes what actually failed visible directly on the workflow run's summary page (GitHub's
+`$GITHUB_STEP_SUMMARY`, rendered as sanitized markdown - no script execution, so writing
+untrusted PR-derived content there carries no privileged-execution risk per AIW-100's own AC),
+not just a generic non-zero exit code buried in a raw log.
+
+**Every scanner** (Semgrep, Trivy fs, Trivy image, Gitleaks) now writes a summary immediately
+after its own report-generation step (so it appears even if the later gate step fails the job):
+total finding count, then each finding as a collapsible `<details>` block using the SARIF's own
+`message.text` - which, for Trivy especially, already includes a working `[CVE-ID](link)`
+markdown link, package name, installed/fixed versions. **Gitleaks is the one deliberate
+exception**: its summary step only ever reads `ruleId`/file/line, never
+`.locations[0].physicalLocation.region.snippet` - that field is where Gitleaks' own SARIF puts
+the actual matched secret text, and a summary whose entire purpose is flagging a leak must never
+itself become a wider-audience copy of that leak (discovered this distinction the hard way
+during this ticket's own local testing - see [[architech_secret_handling]] in this session's
+memory for the incident, not repeated here since it involved a real credential).
+
+**Backend/frontend test and coverage reports**: `backend-ci.yml`'s `test` job now also uploads
+raw Surefire/Failsafe output (`backend-test-reports`, 7-day retention - large text, only useful
+for debugging a recent failure) alongside the existing coverage artifact, and writes a
+line/branch % table to the job summary (parsed from `jacoco.csv`, same numbers AIW-90 already
+made a build artifact - nothing more sensitive exposed). `frontend-ci.yml`'s `test` job does the
+same from Vitest's `json-summary` coverage reporter (added in `vite.config.ts` alongside the
+existing text/html/lcov reporters).
+
+**Retention, configured per artifact type rather than one default everywhere**:
+
+| Artifact type | Retention | Why |
+|---|---|---|
+| Security SARIF reports (Semgrep/Trivy/Gitleaks) | 30 days | Small text files, real audit/compliance value |
+| Coverage reports (backend/frontend) | 14 days | Moderate size, useful for a short trend window |
+| Backend Surefire/Failsafe raw output | 7 days | Text, but only useful for debugging a recent failure |
+| Playwright report/traces/videos | 7 days | Large binaries, only useful for debugging a recent failure |
+
+**Untrusted PR content stays non-privileged**: every summary-writing step reads a scanner's own
+output file with `jq`/`awk` and appends plain text to `$GITHUB_STEP_SUMMARY` - never `eval`,
+never a shell interpolation of scanned content, never HTML/script rendering beyond what GitHub's
+own step-summary sanitizer already allows. A malicious PR's file paths or matched snippets
+flowing into a summary can at worst look visually odd in that PR's own check output - it cannot
+execute anything, affect another PR, or reach a secret (see AIW-99's own confirmation: no
+workflow here references `secrets.*` or uses `pull_request_target`).
+
 ## Security severity policy
 
 A **new** HIGH or CRITICAL finding (SAST, dependency, container image, or DAST) blocks the PR or

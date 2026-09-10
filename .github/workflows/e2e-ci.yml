@@ -83,6 +83,11 @@ jobs:
         run: npm test
 
       - name: Upload Playwright report
+        # AIW-100: 7 days, not the 14-day default - test-results/ includes videos/traces/
+        # screenshots (large binaries, only useful for debugging a recent failure), unlike the
+        # small text-based SARIF security reports elsewhere in these workflows that get *longer*
+        # retention for their audit value. Cost-conscious retention means picking the number per
+        # artifact type, not applying one default everywhere.
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -90,4 +95,4 @@ jobs:
           path: |
             e2e/playwright-report/
             e2e/test-results/
-          retention-days: 14
+          retention-days: 7

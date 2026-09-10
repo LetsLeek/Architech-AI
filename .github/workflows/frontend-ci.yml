@@ -71,3 +71,19 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage/
           retention-days: 14
+
+      - name: Write coverage summary to job summary
+        # AIW-100: reads the json-summary reporter's output (vite.config.ts) - same rationale
+        # as backend-ci.yml's equivalent step, aggregate % only, no source-level detail.
+        if: always()
+        working-directory: frontend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            {
+              echo "## Frontend coverage"
+              echo ""
+              echo "| Metric | Covered | Total | % |"
+              echo "|---|---|---|---|"
+              jq -r '.total | to_entries | map(select(.key == "lines" or .key == "branches" or .key == "functions" or .key == "statements")) | map("| \(.key) | \(.value.covered) | \(.value.total) | \(.value.pct)% |") | join("\n")' coverage/coverage-summary.json
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

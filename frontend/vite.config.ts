@@ -21,7 +21,10 @@ export default defineConfig({
     css: false,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
+      // AIW-100: json-summary is what CI reads to write the coverage % into the run's job
+      // summary (frontend-ci.yml) - the other three are unchanged (text for local runs,
+      // html/lcov for the downloadable artifact/tooling).
+      reporter: ['text', 'html', 'lcov', 'json-summary'],
       reportsDirectory: './coverage',
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
