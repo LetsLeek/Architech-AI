@@ -24,7 +24,7 @@ not automatically required at another:
 | Backend Docker image build (`backend-ci.yml`'s `docker-build` job, AIW-68) | Existing, required | Yes |
 | Frontend unit/component tests (Vitest + RTL, AIW-88) | Existing, required | Yes |
 | Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
-| SAST/CodeQL (AIW-93) | Planned | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
+| SAST (Semgrep - see [below](#sast-codeql-vs-semgrep-fallback), AIW-93) | Existing, required | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
 | Dependency vulnerability check (AIW-94) | Planned | Yes for new HIGH/CRITICAL findings |
 | Secret scanning / push protection (AIW-95) | Planned | Yes - any detected secret blocks |
 | Accessibility checks (AIW-98) | Planned | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
@@ -93,6 +93,47 @@ hasn't yet proven itself flake-free). Promote it to blocking once it's been stab
 run-window; see [`e2e/README.md`](../../e2e/README.md) for why its "happy path" asserts on a
 validation-failure terminal state (the platform's only registered AI provider outside an opt-in
 real-AI profile is a deterministic mock) rather than a fabricated success.
+
+## SAST: CodeQL vs. Semgrep fallback
+
+GitHub's native CodeQL code scanning requires GitHub Advanced Security on a private repository.
+This repo is private, and GHAS is not available on its current plan - confirmed via the API:
+`GET /repos/.../` returns `security_and_analysis: null` (populated with a real object wherever
+GHAS is actually available, even if disabled), and `GET /repos/.../code-scanning/*` 403s. Making
+the repo public would unlock free CodeQL but isn't appropriate for proprietary code, so per
+AIW-93's own AC ("if the GitHub plan does not support the required private-repository feature,
+the limitation and an approved SAST fallback are documented and implemented rather than silently
+omitting SAST") - **Semgrep OSS** (`sast-ci.yml`) is that approved fallback, chosen (over
+separate SpotBugs+FindSecBugs/ESLint-security tooling) because one tool with one ruleset covers
+both Java and TypeScript, needs no GitHub/SaaS account, and runs as a plain CI job.
+
+Since GitHub's Security tab isn't available either (same GHAS gap), findings stay visible two
+other ways: the gate step's own text output lists file:line directly in the job log, and every
+run uploads a full SARIF report (all severities, not just the blocking ones) as a build artifact
+via `semgrep-sarif` - open it with any SARIF viewer (e.g. the VS Code SARIF Viewer extension) for
+the complete picture, including WARNING/INFO findings the gate itself never blocks on.
+
+**Severity mapping:** Semgrep's `ERROR` severity is this project's HIGH/CRITICAL (blocks per the
+[Security severity policy](#security-severity-policy) below); `WARNING`/`INFO` are this project's
+MEDIUM/LOW (visible in the SARIF artifact, never blocking). The gate runs `--severity ERROR
+--error`, which restricts evaluation to ERROR-severity rules and fails the build if any of them
+fire - confirmed by both a clean run (exit 0) and a deliberately introduced SQL-injection pattern
+(exit 1, correctly flagged by `java.lang.security.audit.formatted-sql-string`) before this
+threshold was locked in, the same way every other gate this session added was verified.
+
+**Suppressing a finding requires a reason, not just silence:** an inline `// nosemgrep:
+<rule-id>` comment with no justification is not an acceptable suppression - always pair it with
+a `- <reason>` explaining why the match is a false positive or an accepted risk in that specific
+spot (`// nosemgrep: java.lang.security.audit.formatted-sql-string - value is a compile-time
+constant, never user input`). Excluding whole paths (generated code, vendored files) belongs in
+`.semgrepignore` with the same reasoning as a comment above the entry, not a bare glob.
+
+**Baseline:** 0 findings at any severity as of AIW-93 - the only findings the first scan turned
+up were 13 mutable GitHub Actions tag references (`actions/checkout@v7` etc.) across the three
+existing workflows, all pinned to full commit SHAs as part of landing this gate rather than
+carried forward as suppressed debt. Since the baseline is genuinely clean, this gate is blocking
+from day one rather than following the warning-only-until-proven ratchet used for
+coverage/E2E/a11y.
 
 ## Security severity policy
 
