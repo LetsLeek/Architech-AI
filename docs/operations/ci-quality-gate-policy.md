@@ -44,7 +44,7 @@ checks belong here rather than on every PR iteration:
 
 | Check | Status | Blocking? |
 |---|---|---|
-| Visual regression baseline (AIW-102) | Planned | **Warning-only** initially (small, stable screen set per AIW-102's own scope) |
+| Visual regression baseline (`Visual Regression` job, e2e-ci.yml - see [below](#visual-regression-aiw-102), AIW-102) | Existing | **Warning-only** (small, stable screen set per AIW-102's own scope) |
 | SBOM + build provenance (AIW-101) | Planned | Generated, not itself a pass/fail gate - a release without one is incomplete, not rejected |
 
 ## STAGING/PROD promotion gate
@@ -451,6 +451,27 @@ to keep this ticket's own required check green.
    are confirmed blocked on this repo (see above). Steps 1-3 are the actual verification
    procedure until either this repo moves to an org, or goes public, or a registry (AIW-70)
    makes `push-to-registry`-based attestation available instead.
+
+## Visual regression (AIW-102)
+
+A separate `Visual Regression` job in `e2e-ci.yml` (own `npm run test:visual`, own artifact
+upload) runs a deliberately small set of Playwright screenshot comparisons against the two
+critical screens - see [`e2e/README.md`](../../e2e/README.md#visual-regression-aiw-102) for the
+full write-up (mitigations against flaky diffs, how to regenerate baselines correctly, why
+baseline updates require human review rather than an automatic CI step).
+
+**Warning-only, deliberately not promoted alongside Playwright E2E/accessibility (AIW-98).**
+Unlike those, visual comparisons stay inherently more exposed to environment-driven flakiness
+(font rendering, anti-aliasing) even with `animations: 'disabled'` and masked dynamic regions -
+this needs its own proof-of-stability window before following the same promotion path AIW-92's
+journey test took. Revisit once it's accumulated a comparable stable run-history.
+
+**Visual tests don't replace behavioral/unit/accessibility tests** - they run alongside
+`critical-flow.spec.ts` (AIW-92) and `accessibility.spec.ts` (AIW-98), which already prove the
+same flow actually works and is accessible; visual tests catch drift *on top of* that, nothing
+more. The suite stays intentionally small for M2 (two screens) - AIW-102's own scope notes this
+can expand later to cover generated customer website previews once the Designer Agent (Säule 4,
+still blocked on its own frozen spec package) exists.
 
 ## Security severity policy
 

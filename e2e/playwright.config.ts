@@ -22,6 +22,14 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+  // AIW-102: applies to every toHaveScreenshot() call - `animations: 'disabled'` freezes CSS
+  // transitions/animations before capturing (Playwright's own recommended setting to reduce
+  // visual-test flakiness). Baselines are generated inside the official Playwright Docker image
+  // (see e2e/README.md's "Visual regression" section) - locally-generated ones would almost
+  // certainly diff against CI on font rendering alone, which isn't a real regression.
+  expect: {
+    toHaveScreenshot: { animations: 'disabled' },
+  },
   projects: [
     {
       name: 'chromium',
