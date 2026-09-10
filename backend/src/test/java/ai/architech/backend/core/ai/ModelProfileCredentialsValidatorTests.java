@@ -37,9 +37,22 @@ class ModelProfileCredentialsValidatorTests {
 				.hasMessageContaining("stub");
 	}
 
+	@Test
+	void failsStartupClearlyWhenTheFallbackProviderIsMissingRequiredCredentials() {
+		AiProperties.ModelProfileConfig config = new AiProperties.ModelProfileConfig(
+				"primary", "some-model", new AiProperties.ModelProfileConfig("fallback", "some-model", null));
+		AiProperties properties = new AiProperties(Map.of("structured-reasoning", config), Map.of());
+
+		assertThatThrownBy(() -> new ModelProfileCredentialsValidator(
+						properties, List.of(stubProvider("primary", true), stubProvider("fallback", false))))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("structured-reasoning")
+				.hasMessageContaining("fallback");
+	}
+
 	private static AiProperties propertiesFor(String profileName, String provider) {
 		return new AiProperties(
-				Map.of(profileName, new AiProperties.ModelProfileConfig(provider, "some-model")), Map.of());
+				Map.of(profileName, new AiProperties.ModelProfileConfig(provider, "some-model", null)), Map.of());
 	}
 
 	private static AiProvider stubProvider(String name, boolean configured) {

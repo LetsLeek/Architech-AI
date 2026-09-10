@@ -20,5 +20,11 @@ public record AiProperties(Map<String, ModelProfileConfig> modelProfiles, Map<St
 		pricing = pricing == null ? Map.of() : pricing;
 	}
 
-	public record ModelProfileConfig(String provider, String model) {}
+	/**
+	 * {@code fallback}, if present, is itself a full {@link ModelProfileConfig} - {@link
+	 * AiGateway} tries it only if {@code provider} fails, and only ever as this explicit,
+	 * named config decision (AIW-66), never automatically inferred. {@code null} (the
+	 * overwhelming default) means no fallback: a failure stays a failure.
+	 */
+	public record ModelProfileConfig(String provider, String model, ModelProfileConfig fallback) {}
 }

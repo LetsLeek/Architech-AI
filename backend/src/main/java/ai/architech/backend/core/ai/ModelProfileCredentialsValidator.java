@@ -22,6 +22,11 @@ import org.springframework.stereotype.Component;
  * provider name is {@link ModelProfileResolver}'s concern (thrown at resolve time, not startup,
  * since a model profile can legitimately be declared before its provider bean exists yet), not
  * this validator's.
+ *
+ * <p>Also walks a profile's {@link AiProperties.ModelProfileConfig#fallback()} chain, if any
+ * (AIW-66) - a fallback is "wired to" its profile exactly as much as the primary provider is,
+ * so it gets the same fail-fast treatment rather than only surfacing a missing key the first
+ * time the primary actually fails and something tries to fall back to it.
  */
 @Component
 class ModelProfileCredentialsValidator {
@@ -30,14 +35,20 @@ class ModelProfileCredentialsValidator {
 		Map<String, AiProvider> providersByName =
 				providers.stream().collect(Collectors.toMap(AiProvider::name, Function.identity()));
 
-		properties.modelProfiles().forEach((profileName, config) -> {
-			AiProvider provider = providersByName.get(config.provider());
-			if (provider != null && !provider.isConfigured()) {
-				throw new IllegalStateException(
-						"Model profile '" + profileName + "' is wired to provider '" + config.provider()
-								+ "', but that provider is missing required credentials. Set its API key "
-								+ "(see .env.example) before starting with this configuration.");
-			}
-		});
+		properties.modelProfiles().forEach((profileName, config) -> validateChain(profileName, config, providersByName));
+	}
+
+	private static void validateChain(
+			String profileName, AiProperties.ModelProfileConfig config, Map<String, AiProvider> providersByName) {
+		AiProvider provider = providersByName.get(config.provider());
+		if (provider != null && !provider.isConfigured()) {
+			throw new IllegalStateException(
+					"Model profile '" + profileName + "' is wired to provider '" + config.provider()
+							+ "', but that provider is missing required credentials. Set its API key "
+							+ "(see .env.example) before starting with this configuration.");
+		}
+		if (config.fallback() != null) {
+			validateChain(profileName, config.fallback(), providersByName);
+		}
 	}
 }
