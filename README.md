@@ -57,3 +57,9 @@ Schema changes are made exclusively through new Flyway migration files under
 See [`docs/operations/secret-management.md`](docs/operations/secret-management.md) for how
 Anthropic/OpenAI API keys are supplied in local dev vs. production/staging, and what keeps
 them out of code, the frontend bundle, git history, and logs.
+
+## Azure environment architecture
+
+See [`docs/operations/azure-environment-architecture.md`](docs/operations/azure-environment-architecture.md)
+for the platform's DEV/STAGING/PROD model, resource group and naming conventions, and the
+current one-subscription / future prod-subscription-split plan.
