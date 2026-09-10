@@ -51,3 +51,9 @@ If the backend fails to start with a connection error, check that
 
 Schema changes are made exclusively through new Flyway migration files under
 `backend/src/main/resources/db/migration/` — never by editing the database by hand.
+
+## AI provider credentials
+
+See [`docs/operations/secret-management.md`](docs/operations/secret-management.md) for how
+Anthropic/OpenAI API keys are supplied in local dev vs. production/staging, and what keeps
+them out of code, the frontend bundle, git history, and logs.

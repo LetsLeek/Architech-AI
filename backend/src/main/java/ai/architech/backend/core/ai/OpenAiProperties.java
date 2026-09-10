@@ -15,4 +15,10 @@ public record OpenAiProperties(String apiKey) {
 	public OpenAiProperties {
 		apiKey = apiKey == null ? "" : apiKey;
 	}
+
+	/** Overridden (AIW-64, mirrors {@link AnthropicProperties}) so the key can never end up in a log line or debug endpoint via this record's own default {@code toString()}. */
+	@Override
+	public String toString() {
+		return "OpenAiProperties[apiKey=" + (apiKey.isBlank() ? "<blank>" : "<redacted>") + "]";
+	}
 }
