@@ -81,6 +81,13 @@ architech:
   ai:
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
+    # AIW-62: OpenAiProvider exists and is registered like any other AiProvider bean, and its
+    # key loads here the same opt-in way Anthropic's does - but per AIW-62's own AC, nothing
+    # wires a model profile at "openai" below. Setting OPENAI_API_KEY alone does not make
+    # anything call OpenAI; a model-profiles entry naming provider "openai" would still need
+    # to be added deliberately, exactly like structured-reasoning was pointed at anthropic.
+    openai:
+      api-key: ${OPENAI_API_KEY:}
     model-profiles:
       structured-reasoning:
         provider: anthropic
