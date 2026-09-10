@@ -23,6 +23,13 @@ RUN ./mvnw -B -q package -DskipTests
 # --- Runtime stage ---------------------------------------------------------
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
+# AIW-96: the base image's own OS packages (openssl, expat, ...) lag behind Alpine's current
+# security advisories at whatever point eclipse-temurin last published this tag - pulling
+# current patched versions at build time is what actually closes those CVEs, not just waiting
+# for the next upstream base-image refresh. --no-cache skips a persisted apk index, keeping
+# the image the same size it'd otherwise be.
+RUN apk update && apk upgrade --no-cache
+
 # Passed as --build-arg GIT_SHA=$(git rev-parse HEAD) - makes the exact commit an image was
 # built from inspectable (`docker inspect`) independently of whatever tag it later carries,
 # which can be reassigned or lost. Defaults to "unknown" so a plain `docker build .` with no

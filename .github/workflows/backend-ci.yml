@@ -42,12 +42,48 @@ jobs:
     name: Backend Docker image
     runs-on: ubuntu-latest
 
+    env:
+      TRIVY_VERSION: "0.74.0"
+      TRIVY_SHA256: "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a"
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # Builds only - proves the image is reproducible in CI (AIW-68 AC), never pushed to any
       # registry here. Pushing to Azure Container Registry is AIW-70's own concern, once that
-      # registry and its credentials actually exist.
+      # registry and its credentials actually exist. Since nothing here ever authenticates to a
+      # registry, there are no registry credentials that could leak into these logs (AIW-96 AC).
       - name: Build image
         working-directory: backend
         run: docker build --build-arg GIT_SHA=${{ github.sha }} -t architech-backend:${{ github.sha }} .
+
+      - name: Install Trivy
+        # AIW-96: scans this exact just-built image (by tag, before anything could push or
+        # retag it) - same pinned, checksum-verified install pattern as AIW-94's filesystem
+        # scan; Trivy's vulnerability DB is downloaded fresh at scan time either way.
+        run: |
+          curl -sfL -o trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
+          tar xzf trivy.tar.gz trivy
+          sudo mv trivy /usr/local/bin/
+          rm trivy.tar.gz
+
+      - name: Full image scan (report, never blocks)
+        run: trivy image --scanners vuln --format sarif --output trivy-image.sarif architech-backend:${{ github.sha }}
+
+      - name: Upload SARIF report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trivy-image-sarif
+          path: trivy-image.sarif
+          retention-days: 14
+
+      - name: Gate on fixable HIGH/CRITICAL findings
+        # --ignore-unfixed: a HIGH/CRITICAL finding with no available fix isn't something this
+        # PR (or anyone) can act on today - it stays visible in the SARIF report above and gets
+        # triaged, but doesn't block, per AIW-96's own AC ("vulnerabilities... with an available
+        # fix block release"). Anything this filter lets through and still blocks IS actionable
+        # right now - bump the base image / apk package, the same way AIW-96 itself fixed its
+        # own baseline findings via the Dockerfile's `apk upgrade` step.
+        run: trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 architech-backend:${{ github.sha }}
