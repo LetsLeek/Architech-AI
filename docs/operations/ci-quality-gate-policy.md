@@ -22,7 +22,7 @@ not automatically required at another:
 | Backend tests (`backend-ci.yml`, AIW-22) | Existing, required | Yes |
 | Frontend build (lint + type-check + build, `frontend-ci.yml`, AIW-23) | Existing, required | Yes |
 | Backend Docker image build (`backend-ci.yml`'s `docker-build` job, AIW-68) | Existing, required | Yes |
-| Frontend unit/component tests (Vitest + RTL, AIW-88) | Planned | Yes, once it lands |
+| Frontend unit/component tests (Vitest + RTL, AIW-88) | Existing, required | Yes |
 | Backend integration tests against real Postgres (Testcontainers, AIW-91) | Existing, required | Yes |
 | SAST/CodeQL (AIW-93) | Planned | Yes for new HIGH/CRITICAL findings (see [Security severity policy](#security-severity-policy)) |
 | Dependency vulnerability check (AIW-94) | Planned | Yes for new HIGH/CRITICAL findings |
@@ -46,6 +46,7 @@ checks belong here rather than on every PR iteration:
 |---|---|---|
 | Container image vulnerability scan (Trivy, AIW-96) | Planned | Yes for new HIGH/CRITICAL findings |
 | Visual regression baseline (AIW-102) | Planned | **Warning-only** initially (small, stable screen set per AIW-102's own scope) |
+| Playwright E2E against an isolated local stack (mock AI, disposable Postgres, AIW-92) | Existing (`e2e-ci.yml`) | **Warning-only** initially - see [Coverage and threshold ratchet](#coverage-and-threshold-ratchet) |
 | SBOM + build provenance (AIW-101) | Planned | Generated, not itself a pass/fail gate - a release without one is incomplete, not rejected |
 
 ## STAGING/PROD promotion gate
@@ -56,6 +57,7 @@ Säule 1 (Azure infrastructure) actually exists:
 | Check | Status | Blocking? |
 |---|---|---|
 | Deployment health checks / smoke tests (AIW-85) | Planned | Yes - failed smoke test blocks promotion |
+| Playwright E2E against real STAGING (AIW-92) | Planned - blocked on Säule 1 (no STAGING yet) | Yes - failed required E2E blocks promotion to production, per AIW-92's own AC |
 | OWASP ZAP baseline DAST against STAGING (AIW-97) | Planned | Yes for new HIGH/CRITICAL findings |
 | Human approval for PROD (AIW-83) | Planned | Yes - PROD promotion is never fully automatic |
 
@@ -83,6 +85,14 @@ stability: 93%/80%) - unlike the frontend, this baseline already exceeds the ~70
 since the existing 167 tests (built up across M1 and the AIW-59/87/88 work) already exercise most
 of the codebase through Spring-context tests. The floor is locked to this real measurement, not
 artificially lowered to the target.
+
+**Playwright E2E (AIW-92):** lands warning-only in the Build/release gate rather than blocking
+the PR gate - it boots the real frontend, backend and a disposable Postgres together (heavier
+and slower than the PR gate's checks, and this is the suite's first run in the repo, so it
+hasn't yet proven itself flake-free). Promote it to blocking once it's been stable for a
+run-window; see [`e2e/README.md`](../../e2e/README.md) for why its "happy path" asserts on a
+validation-failure terminal state (the platform's only registered AI provider outside an opt-in
+real-AI profile is a deterministic mock) rather than a fabricated success.
 
 ## Security severity policy
 

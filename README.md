@@ -10,6 +10,7 @@ artifacts — a Customer Profile and a set of Website Requirements.
 ```
 backend/                 Spring Boot platform backend (Java, Maven)
 frontend/                React + TypeScript + Vite platform frontend
+e2e/                     Playwright end-to-end tests against the real frontend+backend
 docker-compose.yml       Local Postgres for development
 docs/core/                Frozen, project-type-agnostic platform contracts
                           (Source Context, Runner/Validation, Artifact Persistence, ...)
@@ -53,6 +54,12 @@ identifiable in CI output rather than a mixed single run.
 If the backend fails to start with a connection error, check that
 `docker compose ps` shows Postgres as healthy and that `.env` matches
 `docker-compose.yml`.
+
+## End-to-end tests
+
+See [`e2e/README.md`](e2e/README.md) for the Playwright suite that drives the real frontend and
+backend together (AIW-92) - conventions, how to run it locally, and why its "happy path"
+currently ends in a deterministic validation failure rather than a fabricated success.
 
 ## Backend Docker image
 
