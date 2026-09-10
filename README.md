@@ -11,6 +11,7 @@ artifacts — a Customer Profile and a set of Website Requirements.
 backend/                 Spring Boot platform backend (Java, Maven)
 frontend/                React + TypeScript + Vite platform frontend
 e2e/                     Playwright end-to-end tests against the real frontend+backend
+.claude/skills/           Developer-agent skills (AIW-114) - see docs/developer-agent/
 docker-compose.yml       Local Postgres for development
 docs/core/                Frozen, project-type-agnostic platform contracts
                           (Source Context, Runner/Validation, Artifact Persistence, ...)
@@ -99,6 +100,15 @@ them out of code, the frontend bundle, git history, and logs.
 See [`docs/operations/azure-environment-architecture.md`](docs/operations/azure-environment-architecture.md)
 for the platform's DEV/STAGING/PROD model, resource group and naming conventions, and the
 current one-subscription / future prod-subscription-split plan.
+
+## Developer-agent skills
+
+See [`docs/developer-agent/CONTRACT.md`](docs/developer-agent/CONTRACT.md) for the skill
+contract a coding-agent session (Claude Code, today) follows when working ticket-by-ticket in
+this repo - not another `core.ai`-driven agent, a formalization of this project's own manual
+ticket → branch → implement → verify → human-approval workflow. Skills live under
+`.claude/skills/<skill-id>/`; `docs/developer-agent/scripts/check_skill_conformance.py`
+validates a skill directory against the contract.
 
 ## CI quality and security gate policy
 

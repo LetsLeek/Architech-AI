@@ -1,0 +1,28 @@
+schemaVersion: 1
+
+id: example-echo-skill
+name: Example Echo Skill
+version: 1
+
+description: >
+  Conformance fixture for the developer-agent skill contract (AIW-114) -
+  not a real skill, proves the contract is checkable against a real file.
+
+inputs:
+  - name: message
+    type: string
+    description: Arbitrary text to echo back.
+    required: true
+
+outputs:
+  - name: echoedMessage
+    type: string
+    description: "'echo: ' followed by the input message, unchanged otherwise."
+
+preconditions: []
+
+stopConditions:
+  - message is missing or empty
+
+allowedActionCategories:
+  - read-only
