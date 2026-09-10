@@ -19,5 +19,27 @@ export default defineConfig({
     // AIW-88: `*.test.ts(x)` colocated next to the source file it tests - see src/test/README.md
     // for the full convention.
     css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: [
+        'src/main.tsx', // app bootstrap only - no branching logic to cover
+        'src/vite-env.d.ts', // ambient type declaration, no runtime code
+        'src/test/**', // test setup/config itself, not code under test
+        'src/**/*.test.{ts,tsx}',
+      ],
+      // AIW-89: floor locked to the first real measurement (ci-quality-gate-policy.md's
+      // ratchet strategy) - most components/API modules have no tests yet, so the ~70%/60%
+      // target is a later, ticket-by-ticket climb, not a day-one requirement. Never lower
+      // these; raise them as coverage grows.
+      thresholds: {
+        statements: 9,
+        branches: 6,
+        functions: 5,
+        lines: 9,
+      },
+    },
   },
 })
