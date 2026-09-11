@@ -1,0 +1,61 @@
+schemaVersion: 1
+
+id: post-implementation-jira-update
+name: Post-Implementation Jira Update
+version: 1
+
+description: >
+  Updates a ticket's Jira state with implementation evidence at defined
+  points (local completion, PR creation, merge, or blocked) without ever
+  rewriting the original ticket or marking incomplete work Done.
+
+inputs:
+  - name: implementationContext
+    type: object
+    description: jira-ticket-intake's output for the same ticket.
+    required: true
+  - name: verificationReport
+    type: object
+    description: implementation-verification's output for the same ticket.
+    required: true
+  - name: acceptanceCriteriaReport
+    type: object
+    description: acceptance-criteria-verification's output for the same ticket.
+    required: true
+  - name: reviewResult
+    type: object
+    description: human-review-publish's output for the same ticket.
+    required: true
+  - name: trigger
+    type: string
+    description: One of "post-local-completion", "post-publish", "post-merge", "blocked".
+    required: true
+  - name: mergeConfirmation
+    type: object
+    description: >
+      Real merge evidence ({prUrl, mergeCommitSha, mergedAt}) - required
+      only when trigger is "post-merge"; human-review-publish's own scope
+      stops at PR creation and never confirms a merge itself.
+    required: false
+
+outputs:
+  - name: jiraUpdateResult
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - whether a comment was posted, whether/why a status
+      transition happened, and explicit confirmation the original
+      description/AC were never modified.
+
+preconditions:
+  - Jira MCP tools (mcp__atlassian__*) are available and authenticated for this session.
+  - implementationContext.issueKey resolves to an existing, accessible issue.
+
+stopConditions:
+  - trigger is "post-merge" but mergeConfirmation is absent or lacks a real mergeCommitSha.
+  - trigger is "post-merge" but acceptanceCriteriaReport.overallStatus is not "complete" - comment but do not transition to Done.
+  - A Jira tool call fails.
+
+allowedActionCategories:
+  - external-read
+  - external-visible
