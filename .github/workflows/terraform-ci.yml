@@ -1,0 +1,87 @@
+name: Terraform
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/terraform-ci.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "infrastructure/**"
+      - ".github/workflows/terraform-ci.yml"
+
+# AIW-69: fmt/validate/plan only, authenticated via OIDC (infrastructure/bootstrap/access.tf's
+# github-actions identity) - never a client secret in this repo, and this workflow never runs
+# `apply`. `id-token: write` is what lets azure/login exchange this run's OIDC token for an
+# Azure AD token; nothing else in this workflow needs elevated permissions.
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TFSTATE_RESOURCE_GROUP: rg-aiw-tfstate-swc
+  TFSTATE_STORAGE_ACCOUNT: staiwtfstateswc
+  TFSTATE_CONTAINER: tfstate
+
+jobs:
+  fmt:
+    name: Terraform fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_wrapper: false
+
+      - name: fmt -check (every root and module)
+        run: terraform fmt -check -recursive infrastructure
+
+  validate-and-plan:
+    name: Terraform validate + plan (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [shared, dev, staging, prod]
+    defaults:
+      run:
+        working-directory: infrastructure/environments/${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_wrapper: false
+
+      - name: Azure login (OIDC, no client secret)
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: terraform init
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ env.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ env.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}"
+          -backend-config="key=${{ matrix.environment }}.tfstate"
+
+      - name: terraform validate
+        run: terraform validate
+
+      - name: terraform plan
+        # Read-only - the github-actions OIDC identity only ever holds Reader + state-container
+        # access (see infrastructure/bootstrap/access.tf), so this would fail closed even if a
+        # future change to this workflow accidentally tried to run apply here.
+        run: terraform plan -input=false -lock=false
