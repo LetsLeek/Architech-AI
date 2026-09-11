@@ -1,0 +1,59 @@
+name: Frontend Deploy (DEV)
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend-deploy-dev.yml"
+
+# AIW-71: only push to develop, never a PR - matches backend-ci.yml's own docker-build push
+# gating (AIW-70), so nothing PR-triggered can publish into a real environment's frontend
+# either. AZURE_STATIC_WEB_APPS_API_TOKEN_DEV is a real secret (Azure's own deployment token for
+# this one Static Web App, from infrastructure/environments/dev's frontend_deployment_token
+# output) - not OIDC, because the Azure/static-web-apps-deploy action's own auth model is this
+# token, not a generic Azure login.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy to Static Web App (DEV)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "25"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        # VITE_API_BASE_URL: the real DEV backend's Container App FQDN (AIW-71's own
+        # terraform output) - baked in at build time since a static SPA has no runtime config
+        # mechanism; every other environment sets this to its own backend's real URL the same
+        # way when AIW-74/75 add their own deploy workflows.
+        env:
+          VITE_API_BASE_URL: https://ca-aiw-backend-dev.happyflower-cd7e5ebd.swedencentral.azurecontainerapps.io
+        run: npm run build
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_DEV }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: frontend
+          output_location: dist
+          skip_app_build: true

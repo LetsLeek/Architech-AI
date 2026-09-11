@@ -13,6 +13,18 @@ describe('requestJson', () => {
     await expect(requestJson('/api/projects')).resolves.toEqual({ id: '1' })
   })
 
+  it('calls fetch with the path unchanged when no API base URL is configured (local dev default)', async () => {
+    const response = new Response(JSON.stringify({}), { status: 200 })
+    const fetchMock = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await requestJson('/api/projects')
+
+    // AIW-71: requestJson prefixes every path with VITE_API_BASE_URL, empty by default so
+    // local dev (Vite's own proxy) sees the exact same request it always has.
+    expect(fetchMock).toHaveBeenCalledWith('/api/projects', undefined)
+  })
+
   it('throws an ApiError carrying the backend message on a non-2xx response', async () => {
     const response = new Response(JSON.stringify({ message: 'No project with id 123' }), { status: 404 })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response))
