@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        environment: [shared, dev, staging, prod]
+        environment: [shared, dev, staging, prod, nonprod]
     defaults:
       run:
         working-directory: infrastructure/environments/${{ matrix.environment }}

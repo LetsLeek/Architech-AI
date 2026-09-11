@@ -46,7 +46,10 @@ environment-specific resources](#shared-vs-environment-specific-resources)).
 Pattern: `<resource-type-abbreviation>-aiw-<scope>-<region>`, all lowercase, hyphen-separated
 except where an Azure resource type forbids hyphens (Container Registry, Storage Account -
 noted below). `aiw` is this platform's short workload token (matches the Jira project key).
-`<scope>` is `shared`, `dev`, `staging`, or `prod`. `<region>` is the short Azure region code;
+`<scope>` is `shared`, `dev`, `staging`, `prod`, or `nonprod` (AIW-72 - the one PostgreSQL server
+DEV and STAGING share, per the "Shared vs. environment-specific resources" section below; its own
+resource group, distinct from both `rg-aiw-dev-swc` and `rg-aiw-staging-swc`, since the server
+belongs to neither environment exclusively). `<region>` is the short Azure region code;
 `swc` (Sweden Central) is the primary region below - revisit if actual latency/compliance
 requirements point elsewhere, this is a config decision, not a fixed constraint of the naming
 scheme itself. **Not the original choice**: West Europe (`weu`) was the assumed default when
@@ -83,12 +86,16 @@ tags = {
 
 - **Shared across all platform environments:** the Container Registry
   (`rg-aiw-shared-swc` / `acraiwshared`, AIW-70) - one registry holds every environment's
-  images, distinguished by tag, not by a separate registry per environment. This is the only
-  resource this document currently designates as cross-environment shared.
+  images, distinguished by tag, not by a separate registry per environment.
+- **Shared between DEV and STAGING only (AIW-72):** the NONPROD PostgreSQL Flexible Server
+  (`rg-aiw-nonprod-swc` / `psql-aiw-nonprod-swc`) - one server, two separate databases
+  (`aiw_dev`/`aiw_staging`) and two separate least-privilege roles, one per database, per the
+  documented "DEV and STAGING may share a single non-prod server... purely as a cost
+  optimization" exception below. Never extended to PROD (AIW-76 gives PROD its own dedicated
+  server, in PROD's own resource group).
 - **Environment-specific (one per DEV/STAGING/PROD):** Container Apps Environment, Container
-  App, Key Vault, PostgreSQL Flexible Server, Log Analytics workspace - each lives in that
-  environment's own resource group (`rg-aiw-<scope>-<region>`) and is never referenced by
-  another environment's resources.
+  App, Key Vault, Log Analytics workspace - each lives in that environment's own resource group
+  (`rg-aiw-<scope>-<region>`) and is never referenced by another environment's resources.
 
 ## Container Registry (AIW-70)
 

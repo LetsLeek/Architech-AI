@@ -20,9 +20,21 @@ resource "azurerm_postgresql_flexible_server" "this" {
   tags = var.tags
 
   lifecycle {
-    # The admin password is Key-Vault-sourced (AIW-73) and may rotate outside of a Terraform
+    # administrator_password: Key-Vault-sourced (AIW-73) and may rotate outside of a Terraform
     # apply - never force a server replacement just because the password variable's value
     # changed between runs.
-    ignore_changes = [administrator_password]
+    # zone: Azure auto-assigns an availability zone for a non-HA Burstable-tier server (a real
+    # `plan` against AIW-72's actually-created server showed this as undeclared drift) - which
+    # specific zone it picks isn't a decision this project needs to pin, unlike the Container
+    # App's own required workload profile (AIW-71), so it's ignored here rather than hardcoded.
+    ignore_changes = [administrator_password, zone]
   }
+}
+
+resource "azurerm_postgresql_flexible_server_firewall_rule" "this" {
+  for_each         = var.firewall_rules
+  name             = each.key
+  server_id        = azurerm_postgresql_flexible_server.this.id
+  start_ip_address = each.value.start_ip_address
+  end_ip_address   = each.value.end_ip_address
 }
