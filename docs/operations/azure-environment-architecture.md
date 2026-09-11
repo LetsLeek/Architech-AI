@@ -90,6 +90,38 @@ tags = {
   environment's own resource group (`rg-aiw-<scope>-<region>`) and is never referenced by
   another environment's resources.
 
+## Container Registry (AIW-70)
+
+`acraiwshared` - Basic SKU (no real usage yet to justify Standard/Premium's higher cost; revisit
+once actual pull volume/geo-replication needs are known, the same "start at the honest baseline"
+posture this project already applies to coverage/quality gates). Admin user disabled
+(`admin_enabled = false`) - every push/pull is a real, auditable RBAC role assignment, never a
+shared username/password.
+
+- **Push**: only `.github/workflows/backend-ci.yml`'s `docker-build` job, only on `push` to
+  `develop`/`main` (never on a pull request, from anyone) - the same GitHub Actions OIDC
+  identity `infrastructure/terraform-ci.yml` uses for `plan`, granted `AcrPush` scoped to just
+  this registry in `infrastructure/environments/shared/main.tf` (Azure's `AcrPush` role already
+  includes pull, so no separate grant is needed for CI's own use).
+- **Pull (runtime)**: each environment's Container App managed identity gets its own `AcrPull`
+  role assignment, scoped to this registry, once that identity actually exists (AIW-71 for DEV,
+  AIW-74 for STAGING, AIW-75 for PROD) - not granted here ahead of time, since there is nothing
+  real to scope it to yet.
+- **Tagging**: every pushed image is tagged with the full Git commit SHA
+  (`architech-backend:<sha>`) and *only* that tag - `latest` is never pushed, so no deployment
+  step can accidentally resolve to a moving tag instead of pinning explicitly (this ticket's own
+  acceptance criterion). The same image (by digest) is promoted DEV → STAGING → PROD unchanged
+  (AIW-68's own contract) - promotion changes which environment references a given SHA tag, never
+  the image content behind it.
+- **Retention**: every tagged image is kept indefinitely by default - a SHA tag is, by
+  construction, a potential rollback target for as long as any environment might reference it,
+  so nothing time-based prunes tagged images. Untagged manifests (leftover layers from a
+  superseded multi-arch manifest list, not expected in normal operation since tags are never
+  overwritten) are the only thing intended for time-based cleanup, via `az acr config retention`
+  - not yet configured via Terraform (the `azurerm_container_registry` resource doesn't expose
+  this setting directly); tracked here as a known gap rather than silently assumed handled, to
+  be picked up when actual untagged-manifest accumulation is observed rather than pre-emptively.
+
 ## Subscription model
 
 **Now:** a single Azure subscription holds every resource group above (`shared`, `dev`,

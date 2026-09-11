@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
   }
 
   # Empty on purpose - real values come from `terraform init -backend-config=...` (see
@@ -20,3 +24,5 @@ terraform {
 provider "azurerm" {
   features {}
 }
+
+provider "azuread" {}
