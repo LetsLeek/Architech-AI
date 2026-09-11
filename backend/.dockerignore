@@ -1,8 +1,0 @@
-target/
-*.log
-.idea/
-.vscode/
-*.iml
-.git/
-.env
-.env.*

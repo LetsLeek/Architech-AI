@@ -1,5 +1,0 @@
-We are Root & Rise Yoga, a small studio in Salzburg. We offer beginner and intermediate yoga classes, plus a monthly meditation evening. Drop-in classes are 18 EUR, and we also sell a 10-class pass for 150 EUR. Someone mentioned we should also offer a 5-class pass for 90 EUR, but I'm honestly not sure if we're actually doing that yet or if it was just an idea we talked about - probably best to leave it out for now unless we confirm it.
-
-Our studio is at Linzer Gasse 8, 5020 Salzburg. Classes run Monday, Wednesday and Friday evenings starting at 18:30. Actually, thinking about it more, I believe Friday classes start at 18:00, not 18:30 - I'd have to double check the schedule board to be sure which one is correct.
-
-We'd like a website with our class schedule, pricing, and a way for people to reserve a spot for the meditation evening. Contact us at info@rootandrise.example.

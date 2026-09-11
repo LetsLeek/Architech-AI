@@ -1,3 +1,0 @@
--- Baseline migration: proves Flyway runs cleanly against an empty database.
--- The first domain tables are added by a later migration once the platform's
--- identity/versioning strategy is decided.

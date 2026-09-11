@@ -1,7 +1,0 @@
-# Local environment overrides - never commit real secrets
-.env
-
-# OS / editor cruft at the repo root
-.DS_Store
-.idea/
-.vscode/
