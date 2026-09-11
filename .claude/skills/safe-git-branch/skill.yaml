@@ -1,0 +1,37 @@
+schemaVersion: 1
+
+id: safe-git-branch
+name: Safe Git Branch
+version: 1
+
+description: >
+  Prepares a safe local Git branch for one ticket before implementation
+  work begins - inspects worktree state, derives a predictable branch
+  name, and never risks unrelated local changes to get there.
+
+inputs:
+  - name: implementationContext
+    type: object
+    description: jira-ticket-intake's output - only issueKey and summary are actually used.
+    required: true
+
+outputs:
+  - name: branchResult
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - the prepared branch name, what state the worktree was in,
+      what action was taken, and any warnings.
+
+preconditions:
+  - The current working directory is inside this git repository.
+  - The intended base branch (develop, per this repo's own convention) is reachable locally.
+
+stopConditions:
+  - The repository is in an unexpected state (detached HEAD, mid-rebase, mid-merge) that makes branch creation unsafe to attempt automatically.
+  - Uncommitted/untracked changes exist that a new branch/checkout could put at risk of being lost or silently carried onto the wrong branch.
+  - The intended branch name already exists and its current state doesn't clearly indicate it's safe to reuse for continuing the same ticket.
+
+allowedActionCategories:
+  - read-only
+  - local-git
