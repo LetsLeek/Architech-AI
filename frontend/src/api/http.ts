@@ -26,9 +26,18 @@ async function errorMessageOf(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`
 }
 
+/**
+ * Empty by default - every call site passes a same-origin path (e.g. `/api/projects`), and Vite's
+ * own dev-server proxy (see vite.config.ts) keeps local dev working against that unchanged. Only
+ * a real deployed environment (AIW-71), where the frontend and backend are served from different
+ * origins (a Static Web App and a Container App, on different domains), needs this set - to that
+ * environment's own real backend URL, injected at build time, never hardcoded here.
+ */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+
 /** Throws {@link ApiError} for a non-2xx response; otherwise parses the body as JSON. */
 export async function requestJson<T>(input: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, init)
+  const response = await fetch(`${API_BASE_URL}${input}`, init)
   if (!response.ok) {
     throw new ApiError(await errorMessageOf(response), response.status)
   }

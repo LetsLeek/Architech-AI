@@ -5,3 +5,19 @@ output "resource_group_name" {
 output "resource_group_id" {
   value = module.resource_group.id
 }
+
+output "backend_fqdn" {
+  value       = module.backend.fqdn
+  description = "Real DEV backend URL: https://<this>."
+}
+
+output "frontend_hostname" {
+  value       = module.frontend.default_host_name
+  description = "Real DEV frontend URL: https://<this>."
+}
+
+output "frontend_deployment_token" {
+  value       = module.frontend.api_key
+  sensitive   = true
+  description = "Set as the AZURE_STATIC_WEB_APPS_API_TOKEN GitHub Actions secret for the frontend deployment workflow."
+}
