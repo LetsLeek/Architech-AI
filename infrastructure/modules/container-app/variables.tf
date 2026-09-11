@@ -56,7 +56,25 @@ variable "env" {
     name  = string
     value = string
   }))
-  description = "Non-secret environment variables only - secret-backed config (AIW-73) is a separate mechanism (Key Vault secret references), not this variable."
+  description = "Non-secret environment variables only - secret-backed config is key_vault_secrets/secret_env below, a separate mechanism (Key Vault secret references), never a plain value here."
+  default     = []
+}
+
+variable "key_vault_secrets" {
+  type = list(object({
+    name                = string
+    key_vault_secret_id = string
+  }))
+  description = "AIW-73: each becomes a Container App secret resolved from Key Vault via the managed identity above - name is this Container App's own internal secret name (referenced by secret_env below), not necessarily the Key Vault secret's own name."
+  default     = []
+}
+
+variable "secret_env" {
+  type = list(object({
+    name        = string
+    secret_name = string
+  }))
+  description = "Environment variables whose value comes from a key_vault_secrets entry (matched by its `name`) - never a literal value, unlike var.env."
   default     = []
 }
 

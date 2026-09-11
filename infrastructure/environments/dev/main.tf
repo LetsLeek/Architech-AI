@@ -1,8 +1,6 @@
-# Foundation (AIW-69) plus real DEV runtime resources (AIW-71). AIW-72/AIW-73 add the shared
-# NONPROD PostgreSQL and Key Vault wiring - this file's env vars deliberately don't set
-# SPRING_DATASOURCE_* yet, since no real DB or secret-management mechanism exists to source
-# real values from until those land (see the Container App block below for the honest gap this
-# leaves in the backend's own health check, documented rather than papered over).
+# Foundation (AIW-69) plus real DEV runtime resources (AIW-71), the shared NONPROD PostgreSQL
+# (AIW-72), and Key Vault-backed secret wiring (AIW-73) - see docs/operations/dev-environment.md
+# for the real health-check-gap history this file's own git blame tells the rest of.
 module "resource_group" {
   source = "../../modules/resource-group"
 
@@ -71,6 +69,87 @@ resource "azurerm_role_assignment" "backend_acr_pull" {
   principal_id         = azurerm_user_assigned_identity.backend.principal_id
 }
 
+data "azurerm_client_config" "current" {}
+
+# AIW-72's real DEV database/role, read from its own state file - not re-derived or duplicated
+# here. Read-only: this environment never writes to nonprod's state, only reads its outputs.
+data "terraform_remote_state" "nonprod" {
+  backend = "azurerm"
+  config = {
+    resource_group_name  = "rg-aiw-tfstate-swc"
+    storage_account_name = "staiwtfstateswc"
+    container_name       = "tfstate"
+    key                  = "nonprod.tfstate"
+    use_azuread_auth     = true
+  }
+}
+
+module "key_vault" {
+  source = "../../modules/key-vault"
+
+  name                = "kv-aiw-dev-swc"
+  resource_group_name = module.resource_group.name
+  location            = module.resource_group.location
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+
+  # Deny-all-by-default plus the two identities that actually need data-plane access: Azure
+  # services (so the DEV Container App's own managed identity, reading secrets at runtime, can
+  # reach the vault) and this apply's own current caller (real requirement, not a guess - a
+  # bare RBAC-only vault with public_network_access still requires an explicit firewall entry
+  # for whoever's Terraform run creates azurerm_key_vault_secret resources below; the same
+  # "terraform-admin" pattern AIW-72 already established for the Postgres firewall).
+  allowed_ip_ranges = ["91.115.38.199"]
+
+  tags = {
+    environment = "dev"
+    workload    = "aiw"
+    managed-by  = "terraform"
+  }
+}
+
+resource "azurerm_role_assignment" "terraform_admin_kv_secrets_officer" {
+  scope                = module.key_vault.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
+resource "azurerm_role_assignment" "backend_kv_secrets_user" {
+  scope                = module.key_vault.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.backend.principal_id
+}
+
+# The real values AIW-72 generated (random_password resources in nonprod's own state) - never a
+# literal value in this file. AC: "No application/API/database secrets are committed to Git or
+# baked into images" - these three resources are the one place they're written anywhere at all,
+# into Key Vault itself, and even there only after the role assignment above exists.
+resource "azurerm_key_vault_secret" "spring_datasource_url" {
+  name            = "spring-datasource-url"
+  value           = "jdbc:postgresql://${data.terraform_remote_state.nonprod.outputs.postgresql_fqdn}:5432/${data.terraform_remote_state.nonprod.outputs.dev_database_name}?sslmode=require"
+  content_type    = "text/plain"
+  key_vault_id    = module.key_vault.id
+  expiration_date = "2027-09-11T00:00:00Z"
+  depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
+}
+
+resource "azurerm_key_vault_secret" "spring_datasource_username" {
+  name            = "spring-datasource-username"
+  value           = data.terraform_remote_state.nonprod.outputs.dev_app_username
+  content_type    = "text/plain"
+  key_vault_id    = module.key_vault.id
+  expiration_date = "2027-09-11T00:00:00Z"
+  depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
+}
+
+resource "azurerm_key_vault_secret" "spring_datasource_password" {
+  name            = "spring-datasource-password"
+  value           = data.terraform_remote_state.nonprod.outputs.dev_app_password
+  content_type    = "text/plain"
+  key_vault_id    = module.key_vault.id
+  expiration_date = "2027-09-11T00:00:00Z"
+  depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
+}
+
 module "backend" {
   source = "../../modules/container-app"
 
@@ -94,13 +173,27 @@ module "backend" {
     { name = "ARCHITECH_CORS_ALLOWEDORIGINS", value = "https://${module.frontend.default_host_name}" },
   ]
 
+  # AIW-73: this is what actually closes the health-check gap documented since AIW-71 - the
+  # real AIW-72 Postgres credentials, resolved from Key Vault at runtime via the managed
+  # identity above, never a plain env var value.
+  key_vault_secrets = [
+    { name = "spring-datasource-url", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_url.versionless_id },
+    { name = "spring-datasource-username", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_username.versionless_id },
+    { name = "spring-datasource-password", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_password.versionless_id },
+  ]
+  secret_env = [
+    { name = "SPRING_DATASOURCE_URL", secret_name = "spring-datasource-url" },
+    { name = "SPRING_DATASOURCE_USERNAME", secret_name = "spring-datasource-username" },
+    { name = "SPRING_DATASOURCE_PASSWORD", secret_name = "spring-datasource-password" },
+  ]
+
   tags = {
     environment = "dev"
     workload    = "aiw"
     managed-by  = "terraform"
   }
 
-  depends_on = [azurerm_role_assignment.backend_acr_pull]
+  depends_on = [azurerm_role_assignment.backend_acr_pull, azurerm_role_assignment.backend_kv_secrets_user]
 }
 
 module "frontend" {
