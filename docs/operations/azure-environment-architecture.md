@@ -47,20 +47,27 @@ Pattern: `<resource-type-abbreviation>-aiw-<scope>-<region>`, all lowercase, hyp
 except where an Azure resource type forbids hyphens (Container Registry, Storage Account -
 noted below). `aiw` is this platform's short workload token (matches the Jira project key).
 `<scope>` is `shared`, `dev`, `staging`, or `prod`. `<region>` is the short Azure region code;
-`weu` (West Europe) is the assumed primary region below - revisit if actual latency/compliance
+`swc` (Sweden Central) is the primary region below - revisit if actual latency/compliance
 requirements point elsewhere, this is a config decision, not a fixed constraint of the naming
-scheme itself.
+scheme itself. **Not the original choice**: West Europe (`weu`) was the assumed default when
+this document was first written, but AIW-69's real bootstrap `terraform apply` hit a real Azure
+constraint - `RequestDisallowedByAzure: The selected region is currently not accepting new
+customers` - a restriction Azure applies to brand-new subscriptions in some high-demand regions.
+Verified via a real resource group + storage account test that Sweden Central accepts this
+subscription; switched every naming/tag/location reference accordingly before any other
+resource was created. Revisit once the subscription ages past whatever threshold lifts that
+restriction, if West Europe ever becomes preferable for latency/compliance reasons.
 
 | Resource | Naming pattern | Example (DEV) |
 |---|---|---|
-| Resource group | `rg-aiw-<scope>-<region>` | `rg-aiw-dev-weu` |
-| Container Apps Environment | `cae-aiw-<scope>-<region>` | `cae-aiw-dev-weu` |
+| Resource group | `rg-aiw-<scope>-<region>` | `rg-aiw-dev-swc` |
+| Container Apps Environment | `cae-aiw-<scope>-<region>` | `cae-aiw-dev-swc` |
 | Container App (backend) | `ca-aiw-backend-<scope>` | `ca-aiw-backend-dev` |
 | Container Registry (shared, AIW-70) | `acraiwshared` (no hyphens - ACR names are alphanumeric-only) | `acraiwshared` |
-| Key Vault | `kv-aiw-<scope>-<region>` | `kv-aiw-dev-weu` |
-| PostgreSQL Flexible Server | `psql-aiw-<scope>-<region>` | `psql-aiw-dev-weu` |
-| Log Analytics workspace | `log-aiw-<scope>-<region>` | `log-aiw-dev-weu` |
-| Storage account (if ever needed) | `staiw<scope><region>` (no hyphens, ≤24 lowercase alphanumeric chars) | `staiwdevweu` |
+| Key Vault | `kv-aiw-<scope>-<region>` | `kv-aiw-dev-swc` |
+| PostgreSQL Flexible Server | `psql-aiw-<scope>-<region>` | `psql-aiw-dev-swc` |
+| Log Analytics workspace | `log-aiw-<scope>-<region>` | `log-aiw-dev-swc` |
+| Storage account (if ever needed) | `staiw<scope><region>` (no hyphens, ≤24 lowercase alphanumeric chars) | `staiwdevswc` |
 
 Every resource carries these tags, usable directly as Terraform `tags = {}` blocks:
 
@@ -75,7 +82,7 @@ tags = {
 ## Shared vs. environment-specific resources
 
 - **Shared across all platform environments:** the Container Registry
-  (`rg-aiw-shared-weu` / `acraiwshared`, AIW-70) - one registry holds every environment's
+  (`rg-aiw-shared-swc` / `acraiwshared`, AIW-70) - one registry holds every environment's
   images, distinguished by tag, not by a separate registry per environment. This is the only
   resource this document currently designates as cross-environment shared.
 - **Environment-specific (one per DEV/STAGING/PROD):** Container Apps Environment, Container
