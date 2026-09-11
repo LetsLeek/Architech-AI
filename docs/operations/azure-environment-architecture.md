@@ -93,9 +93,21 @@ tags = {
   documented "DEV and STAGING may share a single non-prod server... purely as a cost
   optimization" exception below. Never extended to PROD (AIW-76 gives PROD its own dedicated
   server, in PROD's own resource group).
-- **Environment-specific (one per DEV/STAGING/PROD):** Container Apps Environment, Container
-  App, Key Vault, Log Analytics workspace - each lives in that environment's own resource group
-  (`rg-aiw-<scope>-<region>`) and is never referenced by another environment's resources.
+- **Environment-specific (one per DEV/STAGING/PROD):** Container App, Key Vault - each lives in
+  that environment's own resource group (`rg-aiw-<scope>-<region>`) and is never referenced by
+  another environment's resources.
+- **Shared between DEV and STAGING only (AIW-74), real subscription constraint - not a design
+  choice:** the Container Apps Environment (`cae-aiw-dev-swc`) and its Log Analytics workspace.
+  A real `terraform apply` for STAGING's own environment hit
+  `MaxNumberOfGlobalEnvironmentsInSubExceeded` - this subscription allows only **one** Container
+  App Environment, subscription-wide, not per-region. STAGING's Container App
+  (`ca-aiw-backend-staging`) therefore runs inside DEV's environment, read via
+  `terraform_remote_state` on `dev.tfstate` (`environments/staging/main.tf`) - the same
+  shared-non-prod-infra pattern as the NONPROD PostgreSQL server above, same "never extended to
+  PROD" boundary. An environment is a networking/logging boundary only; each Container App
+  within it remains a fully separate resource with its own FQDN, ingress, scaling and identity -
+  nothing about traffic or secrets crosses between DEV's and STAGING's Container Apps as a
+  result. Revisit if this subscription's quota is ever raised.
 
 ## Container Registry (AIW-70)
 
