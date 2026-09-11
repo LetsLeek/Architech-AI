@@ -84,4 +84,14 @@ jobs:
         # Read-only - the github-actions OIDC identity only ever holds Reader + state-container
         # access (see infrastructure/bootstrap/access.tf), so this would fail closed even if a
         # future change to this workflow accidentally tried to run apply here.
-        run: terraform plan -input=false -lock=false
+        #
+        # -refresh=false: a real PR run (AIW-71/PR #88) failed AADSTS-adjacent
+        # AuthorizationFailed on Microsoft.Web/staticSites/listSecrets/action - refreshing
+        # state re-reads every live resource attribute, including a Static Web App's own
+        # deployment token, which this deliberately Reader-only identity correctly cannot read
+        # and should not be granted just to satisfy a routine CI plan. This CI check is a
+        # static correctness check against the already-current remote state (kept genuinely
+        # current by every real `terraform apply` actually run against these environments), not
+        # a live-drift detector - that trade-off is intentional, not a workaround for its own
+        # sake.
+        run: terraform plan -input=false -lock=false -refresh=false
