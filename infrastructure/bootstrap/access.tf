@@ -24,12 +24,19 @@ resource "azuread_service_principal" "github_actions" {
 # Scoped to this exact repository - pull requests targeting develop (where "terraform plan"
 # actually needs to run) and pushes to develop (in case a future workflow needs write access
 # for `apply`, not exercised by AIW-69's own CI scope, which is read-only fmt/validate/plan).
+#
+# Subject uses GitHub's owner@id/repo@id form, not the plain owner/repo slug - a real PR run
+# against this exact workflow (AIW-69/PR #86) failed AADSTS700213 with the plain-slug subject
+# configured first; the actual token GitHub issued carried
+# "repo:LetsLeek@89669556/Architech-AI@1360201571:pull_request" instead. These numeric IDs are
+# GitHub's own immutable account/repo IDs (stable across a future rename, unlike the slug form),
+# confirmed by the real failed run's own log output, not guessed from documentation.
 resource "azuread_application_federated_identity_credential" "pull_request" {
   application_id = azuread_application.github_actions.id
   display_name   = "github-pull-request"
   audiences      = ["api://AzureADTokenExchange"]
   issuer         = "https://token.actions.githubusercontent.com"
-  subject        = "repo:LetsLeek/Architech-AI:pull_request"
+  subject        = "repo:LetsLeek@89669556/Architech-AI@1360201571:pull_request"
 }
 
 resource "azuread_application_federated_identity_credential" "develop_branch" {
@@ -37,7 +44,7 @@ resource "azuread_application_federated_identity_credential" "develop_branch" {
   display_name   = "github-develop-branch"
   audiences      = ["api://AzureADTokenExchange"]
   issuer         = "https://token.actions.githubusercontent.com"
-  subject        = "repo:LetsLeek/Architech-AI:ref:refs/heads/develop"
+  subject        = "repo:LetsLeek@89669556/Architech-AI@1360201571:ref:refs/heads/develop"
 }
 
 # Reader is enough for `plan` to read existing resource state at the subscription scope; this
