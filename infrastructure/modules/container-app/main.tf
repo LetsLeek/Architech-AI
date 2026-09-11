@@ -1,8 +1,8 @@
 # Scaffolded by AIW-69 (foundation), filled in for real use by AIW-71 (DEV) - AIW-74/AIW-75
 # instantiate this again for STAGING/PROD. Environment-specific *secret* config (API keys, DB
 # connection strings) is injected as Container App secret references sourced from that
-# environment's own Key Vault (AIW-73/secret-management.md's decision) - not yet wired in here,
-# since Key Vault doesn't exist until AIW-73; var.env below is non-secret config only for now.
+# environment's own Key Vault (AIW-73) - var.key_vault_secrets/var.secret_env below; var.env
+# stays non-secret-only, per AIW-71's own original design.
 resource "azurerm_container_app" "this" {
   name                         = var.name
   resource_group_name          = var.resource_group_name
@@ -30,6 +30,19 @@ resource "azurerm_container_app" "this" {
     identity = var.user_assigned_identity_id
   }
 
+  # AIW-73: each entry becomes a Key-Vault-backed Container App secret, resolved via the same
+  # managed identity above (granted "Key Vault Secrets User" on that vault by the caller) - the
+  # secret's real value never appears in this Container App's own config/revision, only a
+  # reference to where Key Vault holds it.
+  dynamic "secret" {
+    for_each = var.key_vault_secrets
+    content {
+      name                = secret.value.name
+      key_vault_secret_id = secret.value.key_vault_secret_id
+      identity            = var.user_assigned_identity_id
+    }
+  }
+
   template {
     min_replicas = var.min_replicas
     max_replicas = var.max_replicas
@@ -45,6 +58,14 @@ resource "azurerm_container_app" "this" {
         content {
           name  = env.value.name
           value = env.value.value
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.secret_env
+        content {
+          name        = env.value.name
+          secret_name = env.value.secret_name
         }
       }
     }

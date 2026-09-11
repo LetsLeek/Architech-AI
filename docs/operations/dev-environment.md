@@ -16,37 +16,45 @@ Both are real Azure-assigned hostnames (Container Apps and Static Web Apps both 
 random subdomain by default) - not yet mapped to a custom domain; that's a future decision, not
 part of this ticket's scope.
 
-## Known gap: backend health checks do not currently pass
+## Health check gap: closed (AIW-73)
 
-Real, verified log output from the deployed Container App
-(`az containerapp logs show --name ca-aiw-backend-dev --resource-group rg-aiw-dev-swc`):
+Real history, kept for context: the backend's Flyway migration step originally failed at startup
+because `SPRING_DATASOURCE_URL` wasn't set (defaulted to `localhost:5432`, which doesn't exist
+inside a Container App) - no real PostgreSQL server existed for DEV yet. This was an explicit,
+user-confirmed decision to provision DEV's Container Apps/Static Web App infrastructure (AIW-71)
+ahead of PostgreSQL (AIW-72) rather than block on it. **AIW-72** then stood up the real NONPROD
+PostgreSQL server/`aiw_dev` database/`aiw_dev_app` role, narrowing the remaining gap to just the
+Container App not yet reading those credentials. **AIW-73** closes it: the three
+`SPRING_DATASOURCE_*` values are now resolved by the Container App at provision time from Key
+Vault, via its own user-assigned managed identity (`Key Vault Secrets User` role, scoped to
+`kv-aiw-dev-swc` only) - never a plain env var, never a value committed to git.
+
+Real, current verification:
 
 ```
-F Message    : Connection to localhost:5432 refused. Check that the hostname and port are
-correct and that the postmaster is accepting TCP/IP connections.
-F Caused by: org.postgresql.util.PSQLException: Connection to localhost:5432 refused.
+$ curl https://ca-aiw-backend-dev.happyflower-cd7e5ebd.swedencentral.azurecontainerapps.io/actuator/health
+{"groups":["liveness","readiness"],"status":"UP"}
 ```
 
-The backend's Flyway migration step fails at startup because `SPRING_DATASOURCE_URL` isn't set
-(defaults to `localhost:5432`, which doesn't exist inside a Container App) - no real PostgreSQL
-server has been provisioned for DEV yet (AIW-72, not yet done). The container stays in
-`Activating`/no health state indefinitely (`az containerapp revision list` confirms this) rather
-than serving traffic.
+### Secret naming and rotation
 
-**This is expected, not silently accepted as fine**: this ticket's own acceptance criterion
-("health checks succeed after deployment") is not fully met today, by explicit decision
-(confirmed with the user before implementing) rather than by omission - provisioning DEV's
-Container Apps/Static Web App infrastructure now, ahead of AIW-72's PostgreSQL server, was judged
-more valuable than blocking this ticket on that one.
+Each Key Vault secret name matches the Spring Boot property it backs, kebab-cased
+(`spring-datasource-url` → `SPRING_DATASOURCE_URL` via the Container App's `secret_env` mapping in
+`infrastructure/modules/container-app/variables.tf`) - a new secret follows the same
+`<spring-property-kebab-case>` convention. All three DEV secrets carry a 1-year
+`expiration_date` (Azure surfaces an expiring-soon warning in the portal/`az keyvault secret
+list`; nothing yet auto-rotates on expiry - a manual `terraform apply` after generating a new
+`random_password` in `environments/nonprod` is today's real rotation procedure). No automated
+rotation pipeline exists yet - acceptable for a non-prod credential set at this project's current
+size, revisited if/when PROD (AIW-76) needs a stricter answer.
 
-**Update (AIW-72, done)**: the real NONPROD PostgreSQL server, `aiw_dev` database, and
-least-privilege `aiw_dev_app` role now exist - see `nonprod-database.md` for the real
-connectivity/isolation verification. This gap is **still open**, though, for a narrower reason
-now: `SPRING_DATASOURCE_URL`/`_USERNAME`/`_PASSWORD` still aren't set on the DEV Container App -
-that wiring is AIW-73's own scope (Key Vault + the Container App's secret references, per
-`secret-management.md`'s decision), deliberately not done directly as plain env vars even though
-the real values now exist, since these are real credentials that must not land in a Container
-App's non-secret configuration. AIW-73 is what actually closes this gap.
+### Future AI provider keys
+
+The same pattern generalizes without new infrastructure: any future secret (an Anthropic/OpenAI
+API key, say) becomes one more `azurerm_key_vault_secret` in this file plus one more
+`key_vault_secrets`/`secret_env` entry on the `backend` module block - the vault, the managed
+identity, and the RBAC role assignment set up by this ticket are already the real, working access
+path. No per-secret infrastructure change is needed beyond that.
 
 ## Deployment procedure
 
