@@ -45,6 +45,20 @@ variable "public_network_access_enabled" {
   default     = true
 }
 
+variable "firewall_rules" {
+  type = map(object({
+    start_ip_address = string
+    end_ip_address   = string
+  }))
+  description = <<-EOT
+    Named firewall rules (only meaningful while public_network_access_enabled is true) - deny-all
+    is the real Azure default, so nothing (not even Azure Container Apps) can reach this server
+    without an explicit rule here. Use "0.0.0.0"/"0.0.0.0" for Azure's own documented
+    allow-all-Azure-services special case, not a real public IP range.
+  EOT
+  default     = {}
+}
+
 variable "tags" {
   type = map(string)
 }

@@ -37,10 +37,16 @@ than serving traffic.
 ("health checks succeed after deployment") is not fully met today, by explicit decision
 (confirmed with the user before implementing) rather than by omission - provisioning DEV's
 Container Apps/Static Web App infrastructure now, ahead of AIW-72's PostgreSQL server, was judged
-more valuable than blocking this ticket on that one. AIW-72 is the very next ticket; once it
-lands, `SPRING_DATASOURCE_URL`/`_USERNAME`/`_PASSWORD` env vars (Key-Vault-backed once AIW-73
-also lands, per `secret-management.md`'s decision) get added to
-`infrastructure/environments/dev/main.tf`'s `backend` module block, and this gap closes for real.
+more valuable than blocking this ticket on that one.
+
+**Update (AIW-72, done)**: the real NONPROD PostgreSQL server, `aiw_dev` database, and
+least-privilege `aiw_dev_app` role now exist - see `nonprod-database.md` for the real
+connectivity/isolation verification. This gap is **still open**, though, for a narrower reason
+now: `SPRING_DATASOURCE_URL`/`_USERNAME`/`_PASSWORD` still aren't set on the DEV Container App -
+that wiring is AIW-73's own scope (Key Vault + the Container App's secret references, per
+`secret-management.md`'s decision), deliberately not done directly as plain env vars even though
+the real values now exist, since these are real credentials that must not land in a Container
+App's non-secret configuration. AIW-73 is what actually closes this gap.
 
 ## Deployment procedure
 
