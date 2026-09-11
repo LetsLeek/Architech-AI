@@ -1,0 +1,45 @@
+schemaVersion: 1
+
+id: jira-ticket-authoring
+name: Jira Ticket Authoring
+version: 1
+
+description: >
+  Turns an approved requirement into a well-structured Jira ticket in the
+  AIW project - searches for duplicates and a fitting parent Epic first,
+  and only creates or edits an issue after that context is resolved and a
+  human has approved the write.
+
+inputs:
+  - name: requirement
+    type: string
+    description: The requested work or problem, in the requester's own words.
+    required: true
+  - name: knownContext
+    type: object
+    description: >
+      Optional hints already known (suspected parent Epic, target
+      milestone, related ticket keys) - verified, never trusted outright.
+    required: false
+
+outputs:
+  - name: ticketAuthoringResult
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - duplicate-check findings, the Epic/new-issue decision,
+      and whether a write is staged and awaiting approval.
+
+preconditions:
+  - Jira MCP tools (mcp__atlassian__*) are available and authenticated for this session.
+  - The requirement is concrete enough to search and classify, not just a vague idea.
+
+stopConditions:
+  - The requirement is too vague to normalize into a concrete summary and goal.
+  - Duplicate search is inconclusive and cannot be confidently classified as duplicate, related, or unrelated.
+  - No existing Epic fits and creating a new one is the only remaining option - a human must decide, this skill never creates an Epic unilaterally.
+  - A Jira tool call fails or access is denied.
+
+allowedActionCategories:
+  - external-read
+  - external-visible
