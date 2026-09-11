@@ -102,10 +102,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # Builds only - proves the image is reproducible in CI (AIW-68 AC), never pushed to any
-      # registry here. Pushing to Azure Container Registry is AIW-70's own concern, once that
-      # registry and its credentials actually exist. Since nothing here ever authenticates to a
-      # registry, there are no registry credentials that could leak into these logs (AIW-96 AC).
+      # Build always runs (PR and push alike) - proves the image is reproducible in CI (AIW-68
+      # AC) and lets every scan/attestation step below run on every PR, not just after merge.
+      # Pushing to the real registry (below, AIW-70) only happens on push to develop/main -
+      # never from a PR, so nothing PR-triggered can publish into the shared registry.
       - name: Build image
         working-directory: backend
         run: docker build --build-arg GIT_SHA=${{ github.sha }} -t architech-backend:${{ github.sha }} .
@@ -156,10 +156,35 @@ jobs:
         # own baseline findings via the Dockerfile's `apk upgrade` step.
         run: trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 architech-backend:${{ github.sha }}
 
+      - name: Azure login (OIDC, no client secret)
+        # AIW-70: only reached on push to develop/main (the `if:` below) - never on a PR, so a
+        # PR from anyone, trusted or not, can never publish into the shared registry. Same OIDC
+        # identity infrastructure/terraform-ci.yml uses, now also granted AcrPush (scoped to
+        # just this one registry) in infrastructure/environments/shared/main.tf.
+        if: github.event_name == 'push'
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push to ACR (git-SHA tag only, never latest)
+        # AIW-70 AC: "immutable/versioned tags including Git commit SHA; deployments do not
+        # rely on latest" - only the SHA tag is ever pushed, so there is no `latest` tag for a
+        # future deployment step to accidentally reach for instead of pinning explicitly.
+        if: github.event_name == 'push'
+        env:
+          ACR_LOGIN_SERVER: acraiwshared.azurecr.io
+        run: |
+          az acr login --name acraiwshared
+          docker tag architech-backend:${{ github.sha }} "$ACR_LOGIN_SERVER/architech-backend:${{ github.sha }}"
+          docker push "$ACR_LOGIN_SERVER/architech-backend:${{ github.sha }}"
+
       - name: Compute image digest
-        # AIW-101: no registry exists yet (AIW-70), so there's no RepoDigest from a push - the
-        # image's own content-addressed ID (config digest) is the stable identifier this job
-        # can produce without one, and what SBOM/provenance below are both tied to.
+        # AIW-101: uses the image's own content-addressed local config ID, not a registry
+        # RepoDigest from the push above - kept consistent between PR runs (which never push,
+        # AIW-70's own design) and push runs, so SBOM/attestation below are computed the same
+        # way regardless of which triggered this job.
         id: image
         run: echo "digest=$(docker inspect --format='{{.Id}}' architech-backend:${{ github.sha }})" >> "$GITHUB_OUTPUT"
 
