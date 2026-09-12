@@ -47,10 +47,9 @@ resource "azuread_application_federated_identity_credential" "develop_branch" {
   subject        = "repo:LetsLeek@89669556/Architech-AI@1360201571:ref:refs/heads/develop"
 }
 
-# Reader is enough for `plan` to read existing resource state at the subscription scope; this
-# identity is never granted Contributor/Owner - real `apply`s stay a human-run, human-approved
-# action (this project's own "ja push"/"ja merge"-shaped approval convention, extended to
-# infrastructure changes) until a future ticket explicitly decides to automate apply.
+# Reader is enough for `plan` to read existing resource state at the subscription scope -
+# terraform-ci.yml's own plan step stays deliberately Reader-only/read-closed regardless of the
+# scoped Contributor grant below, per its own comment.
 resource "azurerm_role_assignment" "github_actions_reader" {
   scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
   role_definition_name = "Reader"
@@ -60,5 +59,18 @@ resource "azurerm_role_assignment" "github_actions_reader" {
 resource "azurerm_role_assignment" "github_actions_tfstate_access" {
   scope                = azurerm_storage_account.tfstate.id
   role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azuread_service_principal.github_actions.object_id
+}
+
+# AIW-81: the one deliberate exception to "real applies stay human-run/human-approved" -
+# automatic DEV deployment on push to develop needs this identity to actually write, not just
+# read. Scoped to DEV's own resource group only (never subscription-wide, never
+# STAGING/PROD/NONPROD/shared) - least privilege even for the one environment automated
+# deployment is allowed to touch. The resource group name is a hardcoded string, not a
+# cross-root remote-state reference, matching this project's existing "look it up by its own
+# stable name" pattern (e.g. environments/dev's own data.azurerm_container_registry.shared).
+resource "azurerm_role_assignment" "github_actions_dev_deploy" {
+  scope                = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/rg-aiw-dev-swc"
+  role_definition_name = "Contributor"
   principal_id         = azuread_service_principal.github_actions.object_id
 }
