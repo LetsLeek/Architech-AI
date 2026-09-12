@@ -1,0 +1,28 @@
+id: website-react-typescript-vite-client-v1
+version: 1.0.0
+projectType: WEBSITE
+operation: INITIAL_GENERATION
+framework: React
+language: TypeScript
+buildTool: Vite
+runtimeKind: client-static-build
+packageManager: npm
+capabilities:
+  clientRouting: true
+  localInteractiveState: true
+  forms: true
+  galleries: true
+  authorizedExternalApis: true
+  arbitraryServer: false
+  arbitraryDatabase: false
+  serverSecretsInClient: false
+requiredTaskContracts:
+  - install-frozen
+  - typecheck
+  - lint
+  - test
+  - build-production
+  - run-local
+notes:
+  - Concrete commands are Runner/scaffold implementation details and remain capability-controlled.
+  - The Developer may not replace framework/language/package manager/build/runtime.
