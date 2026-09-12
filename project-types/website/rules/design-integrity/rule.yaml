@@ -1,0 +1,11 @@
+schemaVersion: 1
+
+id: design-integrity
+name: Design Integrity
+version: 1
+
+description: >
+  Defines integrity constraints for preserving canonical customer information,
+  website requirements, authoritative constraints, and unresolved input state
+  while allowing independent website design decisions within the permitted
+  design space.

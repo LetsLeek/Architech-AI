@@ -94,12 +94,12 @@ public class AgentDefinitionLoader {
 	private AgentDefinition toDefinition(Map<String, Object> raw, String roleContent, Resource resource) {
 		Map<String, Object> limitsRaw = requireMap(raw, "limits");
 		Map<String, Object> outputsRaw = requireMap(raw, "outputs");
-		Object artifactsRaw = outputsRaw.get("artifacts");
-		if (!(artifactsRaw instanceof List)) {
+		Object outputArtifactsRaw = outputsRaw.get("artifacts");
+		if (!(outputArtifactsRaw instanceof List)) {
 			throw new IllegalStateException("outputs.artifacts is required");
 		}
 
-		List<AgentArtifactOutput> artifacts = ((List<Map<String, Object>>) artifactsRaw)
+		List<AgentArtifactOutput> outputs = ((List<Map<String, Object>>) outputArtifactsRaw)
 				.stream()
 				.map(a -> {
 					String schemaPath = (String) requireField(a, "schema");
@@ -121,8 +121,34 @@ public class AgentDefinitionLoader {
 				new AgentLimits((Integer) requireField(limitsRaw, "maxOutputTokens")),
 				(List<String>) raw.getOrDefault("skills", List.of()),
 				(List<String>) raw.getOrDefault("rules", List.of()),
-				new AgentOutputs(artifacts),
+				new AgentInputs(parseInputArtifacts(raw, resource)),
+				new AgentOutputs(outputs),
 				roleContent);
+	}
+
+	/** {@code inputs} is optional in agent.yaml - absent entirely for an agent with no prior-artifact inputs. */
+	@SuppressWarnings("unchecked")
+	private List<AgentArtifactInput> parseInputArtifacts(Map<String, Object> raw, Resource resource) {
+		Object inputsRaw = raw.get("inputs");
+		if (inputsRaw == null) {
+			return List.of();
+		}
+		Object artifactsRaw = ((Map<String, Object>) inputsRaw).get("artifacts");
+		if (!(artifactsRaw instanceof List)) {
+			throw new IllegalStateException("inputs.artifacts is required when inputs is present");
+		}
+
+		return ((List<Map<String, Object>>) artifactsRaw)
+				.stream()
+				.map(a -> {
+					String schemaPath = (String) requireField(a, "schema");
+					return new AgentArtifactInput(
+							(String) requireField(a, "type"),
+							schemaPath,
+							readSchemaContent(resource, schemaPath),
+							(Boolean) a.getOrDefault("required", Boolean.FALSE));
+				})
+				.toList();
 	}
 
 	@SuppressWarnings("unchecked")

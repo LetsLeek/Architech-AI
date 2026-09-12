@@ -24,6 +24,16 @@ class RuleLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFrozenDesignIntegrityRule() {
+		RuleDefinition definition = loader.resolve("design-integrity", 1);
+
+		assertThat(definition.id()).isEqualTo("design-integrity");
+		assertThat(definition.name()).isEqualTo("Design Integrity");
+		assertThat(definition.content()).contains("# Design Integrity");
+		assertThat(definition.content()).contains("## Canonical Customer Information");
+	}
+
+	@Test
 	void throwsWhenNoRuleMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("requirements-integrity", 99))
 				.isInstanceOf(RuleDefinitionNotFoundException.class);

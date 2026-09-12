@@ -4,11 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.yaml.snakeyaml.LoaderOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -43,11 +47,12 @@ class FrozenRequirementsAgentSpecIT {
 		AgentDefinition definition = agentDefinitionLoader.resolve("requirements-agent", 1);
 		assertThat(definition.outputs().artifacts()).hasSize(2);
 
-		// Only one agent.yaml exists in the repo today, so it's unambiguously "the" resource
-		// backing the definition just resolved above - revisit if a second agent is ever added.
+		// Two agent.yaml files exist in the repo now (requirements-agent, designer-agent -
+		// AIW-116) - find the one backing the definition just resolved above by its own
+		// declared id rather than assuming there is only one.
 		Resource[] agentYamls = resourceResolver.getResources(AGENT_DEFINITION_PATTERN);
-		assertThat(agentYamls).hasSize(1);
-		Resource agentYaml = agentYamls[0];
+		assertThat(agentYamls).hasSize(2);
+		Resource agentYaml = findAgentYamlById(agentYamls, "requirements-agent");
 
 		for (AgentArtifactOutput artifact : definition.outputs().artifacts()) {
 			Resource schema = agentYaml.createRelative(artifact.schema());
@@ -60,5 +65,19 @@ class FrozenRequirementsAgentSpecIT {
 						.isNotNull();
 			}
 		}
+	}
+
+	private static Resource findAgentYamlById(Resource[] agentYamls, String id) throws IOException {
+		Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
+		for (Resource candidate : agentYamls) {
+			Map<String, Object> raw;
+			try (InputStream in = candidate.getInputStream()) {
+				raw = yaml.load(in);
+			}
+			if (id.equals(raw.get("id"))) {
+				return candidate;
+			}
+		}
+		throw new IllegalStateException("No agent.yaml found with id '" + id + "'");
 	}
 }
