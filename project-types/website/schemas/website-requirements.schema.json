@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "website-requirements.schema.json",
+  "$id": "urn:aiw:schema:website-requirements:v1",
   "title": "Website Requirements",
   "type": "object",
   "additionalProperties": false,

@@ -1,0 +1,18 @@
+{
+  "resultType": "BLOCKED",
+  "targetDesign": {
+    "designArtifactVersionRef": "design-artifact-version-fixture",
+    "proposalLocalRef": "proposal-a"
+  },
+  "blockers": [
+    {
+      "code": "RUNTIME_CAPABILITY_MISSING",
+      "relatedRequirementRefs": [
+        "req-server-only"
+      ],
+      "relatedDesignLocalRefs": [],
+      "relatedIntegrationContractRefs": [],
+      "diagnosticSummary": "Schema fixture: the required behavior needs a server capability not authorized by the V1 client/static Runtime Profile."
+    }
+  ]
+}
