@@ -77,15 +77,12 @@ class SkillLoaderIT {
 	}
 
 	@Test
-	void resolvesTheFirstSixModulesOfTheFrozenWebsiteDeveloperSkillInOrder() {
-		// AIW-134 landed the first 3 modules, AIW-135 adds these next 3; AIW-136 lands the final
-		// 2, at which point this test's expected count grows to 8 (mirroring how the other two
-		// frozen skills above were each completed in one ticket).
+	void resolvesAllEightModulesOfTheFrozenWebsiteDeveloperSkillInOrder() {
 		SkillDefinition definition = loader.resolve("website-developer", 1);
 
 		assertThat(definition.id()).isEqualTo("website-developer");
 		assertThat(definition.name()).isEqualTo("Website Developer");
-		assertThat(definition.modules()).hasSize(6);
+		assertThat(definition.modules()).hasSize(8);
 		assertThat(definition.modules())
 				.extracting(SkillModule::filename)
 				.containsExactly(
@@ -94,7 +91,9 @@ class SkillLoaderIT {
 						"03-component-architecture.md",
 						"04-responsive-and-styling.md",
 						"05-functional-implementation.md",
-						"06-dependency-and-project-changes.md");
+						"06-dependency-and-project-changes.md",
+						"07-verification-and-correction.md",
+						"08-traceability-and-handoff.md");
 	}
 
 	@Test
