@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.UUID;
 import org.slf4j.MDC;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -20,8 +22,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
  *
  * <p>Always generated fresh, never trusted from an incoming header: an id a caller could set
  * themselves would let one client's requests spoof or collide with another's in the logs.
+ *
+ * <p>Ordered ahead of {@code RequestLoggingFilter} (AIW-77) so the correlation id is already in
+ * {@link MDC} - and therefore in that filter's own structured log line - for every request.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 class RequestCorrelationFilter extends OncePerRequestFilter {
 
 	static final String MDC_KEY = "correlationId";

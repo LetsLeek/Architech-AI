@@ -82,6 +82,17 @@ management:
     health:
       show-details: never
 
+logging:
+  structured:
+    format:
+      # AIW-77: one JSON object per log line (Spring Boot's built-in structured logging, no
+      # extra dependency) - includes every active MDC entry (correlationId from
+      # RequestCorrelationFilter; httpMethod/httpPath/httpStatus/durationMs from
+      # RequestLoggingFilter) as top-level JSON fields automatically, which is what makes
+      # Container Apps' own console-log ingestion into Log Analytics (ContainerAppConsoleLogs)
+      # queryable by those fields rather than needing to regex a plain-text line.
+      console: logstash
+
 ---
 # Opt-in only, never active by default (so a fresh clone/CI stays on the mock provider with
 # zero config) - activate locally with SPRING_PROFILES_ACTIVE=real-ai plus ANTHROPIC_API_KEY
