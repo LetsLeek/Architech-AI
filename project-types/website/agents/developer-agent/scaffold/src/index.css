@@ -1,0 +1,10 @@
+/* Minimal, design-neutral reset only - no branding, palette, or typography decisions. Design
+   fidelity (colors, typography, spacing, layout) is a Developer execution's job, driven by the
+   target Design Proposal's designSpecification, not baked into this scaffold. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
