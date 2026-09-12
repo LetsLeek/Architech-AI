@@ -22,7 +22,7 @@ resource "azurerm_key_vault" "this" {
   # mechanism included) bypass it by default; var.allowed_ip_ranges lets AIW-73 add specific
   # trusted ranges (e.g. an office/VPN egress IP) once a real one is known, empty until then.
   network_acls {
-    default_action = "Deny"
+    default_action = var.network_default_action
     bypass         = "AzureServices"
     ip_rules       = var.allowed_ip_ranges
   }

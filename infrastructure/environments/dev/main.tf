@@ -92,13 +92,15 @@ module "key_vault" {
   location            = module.resource_group.location
   tenant_id           = data.azurerm_client_config.current.tenant_id
 
-  # Deny-all-by-default plus the two identities that actually need data-plane access: Azure
-  # services (so the DEV Container App's own managed identity, reading secrets at runtime, can
-  # reach the vault) and this apply's own current caller (real requirement, not a guess - a
-  # bare RBAC-only vault with public_network_access still requires an explicit firewall entry
-  # for whoever's Terraform run creates azurerm_key_vault_secret resources below; the same
-  # "terraform-admin" pattern AIW-72 already established for the Postgres firewall).
   allowed_ip_ranges = ["91.115.38.199"]
+
+  # AIW-81's real finding: GitHub Actions' automatic DEV deployment runs terraform apply from a
+  # GitHub-hosted runner with no stable IP and no "trusted service" status - a real deploy hit
+  # ForbiddenByFirewall even after the correct RBAC role existed. RBAC (already least-privilege
+  # - see this environment's own role assignments) is the real access control here, matching
+  # Key Vault's own documented security model; DEV is the one environment where a CI-driven
+  # apply actually needs this today.
+  network_default_action = "Allow"
 
   tags = {
     environment = "dev"
@@ -110,7 +112,36 @@ module "key_vault" {
 resource "azurerm_role_assignment" "terraform_admin_kv_secrets_officer" {
   scope                = module.key_vault.id
   role_definition_name = "Key Vault Secrets Officer"
-  principal_id         = data.azurerm_client_config.current.object_id
+  # AIW-81's own second real finding: "current caller" is fine as long as exactly one identity
+  # ever runs apply, but breaks the moment a second one (CI) does too - Terraform then wants to
+  # replace this grant every time the caller differs from whoever last applied, and neither a
+  # human nor CI's own Contributor role can perform that delete (role-assignment management is
+  # a separate permission from Contributor). A fixed, stable object id - the real human
+  # terraform-admin identity this project has used for every manual apply so far - decouples
+  # this grant from "whoever happens to be running apply right now", the same fix already
+  # applied to CI's own grant above.
+  principal_id = "4720b2b3-44ba-400d-8f92-53cd5babde85"
+}
+
+# AIW-81: looked up by its stable display name, not a hardcoded object ID, matching
+# environments/shared's own pattern - CI now runs terraform apply for real (deploy-dev.yml),
+# and Key Vault's data-plane RBAC (reading/writing an actual secret's value) is a separate
+# namespace from the Contributor role CI already holds on this resource group. Without this,
+# a real deploy (2026-09-12) failed: the "current caller" grant above is tied to whichever
+# identity happens to be running apply, so CI running apply forced that role assignment to be
+# replaced (destroy the human's grant, create CI's) - but the plan first needs to read the
+# three existing azurerm_key_vault_secret resources, which requires an identity that already
+# has this role *before* the replacement completes. Granting CI its own, independent role
+# assignment (not tied to "whoever is currently authenticated") breaks that chicken-and-egg
+# cycle for good, for any future caller.
+data "azuread_service_principal" "github_actions" {
+  display_name = "aiw-github-actions-terraform"
+}
+
+resource "azurerm_role_assignment" "github_actions_kv_secrets_officer" {
+  scope                = module.key_vault.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azuread_service_principal.github_actions.object_id
 }
 
 resource "azurerm_role_assignment" "backend_kv_secrets_user" {
