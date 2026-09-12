@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "customer-profile.schema.json",
+  "$id": "urn:aiw:schema:customer-profile:v1",
   "title": "Customer Profile",
   "type": "object",
   "additionalProperties": false,

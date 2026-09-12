@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:developer-execution-input:v1",
+  "title": "DeveloperExecutionInput V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "projectContext",
+    "canonicalUpstream",
+    "targetDesign",
+    "technicalContext",
+    "integrationContext",
+    "executionContext"
+  ],
+  "properties": {
+    "projectContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectRef",
+        "projectType",
+        "operation"
+      ],
+      "properties": {
+        "projectRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "projectType": {
+          "const": "WEBSITE"
+        },
+        "operation": {
+          "const": "INITIAL_GENERATION"
+        }
+      }
+    },
+    "canonicalUpstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "customerProfileArtifactVersionRef",
+        "customerProfile",
+        "websiteRequirementsArtifactVersionRef",
+        "websiteRequirements"
+      ],
+      "properties": {
+        "customerProfileArtifactVersionRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "customerProfile": {
+          "$ref": "urn:aiw:schema:customer-profile:v1"
+        },
+        "websiteRequirementsArtifactVersionRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "websiteRequirements": {
+          "$ref": "urn:aiw:schema:website-requirements:v1"
+        }
+      }
+    },
+    "targetDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "designArtifactVersionRef",
+        "targetProposalLocalRef",
+        "proposal"
+      ],
+      "properties": {
+        "designArtifactVersionRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "targetProposalLocalRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "proposal": {
+          "$ref": "urn:aiw:schema:website-design-proposal:v1"
+        }
+      }
+    },
+    "technicalContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtimeProfileRef",
+        "developmentBaseRef",
+        "dependencyPolicyRef",
+        "verificationPolicyRef",
+        "toolCapabilityProfileRef"
+      ],
+      "properties": {
+        "runtimeProfileRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "developmentBaseRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "dependencyPolicyRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "verificationPolicyRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "toolCapabilityProfileRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        }
+      }
+    },
+    "integrationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integrationContracts"
+      ],
+      "properties": {
+        "integrationContracts": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "integrationContractRef",
+              "developerSafeContract"
+            ],
+            "properties": {
+              "integrationContractRef": {
+                "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+              },
+              "developerSafeContract": {
+                "$ref": "urn:aiw:schema:developer-safe-integration-contract-view:v1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "executionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentContractVersion",
+        "rulesetVersion",
+        "skillProfileRef",
+        "correctionBudget"
+      ],
+      "properties": {
+        "agentContractVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "rulesetVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "skillProfileRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "correctionBudget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "maxCorrectionCycles"
+          ],
+          "properties": {
+            "maxCorrectionCycles": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          }
+        },
+        "retryContext": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "priorAgentExecutionRef",
+            "retryReasonCode",
+            "failureEvidenceSummary"
+          ],
+          "properties": {
+            "priorAgentExecutionRef": {
+              "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+            },
+            "retryReasonCode": {
+              "enum": [
+                "RESULT_VALIDATION_FAILURE",
+                "RUNNER_VERIFICATION_FAILURE"
+              ]
+            },
+            "failureEvidenceSummary": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
+          }
+        }
+      }
+    }
+  }
+}

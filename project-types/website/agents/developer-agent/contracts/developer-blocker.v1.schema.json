@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:developer-blocker:v1",
+  "title": "DeveloperBlocker V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "code",
+    "relatedRequirementRefs",
+    "relatedDesignLocalRefs",
+    "relatedIntegrationContractRefs",
+    "diagnosticSummary"
+  ],
+  "properties": {
+    "code": {
+      "enum": [
+        "UPSTREAM_CONFLICT",
+        "MISSING_UPSTREAM_INFORMATION",
+        "MISSING_INTEGRATION_CONTRACT",
+        "INVALID_INTEGRATION_CONTRACT",
+        "DEPENDENCY_POLICY_BLOCKED",
+        "TOOL_CAPABILITY_MISSING",
+        "RUNTIME_CAPABILITY_MISSING"
+      ]
+    },
+    "relatedRequirementRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+      }
+    },
+    "relatedDesignLocalRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+      }
+    },
+    "relatedIntegrationContractRefs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+      }
+    },
+    "diagnosticSummary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "code": {
+            "const": "INVALID_INTEGRATION_CONTRACT"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "relatedIntegrationContractRefs": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

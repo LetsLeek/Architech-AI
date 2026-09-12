@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:developer-safe-integration-contract-view:v1",
+  "$comment": "PLACEHOLDER pending AIW-144 (Developer-safe Integration Contract). AIW-133 only needs this URN to resolve so the DeveloperSchemaRegistry can load developer-execution-input.v1 (which $refs it) without error; it deliberately accepts any object so AIW-133's own fixtures - which all use an empty integrationContracts array - never need to satisfy real integration-contract shape rules. AIW-144 must replace this file's content with the authoritative developer-safe-contract projection schema (interface/operation contracts, runtime bindings, allowed targets, public configuration, symbolic secret/config names only - never secret values or admin/deployment credentials, per docs/INTEGRATION-BOUNDARY.md in the frozen spec package) without changing this $id.",
+  "type": "object"
+}

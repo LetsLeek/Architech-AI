@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:developer-common:v1",
+  "title": "Website Developer V1 Common Types",
+  "$defs": {
+    "OpaqueRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "ResultTargetDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "designArtifactVersionRef",
+        "proposalLocalRef"
+      ],
+      "properties": {
+        "designArtifactVersionRef": {
+          "$ref": "#/$defs/OpaqueRef"
+        },
+        "proposalLocalRef": {
+          "$ref": "#/$defs/OpaqueRef"
+        }
+      }
+    },
+    "RepositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    }
+  }
+}

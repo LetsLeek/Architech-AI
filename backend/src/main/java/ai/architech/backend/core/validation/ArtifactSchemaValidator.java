@@ -22,13 +22,16 @@ import tools.jackson.databind.node.ObjectNode;
  * relative to agent.yaml, the same content also sent to the model as part of the prompt -
  * AIW-127), not a classpath {@code Resource} this class would have to load itself.
  *
- * <p>Both frozen schema files declare a bare filename as {@code $id} (e.g.
- * {@code "customer-profile.schema.json"}), which this validator library rejects as "not a
- * valid $id" since it isn't a URI. The {@code $id} is only the schema's own
- * self-identification for {@code $ref} resolution - both schemas only use local,
- * fragment-only {@code $ref}s (e.g. {@code #/$defs/business}), which resolve against the
- * document regardless of its {@code $id}. Stripping it in memory before registering the
- * schema changes zero validation constraints; the frozen file on disk is never touched.
+ * <p>Both frozen schema files declare their own {@code $id} (a {@code urn:aiw:schema:*:v1}
+ * value since AIW-133, so the Developer Agent's schemas can {@code $ref} them by that URN) but
+ * this validator only ever validates one self-contained document at a time and never needs
+ * cross-document resolution - both schemas only use local, fragment-only {@code $ref}s (e.g.
+ * {@code #/$defs/business}), which resolve against the document regardless of its {@code $id}.
+ * Stripping {@code $id} in memory before registering the schema changes zero validation
+ * constraints; the frozen file on disk is never touched. (Cross-document {@code urn:aiw:schema:*}
+ * resolution for the Developer Agent's own schemas is handled separately by
+ * {@link DeveloperSchemaRegistry}, which registers documents under their real {@code $id} rather
+ * than stripping it - the two validators serve different schema shapes and must not be merged.)
  */
 @Component
 public class ArtifactSchemaValidator {

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:functional-binding:v1",
+  "title": "FunctionalBinding V1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirementRef",
+        "designLocalRefs",
+        "status"
+      ],
+      "properties": {
+        "requirementRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "designLocalRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+          }
+        },
+        "status": {
+          "const": "IMPLEMENTED_LOCAL"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirementRef",
+        "designLocalRefs",
+        "status",
+        "integrationContractRef"
+      ],
+      "properties": {
+        "requirementRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "designLocalRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+          }
+        },
+        "status": {
+          "const": "IMPLEMENTED_BOUND"
+        },
+        "integrationContractRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requirementRef",
+        "designLocalRefs",
+        "status",
+        "blockerCode"
+      ],
+      "properties": {
+        "requirementRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "designLocalRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+          }
+        },
+        "status": {
+          "const": "UNBOUND"
+        },
+        "integrationContractRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "blockerCode": {
+          "enum": [
+            "MISSING_INTEGRATION_CONTRACT",
+            "INVALID_INTEGRATION_CONTRACT",
+            "MISSING_UPSTREAM_INFORMATION"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "blockerCode": {
+                "const": "INVALID_INTEGRATION_CONTRACT"
+              }
+            },
+            "required": [
+              "blockerCode"
+            ]
+          },
+          "then": {
+            "required": [
+              "integrationContractRef"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
