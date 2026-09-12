@@ -1,0 +1,37 @@
+schemaVersion: 1
+
+id: developer-agent
+name: Website Developer Agent
+version: 1
+
+description: >
+  Implements one exact authorized Website Design Proposal into a maintainable customer
+  website - React/TypeScript/Vite, client/static-build only - inside an isolated,
+  capability-scoped workspace, verifies it progressively, and emits exactly one structured
+  semantic result: IMPLEMENTATION_READY or BLOCKED. V1 supports only WEBSITE /
+  INITIAL_GENERATION, and one execution implements exactly one target proposal; A/B/C
+  sibling fan-out across proposals is Workflow-owned, not agent-internal. This product-facing
+  agent is unrelated to the internal engineering-agent workflow in AIW-103.
+
+modelProfile: implementation-reasoning
+
+limits:
+  maxOutputTokens: 16000
+
+skills:
+  - website-developer
+
+rules:
+  - website-developer-integrity
+
+inputs:
+  artifacts:
+    - type: developer-execution-input
+      schema: ./contracts/developer-execution-input.v1.schema.json
+      required: true
+
+outputs:
+  artifacts:
+    - type: developer-agent-result
+      schema: ./contracts/developer-agent-result.v1.schema.json
+      required: true

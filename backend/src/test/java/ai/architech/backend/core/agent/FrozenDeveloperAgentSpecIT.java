@@ -16,14 +16,15 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Verifies the frozen designer-agent handoff package (AIW-116..121) is actually intact and
- * internally consistent - mirrors {@link FrozenRequirementsAgentSpecIT}, extended to also cover
- * {@code inputs.artifacts}: unlike requirements-agent, the Designer Agent declares required
- * input artifact schemas (its inputs are prior canonical artifacts, not a raw Source Context
- * snapshot), so both directions need the same "genuinely exists and is valid JSON" proof.
+ * Verifies the frozen developer-agent handoff package (AIW-132..137) is actually intact and
+ * internally consistent - mirrors {@link FrozenDesignerAgentSpecIT}. Unlike Designer, the
+ * Developer Agent declares exactly one input artifact type ({@code developer-execution-input}):
+ * its schema itself composes the canonical Customer Profile, Website Requirements and target
+ * Design Proposal by {@code $ref} (see {@link ai.architech.backend.core.validation.DeveloperSchemaRegistry}),
+ * rather than the Agent Contract declaring each of those three as its own separate input artifact.
  */
 @SpringBootTest
-class FrozenDesignerAgentSpecIT {
+class FrozenDeveloperAgentSpecIT {
 
 	private static final String AGENT_DEFINITION_PATTERN = "classpath*:project-types/**/agent.yaml";
 
@@ -38,13 +39,13 @@ class FrozenDesignerAgentSpecIT {
 
 	@Test
 	void everyDeclaredInputAndOutputSchemaExistsAndIsValidJson() throws IOException {
-		AgentDefinition definition = agentDefinitionLoader.resolve("designer-agent", 1);
-		assertThat(definition.inputs().artifacts()).hasSize(2);
+		AgentDefinition definition = agentDefinitionLoader.resolve("developer-agent", 1);
+		assertThat(definition.inputs().artifacts()).hasSize(1);
 		assertThat(definition.outputs().artifacts()).hasSize(1);
 
 		Resource[] agentYamls = resourceResolver.getResources(AGENT_DEFINITION_PATTERN);
 		assertThat(agentYamls).hasSize(3);
-		Resource agentYaml = findAgentYamlById(agentYamls, "designer-agent");
+		Resource agentYaml = findAgentYamlById(agentYamls, "developer-agent");
 
 		for (AgentArtifactInput artifact : definition.inputs().artifacts()) {
 			assertSchemaExistsAndIsValidJson(agentYaml, artifact.type(), artifact.schema());
@@ -52,6 +53,19 @@ class FrozenDesignerAgentSpecIT {
 		for (AgentArtifactOutput artifact : definition.outputs().artifacts()) {
 			assertSchemaExistsAndIsValidJson(agentYaml, artifact.type(), artifact.schema());
 		}
+	}
+
+	@Test
+	void bindsExactlyOneDeveloperExecutionInputAndOneDeveloperAgentResult() {
+		AgentDefinition definition = agentDefinitionLoader.resolve("developer-agent", 1);
+
+		assertThat(definition.inputs().artifacts()).extracting(AgentArtifactInput::type).containsExactly(
+				"developer-execution-input");
+		assertThat(definition.outputs().artifacts()).extracting(AgentArtifactOutput::type).containsExactly(
+				"developer-agent-result");
+		assertThat(definition.modelProfile()).isEqualTo("implementation-reasoning");
+		assertThat(definition.skills()).containsExactly("website-developer");
+		assertThat(definition.rules()).containsExactly("website-developer-integrity");
 	}
 
 	private void assertSchemaExistsAndIsValidJson(Resource agentYaml, String artifactType, String schemaPath)
