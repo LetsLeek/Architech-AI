@@ -39,6 +39,12 @@ variable "backup_retention_days" {
   default     = 7
 }
 
+variable "geo_redundant_backup_enabled" {
+  type        = bool
+  description = "AIW-76 enables this for PROD's real point-in-time-recovery/DR posture; NONPROD stays false (not worth the cost for DEV/STAGING data)."
+  default     = false
+}
+
 variable "public_network_access_enabled" {
   type        = bool
   description = "AIW-76 disables this for PROD in favor of private connectivity; non-prod may stay enabled behind firewall rules."
