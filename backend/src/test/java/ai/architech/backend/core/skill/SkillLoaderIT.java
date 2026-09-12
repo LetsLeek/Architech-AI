@@ -77,6 +77,21 @@ class SkillLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFirstThreeModulesOfTheFrozenWebsiteDeveloperSkillInOrder() {
+		// AIW-134 lands only the root skill plus its first 3 method modules; AIW-135/136 land the
+		// remaining 5, at which point this test's expected count grows to 8 (mirroring how the
+		// other two frozen skills above were each completed in one ticket).
+		SkillDefinition definition = loader.resolve("website-developer", 1);
+
+		assertThat(definition.id()).isEqualTo("website-developer");
+		assertThat(definition.name()).isEqualTo("Website Developer");
+		assertThat(definition.modules()).hasSize(3);
+		assertThat(definition.modules())
+				.extracting(SkillModule::filename)
+				.containsExactly("01-implementation-analysis.md", "02-design-to-code.md", "03-component-architecture.md");
+	}
+
+	@Test
 	void throwsWhenNoSkillMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("extract-business-requirements", 99))
 				.isInstanceOf(SkillDefinitionNotFoundException.class);

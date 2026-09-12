@@ -1,0 +1,11 @@
+schemaVersion: 1
+
+id: website-developer
+name: Website Developer
+version: 1
+
+description: >
+  Turns one validated, proposal-scoped Website Developer execution context into a
+  maintainable React/TypeScript/Vite technical implementation, verifies it progressively,
+  corrects Developer-owned defects within the authorized correction allowance, and produces
+  one structured semantic handoff (IMPLEMENTATION_READY or BLOCKED).
