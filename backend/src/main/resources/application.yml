@@ -33,6 +33,12 @@ architech:
       design-reasoning:
         provider: mock
         model: mock-model
+      # AIW-123: DesignProposalSetSemanticReviewer's own modelProfile - a platform review step,
+      # not an agent.yaml-declared agent, but resolved through the same AiGateway/model-profiles
+      # mechanism as any other AI call in this project.
+      semantic-review:
+        provider: mock
+        model: mock-model
     # Per-1000-token USD pricing, keyed provider -> model. Harmless to keep here even while
     # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
     # provider/model actually answered, and returns null (never fabricated) for anything not
@@ -125,5 +131,8 @@ architech:
         provider: anthropic
         model: claude-sonnet-5
       design-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      semantic-review:
         provider: anthropic
         model: claude-sonnet-5
