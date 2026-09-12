@@ -1,5 +1,6 @@
 package ai.architech.backend.core.runner;
 
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +34,22 @@ public class BoundedRetryAgentRunner {
 		for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
 			try {
 				return agentRunner.run(evidenceSnapshotId, agentId, agentVersion);
+			} catch (AgentRunnerException e) {
+				lastFailure = e;
+			}
+		}
+
+		throw new RetryBudgetExhaustedException(agentId, properties.maxAttempts(), lastFailure);
+	}
+
+	/** Same bounded-retry wrapping as {@link #runWithRetries}, for {@link AgentRunner#runWithInputArtifacts}. */
+	public RunnerResult runWithRetriesUsingInputArtifacts(
+			UUID projectId, String agentId, int agentVersion, Map<String, String> inputArtifactsByType) {
+		AgentRunnerException lastFailure = null;
+
+		for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+			try {
+				return agentRunner.runWithInputArtifacts(projectId, agentId, agentVersion, inputArtifactsByType);
 			} catch (AgentRunnerException e) {
 				lastFailure = e;
 			}

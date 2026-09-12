@@ -2,6 +2,7 @@ package ai.architech.backend.core.runner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.architech.backend.core.agent.AgentArtifactInput;
 import ai.architech.backend.core.agent.AgentArtifactOutput;
 import ai.architech.backend.core.agent.AgentDefinition;
 import ai.architech.backend.core.agent.AgentInputs;
@@ -12,6 +13,7 @@ import ai.architech.backend.core.evidence.ReferencedSourceContext;
 import ai.architech.backend.core.evidence.ReferencedSourceItem;
 import ai.architech.backend.core.evidence.SourceOrigin;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -62,5 +64,38 @@ class AgentRunnerMessageAssemblyTests {
 		assertThat(systemMessage.content()).contains("Schema for \"website-requirements\"");
 		assertThat(systemMessage.content())
 				.contains("Its only top-level keys must be exactly: \"customer-profile\", \"website-requirements\"");
+	}
+
+	@Test
+	void includesEveryDeclaredInputArtifactsContentInTheEvidenceMessage() {
+		AgentDefinition agentDefinition = new AgentDefinition(
+				1,
+				"designer-agent",
+				"Website Designer",
+				1,
+				"desc",
+				"design-reasoning",
+				new AgentLimits(16000),
+				List.of(),
+				List.of(),
+				new AgentInputs(List.of(
+						new AgentArtifactInput("customer-profile", "../../schemas/customer-profile.schema.json", "{}", true),
+						new AgentArtifactInput(
+								"website-requirements", "../../schemas/website-requirements.schema.json", "{}", true))),
+				new AgentOutputs(List.of(new AgentArtifactOutput(
+						"design-proposal-set", "../../schemas/design-proposal-set.schema.json", "{}", true))),
+				"You are the Designer Agent.");
+
+		Map<String, String> inputArtifacts = Map.of(
+				"customer-profile", "{\"business\":{\"name\":\"Acme\"}}",
+				"website-requirements", "{\"goals\":[]}");
+
+		List<AiMessage> messages = AgentRunner.buildMessagesFromInputArtifacts(agentDefinition, List.of(), List.of(), inputArtifacts);
+
+		AiMessage userMessage = messages.stream().filter(message -> "user".equals(message.role())).findFirst().orElseThrow();
+		assertThat(userMessage.content()).contains("[customer-profile]");
+		assertThat(userMessage.content()).contains("{\"business\":{\"name\":\"Acme\"}}");
+		assertThat(userMessage.content()).contains("[website-requirements]");
+		assertThat(userMessage.content()).contains("{\"goals\":[]}");
 	}
 }
