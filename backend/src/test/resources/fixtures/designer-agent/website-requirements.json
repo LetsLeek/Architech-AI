@@ -1,0 +1,10 @@
+{
+  "goals": [{"localRef": "req-goal-1", "description": "Grow local visibility", "strength": "must"}],
+  "targetAudiences": [],
+  "contentRequirements": [{"localRef": "req-content-1", "type": "menu", "description": "Show the menu", "strength": "must"}],
+  "functionalRequirements": [],
+  "languages": [],
+  "constraints": [],
+  "unknowns": [],
+  "conflicts": []
+}
