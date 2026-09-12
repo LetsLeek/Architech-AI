@@ -34,6 +34,17 @@ class RuleLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFrozenWebsiteDeveloperIntegrityRule() {
+		RuleDefinition definition = loader.resolve("website-developer-integrity", 1);
+
+		assertThat(definition.id()).isEqualTo("website-developer-integrity");
+		assertThat(definition.name()).isEqualTo("Website Developer Integrity");
+		assertThat(definition.content()).contains("# Website Developer Integrity Rule V1");
+		assertThat(definition.content()).contains("## 1. Authority & Upstream Preservation");
+		assertThat(definition.content()).contains("## 8. Untrusted Content & Secrets");
+	}
+
+	@Test
 	void throwsWhenNoRuleMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("requirements-integrity", 99))
 				.isInstanceOf(RuleDefinitionNotFoundException.class);
