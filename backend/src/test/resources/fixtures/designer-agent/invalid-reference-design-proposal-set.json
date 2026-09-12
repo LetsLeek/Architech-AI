@@ -1,0 +1,151 @@
+{
+  "proposals": [
+    {
+      "localRef": "prop-a",
+      "name": "Warm Minimal",
+      "concept": "A calm, minimal layout emphasizing the menu.",
+      "websitePlan": {
+        "requirementRefs": ["req-goal-1"],
+        "pages": [
+          {
+            "localRef": "page-a-home",
+            "name": "Home",
+            "route": "/",
+            "purpose": "Introduce the cafe and lead to the menu",
+            "requirementRefs": ["req-goal-1", "req-content-1"],
+            "sections": [
+              {
+                "localRef": "sec-a-hero",
+                "kind": "hero",
+                "purpose": "Welcome visitors",
+                "layoutIntent": "centered, single column",
+                "customerDataRefs": ["cust-loc-1"],
+                "elements": [
+                  {"localRef": "el-a-heading", "kind": "heading", "role": "title", "contentIntent": "Welcome message", "patternRef": "pattern-does-not-exist"}
+                ]
+              },
+              {
+                "localRef": "sec-a-menu",
+                "kind": "offerings",
+                "purpose": "Show what is on offer",
+                "layoutIntent": "simple list",
+                "requirementRefs": ["req-content-1"],
+                "customerDataRefs": ["cust-off-1"],
+                "elements": [
+                  {"localRef": "el-a-list", "kind": "list", "role": "menu", "contentIntent": "List of offerings"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "designSpecification": {
+        "colors": [{"role": "primary", "value": "#2f4f2f"}, {"role": "background", "value": "#faf7f2"}],
+        "typography": [{"role": "heading", "fontFamily": "Fraunces", "fontWeight": 600, "fontSizeRem": 2.2, "lineHeight": 1.2}],
+        "spacing": [{"role": "section", "valueRem": 3}],
+        "layout": {"contentWidth": "narrow", "density": "spacious", "pageGutterRem": 1.5, "sectionGapRem": 3, "gridIntent": "single column"},
+        "uiPatterns": [],
+        "imagery": {"direction": "warm, natural tones", "treatment": "soft-edged photography"},
+        "responsive": {"navigationBehavior": "collapse into a menu icon", "contentStacking": "vertical", "typeScaling": "fluid clamp()", "spacingAdjustment": "reduce by a third", "mediaBehavior": "scale to container"}
+      }
+    },
+    {
+      "localRef": "prop-b",
+      "name": "Bold Grid",
+      "concept": "A denser, grid-driven layout foregrounding the offerings.",
+      "websitePlan": {
+        "requirementRefs": ["req-goal-1"],
+        "pages": [
+          {
+            "localRef": "page-b-home",
+            "name": "Home",
+            "route": "/",
+            "purpose": "Lead with the offerings grid",
+            "requirementRefs": ["req-goal-1", "req-content-1"],
+            "sections": [
+              {
+                "localRef": "sec-b-hero",
+                "kind": "hero",
+                "purpose": "Bold introduction",
+                "layoutIntent": "full-bleed banner",
+                "customerDataRefs": ["cust-loc-1"],
+                "elements": [
+                  {"localRef": "el-b-heading", "kind": "heading", "role": "title", "contentIntent": "Bold welcome statement"}
+                ]
+              },
+              {
+                "localRef": "sec-b-menu",
+                "kind": "offerings",
+                "purpose": "Grid of offerings",
+                "layoutIntent": "2-column card grid",
+                "requirementRefs": ["req-content-1"],
+                "customerDataRefs": ["cust-off-1"],
+                "elements": [
+                  {"localRef": "el-b-cards", "kind": "card-group", "role": "menu", "contentIntent": "Offering cards"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "designSpecification": {
+        "colors": [{"role": "primary", "value": "#1a1a1a"}, {"role": "accent", "value": "#e0a458"}],
+        "typography": [{"role": "heading", "fontFamily": "Archivo Black", "fontWeight": 900, "fontSizeRem": 2.6, "lineHeight": 1.1}],
+        "spacing": [{"role": "section", "valueRem": 2}],
+        "layout": {"contentWidth": "wide", "density": "compact", "pageGutterRem": 1, "sectionGapRem": 2, "gridIntent": "12-column grid"},
+        "uiPatterns": [{"localRef": "pattern-card", "kind": "card", "description": "Offering card", "visualTreatment": "sharp corners, high contrast"}],
+        "imagery": {"direction": "high contrast, graphic", "treatment": "duotone"},
+        "responsive": {"navigationBehavior": "collapse into a full-screen overlay", "contentStacking": "vertical", "typeScaling": "stepped breakpoints", "spacingAdjustment": "reduce by half", "mediaBehavior": "crop to aspect ratio"}
+      }
+    },
+    {
+      "localRef": "prop-c",
+      "name": "Editorial",
+      "concept": "A magazine-style layout with generous whitespace and storytelling.",
+      "websitePlan": {
+        "requirementRefs": ["req-goal-1"],
+        "pages": [
+          {
+            "localRef": "page-c-home",
+            "name": "Home",
+            "route": "/",
+            "purpose": "Tell the story before the offerings",
+            "requirementRefs": ["req-goal-1", "req-content-1"],
+            "sections": [
+              {
+                "localRef": "sec-c-hero",
+                "kind": "about",
+                "purpose": "Introduce the story",
+                "layoutIntent": "asymmetric two-column",
+                "customerDataRefs": ["cust-loc-1"],
+                "elements": [
+                  {"localRef": "el-c-heading", "kind": "heading", "role": "title", "contentIntent": "Story-driven introduction"}
+                ]
+              },
+              {
+                "localRef": "sec-c-menu",
+                "kind": "offerings",
+                "purpose": "Present the offerings as part of the story",
+                "layoutIntent": "alternating rows",
+                "requirementRefs": ["req-content-1"],
+                "customerDataRefs": ["cust-off-1"],
+                "elements": [
+                  {"localRef": "el-c-list", "kind": "list", "role": "menu", "contentIntent": "Narratively framed offerings"}
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "designSpecification": {
+        "colors": [{"role": "primary", "value": "#3b2f2f"}, {"role": "background", "value": "#f5f0e8"}],
+        "typography": [{"role": "heading", "fontFamily": "Playfair Display", "fontWeight": 700, "fontSizeRem": 2.4, "lineHeight": 1.25}],
+        "spacing": [{"role": "section", "valueRem": 4}],
+        "layout": {"contentWidth": "mixed", "density": "spacious", "pageGutterRem": 2, "sectionGapRem": 4, "gridIntent": "asymmetric two-column"},
+        "uiPatterns": [],
+        "imagery": {"direction": "editorial, muted tones", "treatment": "full-bleed with generous cropping"},
+        "responsive": {"navigationBehavior": "collapse into a simple stacked list", "contentStacking": "vertical", "typeScaling": "fluid clamp()", "spacingAdjustment": "reduce proportionally", "mediaBehavior": "stack above text"}
+      }
+    }
+  ]
+}
