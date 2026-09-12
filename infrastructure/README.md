@@ -19,18 +19,25 @@ infrastructure/
     container-app/              # AIW-71/74/75
     postgresql/                 # AIW-72/76
     key-vault/                  # AIW-73
-    monitoring/                 # AIW-71/74/75 (workspace) + AIW-77 (alerts)
-    networking/                 # AIW-76 (PROD private connectivity)
+    monitoring/                 # AIW-71/74/75 - the Log Analytics workspace only
+    monitoring-alerts/          # AIW-77 - action group + metric alerts, PROD only
+    static-web-app/             # AIW-71/74/75
   environments/
     shared/    # rg-aiw-shared-swc - cross-environment shared resources (e.g. the ACR)
     dev/       # rg-aiw-dev-swc
-    staging/   # rg-aiw-staging-swc
+    staging/   # rg-aiw-staging-swc - shares DEV's Container Apps Environment (AIW-74, a real
+               # subscription quota limit, not a design choice - see azure-environment-architecture.md)
     prod/      # rg-aiw-prod-swc, always isolated from the other three
+    nonprod/   # rg-aiw-nonprod-swc - the one PostgreSQL server DEV+STAGING share (AIW-72)
 ```
 
 Each `environments/<env>/` directory is its own Terraform root module with its own state file -
 never a single combined state across environments, per this ticket's own acceptance criterion
-("environment states are isolated").
+("environment states are isolated"). **Note**: this list is a snapshot, kept honest by whoever
+adds the next module/environment, not a promise about what a future ticket will add - AIW-76, for
+instance, was originally expected to add a `networking/` module for PROD private connectivity,
+but the real Container Apps Environment quota blocker (AIW-74/75) made that impractical for now;
+see `docs/operations/prod-environment.md` and `docs/operations/backup-disaster-recovery.md`.
 
 ## Remote state
 
