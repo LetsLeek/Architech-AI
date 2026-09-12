@@ -306,3 +306,30 @@ module "frontend" {
     managed-by  = "terraform"
   }
 }
+
+# AIW-77: the action group and both PostgreSQL-scoped alerts (database_down,
+# database_storage_high) apply now, independent of the Container Apps Environment quota
+# blocker above - PROD's real database already exists. The 5 Container-App-scoped alerts
+# (http_5xx, latency_high, restart_count, cpu_high, memory_high) reference module.backend.id,
+# so they stay pinned alongside it - real, promotion-ready configuration, not yet applied,
+# taking effect automatically the moment the quota is granted and module.backend is created.
+module "monitoring_alerts" {
+  source = "../../modules/monitoring-alerts"
+
+  name_prefix          = "aiw-prod"
+  short_name           = "aiwprod"
+  resource_group_name  = module.resource_group.name
+  container_app_id     = module.backend.id
+  postgresql_server_id = module.postgresql.id
+
+  email_receivers = [
+    { name = "legomboc", email_address = "legomboc@gmail.com" },
+    { name = "minic2707", email_address = "minic2707@gmail.com" },
+  ]
+
+  tags = {
+    environment = "prod"
+    workload    = "aiw"
+    managed-by  = "terraform"
+  }
+}
