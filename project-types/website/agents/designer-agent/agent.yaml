@@ -1,0 +1,37 @@
+schemaVersion: 1
+
+id: designer-agent
+name: Website Designer
+version: 1
+
+description: >
+  Transforms validated customer information and website requirements
+  into three distinct, coherent, implementation-ready website design
+  proposals without modifying the underlying requirements.
+
+modelProfile: design-reasoning
+
+limits:
+  maxOutputTokens: 16000
+
+skills:
+  - plan-website-design
+
+rules:
+  - design-integrity
+
+inputs:
+  artifacts:
+    - type: customer-profile
+      schema: ../../schemas/customer-profile.schema.json
+      required: true
+
+    - type: website-requirements
+      schema: ../../schemas/website-requirements.schema.json
+      required: true
+
+outputs:
+  artifacts:
+    - type: design-proposal-set
+      schema: ../../schemas/design-proposal-set.schema.json
+      required: true

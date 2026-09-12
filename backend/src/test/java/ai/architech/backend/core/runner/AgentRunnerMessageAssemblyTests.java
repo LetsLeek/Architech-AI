@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import ai.architech.backend.core.agent.AgentArtifactOutput;
 import ai.architech.backend.core.agent.AgentDefinition;
+import ai.architech.backend.core.agent.AgentInputs;
 import ai.architech.backend.core.agent.AgentLimits;
 import ai.architech.backend.core.agent.AgentOutputs;
 import ai.architech.backend.core.ai.AiMessage;
@@ -36,6 +37,7 @@ class AgentRunnerMessageAssemblyTests {
 				new AgentLimits(1000),
 				List.of(),
 				List.of(),
+				new AgentInputs(List.of()),
 				new AgentOutputs(List.of(
 						new AgentArtifactOutput(
 								"customer-profile", "../../schemas/customer-profile.schema.json", customerProfileSchema, true),

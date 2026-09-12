@@ -45,6 +45,39 @@ class AgentDefinitionLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFrozenDesignerAgentDefinition() {
+		AgentDefinition definition = loader.resolve("designer-agent", 1);
+
+		assertThat(definition.id()).isEqualTo("designer-agent");
+		assertThat(definition.name()).isEqualTo("Website Designer");
+		assertThat(definition.modelProfile()).isEqualTo("design-reasoning");
+		assertThat(definition.limits().maxOutputTokens()).isEqualTo(16000);
+		assertThat(definition.skills()).containsExactly("plan-website-design");
+		assertThat(definition.rules()).containsExactly("design-integrity");
+		assertThat(definition.roleContent()).contains("# Website Designer");
+		assertThat(definition.roleContent()).contains("The agent makes independent design decisions.");
+
+		// AIW-116: unlike requirements-agent, this agent declares required prior-artifact inputs.
+		assertThat(definition.inputs().artifacts()).hasSize(2);
+		assertThat(definition.inputs().artifacts())
+				.extracting(AgentArtifactInput::type)
+				.containsExactlyInAnyOrder("customer-profile", "website-requirements");
+		assertThat(definition.inputs().artifacts()).allMatch(AgentArtifactInput::required);
+
+		assertThat(definition.outputs().artifacts()).hasSize(1);
+		assertThat(definition.outputs().artifacts().get(0).type()).isEqualTo("design-proposal-set");
+		assertThat(definition.outputs().artifacts().get(0).required()).isTrue();
+		assertThat(definition.outputs().artifacts().get(0).schemaContent()).contains("\"title\": \"Website Design Proposal Set\"");
+	}
+
+	@Test
+	void agentsWithNoDeclaredInputsHaveAnEmptyInputsArtifactsList() {
+		AgentDefinition definition = loader.resolve("requirements-agent", 1);
+
+		assertThat(definition.inputs().artifacts()).isEmpty();
+	}
+
+	@Test
 	void throwsWhenNoDefinitionMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("requirements-agent", 99))
 				.isInstanceOf(AgentDefinitionNotFoundException.class);

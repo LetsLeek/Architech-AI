@@ -53,6 +53,30 @@ class SkillLoaderIT {
 	}
 
 	@Test
+	void resolvesAllTwelveModulesOfTheFrozenPlanWebsiteDesignSkillInOrder() {
+		SkillDefinition definition = loader.resolve("plan-website-design", 1);
+
+		assertThat(definition.id()).isEqualTo("plan-website-design");
+		assertThat(definition.name()).isEqualTo("Plan Website Design");
+		assertThat(definition.modules()).hasSize(12);
+		assertThat(definition.modules())
+				.extracting(SkillModule::filename)
+				.containsExactly(
+						"01-input-contract.md",
+						"02-design-boundaries.md",
+						"03-design-directions.md",
+						"04-information-architecture.md",
+						"05-pages-navigation.md",
+						"06-sections-elements.md",
+						"07-design-specification.md",
+						"08-responsive-localization.md",
+						"09-traceability.md",
+						"10-proposal-differentiation.md",
+						"11-cross-proposal-consistency.md",
+						"12-final-output.md");
+	}
+
+	@Test
 	void throwsWhenNoSkillMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("extract-business-requirements", 99))
 				.isInstanceOf(SkillDefinitionNotFoundException.class);

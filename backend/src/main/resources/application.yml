@@ -28,6 +28,11 @@ architech:
       structured-reasoning:
         provider: mock
         model: mock-model
+      # AIW-116: the Designer Agent's own modelProfile - mock by default for the same reason
+      # structured-reasoning is, so a fresh clone/CI never needs real credentials.
+      design-reasoning:
+        provider: mock
+        model: mock-model
     # Per-1000-token USD pricing, keyed provider -> model. Harmless to keep here even while
     # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
     # provider/model actually answered, and returns null (never fabricated) for anything not
@@ -117,5 +122,8 @@ architech:
       api-key: ${OPENAI_API_KEY:}
     model-profiles:
       structured-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      design-reasoning:
         provider: anthropic
         model: claude-sonnet-5
