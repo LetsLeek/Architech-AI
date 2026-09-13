@@ -27,6 +27,24 @@ class WorkspaceFileSystemTests {
 	}
 
 	@Test
+	void writesAndReadsBackBinaryContent() {
+		WorkspaceFileSystem fs = new WorkspaceFileSystem(new Workspace(root));
+		byte[] bytes = { 0x50, 0x4e, 0x47, (byte) 0x89, 0x00, 0x01 };
+
+		fs.writeBytes("public/logo.png", bytes);
+
+		assertThat(root.resolve("public/logo.png")).binaryContent().containsExactly(bytes);
+	}
+
+	@Test
+	void deniesWritingBinaryContentIntoProtectedRunnerMetadata() {
+		WorkspaceFileSystem fs = new WorkspaceFileSystem(new Workspace(root));
+
+		assertThatThrownBy(() -> fs.writeBytes("runner-metadata/blob.bin", new byte[] { 1 }))
+				.isInstanceOf(ProtectedPathException.class);
+	}
+
+	@Test
 	void patchesExactlyOneUnambiguousMatch() {
 		WorkspaceFileSystem fs = new WorkspaceFileSystem(new Workspace(root));
 		fs.write("src/HomePage.tsx", "export function HomePage() { return <main>Old</main> }");

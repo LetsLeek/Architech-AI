@@ -68,6 +68,17 @@ public final class WorkspaceFileSystem {
 		}
 	}
 
+	/** Same containment/protected-path guarantees as {@link #write} - for binary content (e.g. authorized project assets, AIW-152). */
+	public void writeBytes(String relativePath, byte[] content) {
+		Path resolved = resolveWritable(relativePath);
+		try {
+			Files.createDirectories(resolved.getParent());
+			Files.write(resolved, content);
+		} catch (IOException e) {
+			throw new UncheckedIOException("Failed to write " + relativePath, e);
+		}
+	}
+
 	/** Replaces exactly one occurrence of {@code oldContent} with {@code newContent}; ambiguous or absent is an error. */
 	public void patch(String relativePath, String oldContent, String newContent) {
 		String current = read(relativePath);
