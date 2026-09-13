@@ -9,12 +9,16 @@ import java.util.regex.Pattern;
  * cannot disable the scan through repository changes" requirement, since there is no mechanism
  * anywhere in this class that reads pattern/allowlist configuration from the scanned repository
  * itself.
+ *
+ * <p>{@link #CONTENT_PATTERNS} is public so other Developer-domain code can redact the same
+ * secret shapes from evidence it persists (e.g. {@code core.toolexecution}'s diagnostic
+ * summaries, AIW-148) without duplicating or drifting from this list.
  */
-final class SecretPatterns {
+public final class SecretPatterns {
 
-	record NamedPattern(String name, Pattern pattern) {}
+	public record NamedPattern(String name, Pattern pattern) {}
 
-	static final List<NamedPattern> CONTENT_PATTERNS = List.of(
+	public static final List<NamedPattern> CONTENT_PATTERNS = List.of(
 			new NamedPattern(
 					"PRIVATE_KEY", Pattern.compile("-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----")),
 			new NamedPattern("AWS_ACCESS_KEY", Pattern.compile("AKIA[0-9A-Z]{16}")),
