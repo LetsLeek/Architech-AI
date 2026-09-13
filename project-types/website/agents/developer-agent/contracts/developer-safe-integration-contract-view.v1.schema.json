@@ -1,6 +1,76 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:aiw:schema:developer-safe-integration-contract-view:v1",
-  "$comment": "PLACEHOLDER pending AIW-144 (Developer-safe Integration Contract). AIW-133 only needs this URN to resolve so the DeveloperSchemaRegistry can load developer-execution-input.v1 (which $refs it) without error; it deliberately accepts any object so AIW-133's own fixtures - which all use an empty integrationContracts array - never need to satisfy real integration-contract shape rules. AIW-144 must replace this file's content with the authoritative developer-safe-contract projection schema (interface/operation contracts, runtime bindings, allowed targets, public configuration, symbolic secret/config names only - never secret values or admin/deployment credentials, per docs/INTEGRATION-BOUNDARY.md in the frozen spec package) without changing this $id.",
-  "type": "object"
+  "title": "DeveloperSafeIntegrationContractView V1",
+  "$comment": "AIW-144: the authoritative Developer-safe contract projection. Only interface/operation contracts, allowed runtime targets and symbolic (never literal) secret/config names - per docs/INTEGRATION-BOUNDARY.md in the frozen spec package, this is the strict allow-list of what the Developer may ever see about an Integration Contract; there is deliberately no property here that could carry a secret value or provider admin/deployment credential.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "integrationContractVersion",
+    "interfaceName",
+    "authorizedOperations",
+    "allowedRuntimeTargets"
+  ],
+  "properties": {
+    "integrationContractVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "interfaceName": {
+      "$ref": "urn:aiw:schema:developer-common:v1#/$defs/NonEmptyString"
+    },
+    "authorizedOperations": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operationName",
+          "requestShape",
+          "responseShape"
+        ],
+        "properties": {
+          "operationName": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/NonEmptyString"
+          },
+          "requestShape": {
+            "type": "object"
+          },
+          "responseShape": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "allowedRuntimeTargets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:aiw:schema:developer-common:v1#/$defs/NonEmptyString"
+      }
+    },
+    "symbolicBindings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "bindingName",
+          "runtimeConfigKey"
+        ],
+        "properties": {
+          "bindingName": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/NonEmptyString"
+          },
+          "runtimeConfigKey": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/NonEmptyString"
+          }
+        }
+      }
+    }
+  }
 }
