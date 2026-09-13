@@ -14,10 +14,14 @@ import java.nio.file.Path;
  * (rejecting {@code ../..} traversal and absolute paths before touching the filesystem) and
  * physically (rejecting a symlink whose real target escapes the root, which lexical
  * normalization alone cannot catch).
+ *
+ * <p>Also tracks whether Developer write authority is currently frozen (AIW-154) - see
+ * {@link #freeze}/{@link #unfreeze}.
  */
 public final class Workspace {
 
 	private final Path root;
+	private volatile boolean frozen;
 
 	public Workspace(Path root) {
 		this.root = root.toAbsolutePath().normalize();
@@ -25,6 +29,25 @@ public final class Workspace {
 
 	public Path root() {
 		return root;
+	}
+
+	/**
+	 * Freezes normal Developer write authority (AIW-154): once frozen, every mutating
+	 * {@link WorkspaceFileSystem} method throws {@link WorkspaceFrozenException} regardless of
+	 * path, until {@link #unfreeze} is called. Read-only operations are unaffected - result
+	 * validation and Runner verification still need to read the frozen state.
+	 */
+	public void freeze() {
+		this.frozen = true;
+	}
+
+	/** Reopens write authority - only an authorized correction phase may call this (AIW-150/154). */
+	public void unfreeze() {
+		this.frozen = false;
+	}
+
+	public boolean isFrozen() {
+		return frozen;
 	}
 
 	/**

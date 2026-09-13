@@ -83,6 +83,34 @@ class WorkspaceFileSystemTests {
 	}
 
 	@Test
+	void deniesEveryMutationOnceTheWorkspaceIsFrozen() {
+		Workspace workspace = new Workspace(root);
+		WorkspaceFileSystem fs = new WorkspaceFileSystem(workspace);
+		fs.write("src/App.tsx", "export const App = () => null;");
+		workspace.freeze();
+
+		assertThatThrownBy(() -> fs.write("src/App.tsx", "changed")).isInstanceOf(WorkspaceFrozenException.class);
+		assertThatThrownBy(() -> fs.writeBytes("public/logo.png", new byte[] {1})).isInstanceOf(WorkspaceFrozenException.class);
+		assertThatThrownBy(() -> fs.delete("src/App.tsx")).isInstanceOf(WorkspaceFrozenException.class);
+		assertThatThrownBy(() -> fs.mkdir("new-dir")).isInstanceOf(WorkspaceFrozenException.class);
+		assertThatThrownBy(() -> fs.move("src/App.tsx", "src/Other.tsx")).isInstanceOf(WorkspaceFrozenException.class);
+		// Reads are unaffected - result validation and Runner verification still need to read the frozen state.
+		assertThat(fs.read("src/App.tsx")).isEqualTo("export const App = () => null;");
+	}
+
+	@Test
+	void allowsWritesAgainAfterUnfreezing() {
+		Workspace workspace = new Workspace(root);
+		WorkspaceFileSystem fs = new WorkspaceFileSystem(workspace);
+		workspace.freeze();
+		workspace.unfreeze();
+
+		fs.write("src/App.tsx", "export const App = () => null;");
+
+		assertThat(fs.read("src/App.tsx")).isEqualTo("export const App = () => null;");
+	}
+
+	@Test
 	void deniesWritingIntoProtectedRunnerMetadata() {
 		WorkspaceFileSystem fs = new WorkspaceFileSystem(new Workspace(root));
 
