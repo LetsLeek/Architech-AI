@@ -1,0 +1,14 @@
+# AIW-158: SecretScanGateTests deliberately contains one fake, made-up secret-shaped fixture
+# (a syntactically valid but entirely fictional AWS-style access key ID) to test
+# ai.architech.backend.core.verification.SecretScanGate's own detection logic. Verified
+# individually (not assumed by filename/pattern) against the exact gitleaks JSON report before
+# being added here - every one of these fingerprints is that same fake fixture value, in this
+# one test file, nowhere else. The literal value is deliberately not repeated in this comment,
+# so this ignore file itself never becomes a new finding.
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:60
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:109
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:116
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:117
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:126
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:127
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:139
