@@ -144,6 +144,63 @@ class AgentExecutionTests {
 	}
 
 	@Test
+	void aZeroCorrectionBudgetEndsTheExecutionFailedOnTheFirstAttempt() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+
+		boolean authorized = execution.authorizeCorrectionCycleOrFail(0, "typecheck failure, no correction budget");
+
+		assertThat(authorized).isFalse();
+		assertThat(execution.getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
+		assertThat(execution.getFailureReason()).isEqualTo("typecheck failure, no correction budget");
+		assertThat(execution.getCorrectionCyclesUsed()).isZero();
+	}
+
+	@Test
+	void authorizesASuccessfulFirstCorrectionCycleWithinBudget() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+
+		boolean authorized = execution.authorizeCorrectionCycleOrFail(2, "typecheck failure");
+
+		assertThat(authorized).isTrue();
+		assertThat(execution.getStatus()).isEqualTo(AgentExecutionStatus.RUNNING);
+		assertThat(execution.getCorrectionCyclesUsed()).isEqualTo(1);
+	}
+
+	@Test
+	void endsFailedNeverBlockedOnceTheCorrectionBudgetIsExhausted() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+		assertThat(execution.authorizeCorrectionCycleOrFail(1, "first failure")).isTrue();
+
+		boolean authorized = execution.authorizeCorrectionCycleOrFail(1, "still failing after the one authorized correction");
+
+		assertThat(authorized).isFalse();
+		assertThat(execution.getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
+		assertThat(execution.getFailureReason()).isEqualTo("still failing after the one authorized correction");
+		assertThat(execution.getCorrectionCyclesUsed()).isEqualTo(1);
+	}
+
+	@Test
+	void anInfrastructureErrorRetryNeverConsumesACorrectionCycle() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+
+		execution.error("sandbox process timed out");
+
+		assertThat(execution.getStatus()).isEqualTo(AgentExecutionStatus.ERROR);
+		assertThat(execution.getCorrectionCyclesUsed()).isZero();
+	}
+
+	@Test
+	void cannotAuthorizeACorrectionCycleWithoutHavingStarted() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+
+		assertThatThrownBy(() -> execution.authorizeCorrectionCycle(3)).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
 	void recordsModelUsageIndependentlyOfStatus() {
 		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "requirements-agent", 1);
 
