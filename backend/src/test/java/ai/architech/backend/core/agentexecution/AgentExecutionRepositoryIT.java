@@ -43,4 +43,31 @@ class AgentExecutionRepositoryIT {
 		assertThat(reloaded.getStartedAt()).isNotNull();
 		assertThat(reloaded.getFinishedAt()).isNotNull();
 	}
+
+	@Test
+	void persistsAndAuditsRealRetryLineageAcrossMultipleAttempts() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+
+		AgentExecution first = new AgentExecution(project.getId(), "developer-agent", 1);
+		first.start();
+		first.error("sandbox provisioning failed");
+		first = agentExecutionRepository.saveAndFlush(first);
+
+		AgentExecution secondRetry = new AgentExecution(
+				project.getId(), "developer-agent", 1, first.getId(), "RUNNER_VERIFICATION_FAILURE");
+		secondRetry = agentExecutionRepository.saveAndFlush(secondRetry);
+
+		AgentExecution thirdRetry = new AgentExecution(
+				project.getId(), "developer-agent", 1, first.getId(), "RESULT_VALIDATION_FAILURE");
+		thirdRetry = agentExecutionRepository.saveAndFlush(thirdRetry);
+
+		// The original attempt itself is never mutated by any of its retries existing.
+		AgentExecution reloadedFirst = agentExecutionRepository.findById(first.getId()).orElseThrow();
+		assertThat(reloadedFirst.getStatus()).isEqualTo(AgentExecutionStatus.ERROR);
+		assertThat(reloadedFirst.getRetryOfExecutionId()).isNull();
+
+		assertThat(agentExecutionRepository.findByRetryOfExecutionIdOrderByCreatedAtAsc(first.getId()))
+				.extracting(AgentExecution::getId)
+				.containsExactly(secondRetry.getId(), thirdRetry.getId());
+	}
 }
