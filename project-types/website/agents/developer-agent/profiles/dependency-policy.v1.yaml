@@ -1,0 +1,26 @@
+id: website-developer-dependency-policy-v1
+version: 1.0.0
+packageManager: npm
+allowedSources:
+  - platform-authorized-registry
+prohibitedSources:
+  - git
+  - arbitrary-url
+  - tarball-url
+  - alternate-registry
+  - global-install
+  - manual-vendor-download
+  - unauthorized-runtime-cdn
+lifecycleScripts:
+  default: disabled
+  exceptionRequiresPlatformPolicy: true
+classification:
+  - PLATFORM_APPROVED
+  - POLICY_ELIGIBLE
+  - PROHIBITED
+policyOutcomes:
+  - PASS
+  - WARN
+  - BLOCK
+lockfileRequired: true
+opportunisticUpgradeAllowed: false
