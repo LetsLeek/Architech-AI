@@ -74,6 +74,19 @@ class WorkspaceTests {
 	}
 
 	@Test
+	void startsUnfrozenAndTracksFreezeState() {
+		Workspace workspace = new Workspace(root);
+
+		assertThat(workspace.isFrozen()).isFalse();
+
+		workspace.freeze();
+		assertThat(workspace.isFrozen()).isTrue();
+
+		workspace.unfreeze();
+		assertThat(workspace.isFrozen()).isFalse();
+	}
+
+	@Test
 	void identifiesGitAndRunnerMetadataAsProtected() throws IOException {
 		Files.createDirectories(root.resolve(".git"));
 		Files.createDirectories(root.resolve("runner-metadata"));

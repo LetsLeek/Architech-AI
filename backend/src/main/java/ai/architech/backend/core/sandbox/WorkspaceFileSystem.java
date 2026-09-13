@@ -130,6 +130,9 @@ public final class WorkspaceFileSystem {
 	}
 
 	private Path resolveWritable(String relativePath) {
+		if (workspace.isFrozen()) {
+			throw new WorkspaceFrozenException(relativePath);
+		}
 		// Same rule as readable today (protected paths are never reachable through the
 		// filesystem surface at all), kept as a separate method so a future, stricter
 		// write-only rule doesn't have to touch every call site.
