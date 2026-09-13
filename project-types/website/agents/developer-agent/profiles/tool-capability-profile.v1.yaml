@@ -1,0 +1,51 @@
+id: website-developer-tools-v1
+version: 1.0.0
+filesystem:
+  allowed:
+    - list
+    - read
+    - search
+    - write
+    - patch
+    - mkdir
+    - move
+    - delete
+  workspaceOnly: true
+  protected:
+    - .git
+    - runner-metadata
+projectExecution:
+  approvedTasks:
+    - install
+    - typecheck
+    - lint
+    - test
+    - build
+    - local-runtime
+  unrestrictedShell: false
+dependencies:
+  managedCapability: true
+git:
+  allowed:
+    - status
+    - diff
+    - diff-stat
+  prohibited:
+    - branch
+    - checkout-or-switch
+    - merge
+    - rebase
+    - commit-by-agent
+    - push
+    - force-push
+    - remote-credential-access
+browser:
+  localRuntimeOnly: true
+network:
+  rawOutbound: false
+  allowedOnlyThroughAuthorizedCapabilities: true
+security:
+  nonRoot: true
+  dockerSocket: false
+  cloudCredentials: false
+  platformSecrets: false
