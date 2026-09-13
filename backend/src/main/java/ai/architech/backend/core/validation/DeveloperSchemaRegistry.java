@@ -41,10 +41,11 @@ import tools.jackson.databind.ObjectMapper;
  * (it would change the base URI used to resolve that subschema's own internal {@code #/$defs/...}
  * refs and could silently break the Designer Agent's existing M2 validation pipeline).
  *
- * <p>{@code urn:aiw:schema:developer-safe-integration-contract-view:v1} is currently a deliberate
- * placeholder (see that file's {@code $comment}) pending AIW-144; every AIW-133 fixture avoids
- * populating {@code integrationContext.integrationContracts} so this placeholder's permissive
- * shape is never exercised as more than "this URN resolves at all".
+ * <p>{@code urn:aiw:schema:developer-safe-integration-contract-view:v1} is the real, authoritative
+ * Developer-safe contract projection schema (AIW-144) - see {@code core.integration}'s own
+ * package documentation for how a persisted {@code IntegrationContract} row is resolved,
+ * authorized and validated against exactly this schema before it is ever embedded into a
+ * {@code developer-execution-input.v1} payload.
  */
 @Component
 public class DeveloperSchemaRegistry {
