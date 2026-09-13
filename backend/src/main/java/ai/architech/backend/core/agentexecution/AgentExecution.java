@@ -67,6 +67,9 @@ public class AgentExecution {
 	@Column(name = "retry_reason_code")
 	private String retryReasonCode;
 
+	@Column(name = "correction_cycles_used", nullable = false)
+	private int correctionCyclesUsed;
+
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -170,6 +173,48 @@ public class AgentExecution {
 		this.finishedAt = Instant.now();
 	}
 
+	/**
+	 * Attempts to authorize one more Website Developer Agent self-correction cycle within this
+	 * same execution (AIW-150). {@code maxCorrectionCycles} is the immutable ceiling that lives
+	 * on this execution's own {@code developer-execution-input.v1} payload (assembled by
+	 * AIW-151), never on this row - there is deliberately no setter for it or for
+	 * {@link #correctionCyclesUsed} here, only this monotonic increment, so nothing reachable
+	 * from a Developer-controlled path can raise or reset the allowance. Returns {@code true} and
+	 * increments {@link #correctionCyclesUsed} if the budget is not yet exhausted; returns
+	 * {@code false}, changing nothing, once {@code correctionCyclesUsed} has already reached
+	 * {@code maxCorrectionCycles}.
+	 *
+	 * <p>An infrastructure retry (see {@link #error}) never calls this method at all, so it
+	 * structurally never consumes a correction cycle - only a genuine Developer-owned
+	 * result/verification failure that is about to be fed back for a source correction does.
+	 */
+	public boolean authorizeCorrectionCycle(int maxCorrectionCycles) {
+		requireStatus(AgentExecutionStatus.RUNNING);
+		if (correctionCyclesUsed >= maxCorrectionCycles) {
+			return false;
+		}
+		correctionCyclesUsed++;
+		return true;
+	}
+
+	/**
+	 * The exact "budget exhaustion with an unresolved Developer-owned failure ends FAILED, never
+	 * semantic BLOCKED" rule AIW-150's own acceptance criteria names, made structural rather than
+	 * a convention callers have to remember: attempts one more cycle via
+	 * {@link #authorizeCorrectionCycle}, and if none remain, ends this execution {@link #fail
+	 * FAILED} (never {@link #block BLOCKED} - a budget-exhausted Developer defect is never a
+	 * semantic completion blocker) using {@code failureReason}. Returns {@code true} if another
+	 * cycle was authorized (nothing else to do), {@code false} if the execution was just
+	 * terminated FAILED.
+	 */
+	public boolean authorizeCorrectionCycleOrFail(int maxCorrectionCycles, String failureReason) {
+		if (authorizeCorrectionCycle(maxCorrectionCycles)) {
+			return true;
+		}
+		fail(failureReason);
+		return false;
+	}
+
 	private void requireStatus(AgentExecutionStatus expected) {
 		if (status != expected) {
 			throw new IllegalStateException("Expected status " + expected + " but was " + status);
@@ -239,6 +284,10 @@ public class AgentExecution {
 
 	public String getRetryReasonCode() {
 		return retryReasonCode;
+	}
+
+	public int getCorrectionCyclesUsed() {
+		return correctionCyclesUsed;
 	}
 
 	public Instant getCreatedAt() {

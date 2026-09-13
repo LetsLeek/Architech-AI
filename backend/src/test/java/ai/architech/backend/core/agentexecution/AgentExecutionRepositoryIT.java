@@ -45,6 +45,20 @@ class AgentExecutionRepositoryIT {
 	}
 
 	@Test
+	void persistsCorrectionCyclesUsedAcrossReloads() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+
+		AgentExecution execution = new AgentExecution(project.getId(), "developer-agent", 1);
+		execution.start();
+		assertThat(execution.authorizeCorrectionCycleOrFail(2, "typecheck failure")).isTrue();
+		AgentExecution saved = agentExecutionRepository.saveAndFlush(execution);
+
+		AgentExecution reloaded = agentExecutionRepository.findById(saved.getId()).orElseThrow();
+		assertThat(reloaded.getCorrectionCyclesUsed()).isEqualTo(1);
+		assertThat(reloaded.getStatus()).isEqualTo(AgentExecutionStatus.RUNNING);
+	}
+
+	@Test
 	void persistsAndAuditsRealRetryLineageAcrossMultipleAttempts() {
 		Project project = projectRepository.saveAndFlush(new Project("website"));
 
