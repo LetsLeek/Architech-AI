@@ -70,6 +70,80 @@ class AgentExecutionTests {
 	}
 
 	@Test
+	void canBlockFromRunning() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+
+		execution.block("missing integration contract for the required booking function");
+
+		assertThat(execution.getStatus()).isEqualTo(AgentExecutionStatus.BLOCKED);
+		assertThat(execution.getFailureReason()).isEqualTo("missing integration contract for the required booking function");
+		assertThat(execution.getFinishedAt()).isNotNull();
+	}
+
+	@Test
+	void cannotBlockWithoutHavingStarted() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+
+		assertThatThrownBy(() -> execution.block("reason")).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void canErrorFromRunningOrBeforeStarting() {
+		AgentExecution runningExecution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		runningExecution.start();
+		runningExecution.error("sandbox provisioning failed");
+		assertThat(runningExecution.getStatus()).isEqualTo(AgentExecutionStatus.ERROR);
+		assertThat(runningExecution.getFinishedAt()).isNotNull();
+
+		AgentExecution pendingExecution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		pendingExecution.error("agent definition not found");
+		assertThat(pendingExecution.getStatus()).isEqualTo(AgentExecutionStatus.ERROR);
+	}
+
+	@Test
+	void aBlockedExecutionCannotLaterBeFailedOrErroredOrSucceeded() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.start();
+		execution.block("nonlocal blocker");
+
+		assertThatThrownBy(() -> execution.fail("too late")).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> execution.error("too late")).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(execution::succeed).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void anErroredExecutionCannotLaterTransitionAgain() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+		execution.error("infrastructure failure");
+
+		assertThatThrownBy(() -> execution.fail("too late")).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> execution.block("too late")).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void recordsRetryLineageAgainstThePriorExecution() {
+		UUID priorExecutionId = UUID.randomUUID();
+
+		AgentExecution retry = new AgentExecution(
+				UUID.randomUUID(), "developer-agent", 1, priorExecutionId, "RUNNER_VERIFICATION_FAILURE");
+
+		assertThat(retry.getRetryOfExecutionId()).isEqualTo(priorExecutionId);
+		assertThat(retry.getRetryReasonCode()).isEqualTo("RUNNER_VERIFICATION_FAILURE");
+		assertThat(retry.getStatus()).isEqualTo(AgentExecutionStatus.PENDING);
+		// A retry is always a brand new row - never linked back by mutating the prior execution.
+		assertThat(retry.getId()).isNotEqualTo(priorExecutionId);
+	}
+
+	@Test
+	void anOrdinaryExecutionHasNoRetryLineage() {
+		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "developer-agent", 1);
+
+		assertThat(execution.getRetryOfExecutionId()).isNull();
+		assertThat(execution.getRetryReasonCode()).isNull();
+	}
+
+	@Test
 	void recordsModelUsageIndependentlyOfStatus() {
 		AgentExecution execution = new AgentExecution(UUID.randomUUID(), "requirements-agent", 1);
 
