@@ -62,6 +62,9 @@ class AuthoritativeRunnerVerifierIT {
 		assertThat(result.passed()).as(result.gates().toString()).isTrue();
 		assertThat(result.gates()).hasSize(14);
 		assertThat(result.gates()).allSatisfy(gate -> assertThat(gate.outcome()).isEqualTo(VerificationOutcome.PASS));
+		// Drift guard: AuthoritativeRunnerVerifier.MANDATORY_GATE_NAMES (AIW-155's own persistence
+		// layer relies on it) must name exactly these 14 gates, in exactly this order.
+		assertThat(result.gates()).extracting(GateResult::gateName).isEqualTo(AuthoritativeRunnerVerifier.MANDATORY_GATE_NAMES);
 	}
 
 	@Test

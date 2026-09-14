@@ -48,6 +48,30 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class AuthoritativeRunnerVerifier {
 
+	/**
+	 * The exact 14 mandatory gate names, in the exact order {@link #verify} runs them - the same
+	 * strings every {@link GateResult#gateName()} this class ever produces uses. Exposed so a
+	 * persistence layer (AIW-155) can tell a gate that is genuinely absent from a fail-fast run's
+	 * {@link RunnerVerificationResult#gates()} (skipped because an earlier gate already stopped
+	 * the run) from one that actually executed, without hard-coding a second copy of these names
+	 * that could silently drift from this class's own.
+	 */
+	public static final List<String> MANDATORY_GATE_NAMES = List.of(
+			"repository-dependency-integrity (gate 1)",
+			"clean-policy-compliant-install (gate 2)",
+			"typecheck (gate 3)",
+			"lint (gate 4)",
+			"test (gate 5)",
+			"build (gate 6)",
+			"local-runtime-startup (gate 7)",
+			"canonical-route-smoke (gate 8)",
+			"primary-navigation-smoke (gate 9)",
+			"browser-runtime-integrity (gate 10)",
+			"wide-responsive-sanity (gate 11)",
+			"narrow-responsive-sanity (gate 12)",
+			"secret-credential-scan (gate 13)",
+			"final-source-state-integrity (gate 14)");
+
 	private static final String SCAFFOLD_PACKAGE_JSON =
 			"classpath:project-types/website/agents/developer-agent/scaffold/package.json";
 	private static final List<String> REQUIRED_SCRIPTS = List.of("typecheck", "lint", "test", "build");
