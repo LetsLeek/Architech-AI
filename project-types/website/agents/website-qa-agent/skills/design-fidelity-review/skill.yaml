@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: design-fidelity-review
+name: Design Fidelity Review
+version: 1
+
+description: >
+  Evaluate material conformity to the exact Candidate-bound Source Design.

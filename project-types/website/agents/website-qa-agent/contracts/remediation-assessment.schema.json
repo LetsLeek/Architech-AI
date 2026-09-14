@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-remediation-assessment:v1",
+  "title": "RemediationAssessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "assessmentId",
+    "previousFindingRef",
+    "testedCandidateRef",
+    "qaExecutionRef",
+    "qaResultRef",
+    "status",
+    "evidenceRefs",
+    "relatedNewFindingRefs",
+    "evaluationIssueRefs",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "assessmentId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "previousFindingRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "status": {
+      "enum": [
+        "RESOLVED",
+        "PERSISTS",
+        "CHANGED",
+        "NOT_EVALUABLE"
+      ]
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "relatedNewFindingRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "evaluationIssueRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assessmentMethod"
+      ],
+      "properties": {
+        "assessmentMethod": {
+          "enum": [
+            "DETERMINISTIC",
+            "SEMANTIC",
+            "HYBRID"
+          ]
+        },
+        "validatorRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "semanticReviewRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

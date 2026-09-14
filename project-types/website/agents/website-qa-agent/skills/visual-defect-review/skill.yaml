@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: visual-defect-review
+name: Visual Defect Review
+version: 1
+
+description: >
+  Detect material visual implementation defects independently of Design Fidelity.

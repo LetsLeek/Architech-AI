@@ -1,0 +1,12 @@
+schemaVersion: 1
+
+id: website-qa-integrity
+name: Website QA Integrity
+version: 1
+
+description: >
+  Defines the normative constraints the Website QA Agent V1 must follow across twelve
+  domains - authority, the deterministic/semantic boundary, evidence, execution safety,
+  findings, gate semantics, lineage and immutability, profiles, remediation, retry and
+  escalation, scope boundaries, and target/input integrity. Skills describe method; this
+  rule defines what QA must and must not do.

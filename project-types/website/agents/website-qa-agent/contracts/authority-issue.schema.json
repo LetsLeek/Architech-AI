@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-authority-issue:v1",
+  "title": "AuthorityIssue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "authorityIssueId",
+    "qaResultRef",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "code",
+    "summary",
+    "affectedAuthorityRefs",
+    "expectedAuthorityTypes",
+    "affectedDomains",
+    "evidenceRefs",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "authorityIssueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "code": {
+      "enum": [
+        "MISSING_AUTHORITY",
+        "CONFLICTING_AUTHORITY",
+        "INVALID_AUTHORITY_REFERENCE",
+        "INSUFFICIENT_UPSTREAM_INFORMATION",
+        "MISSING_INTEGRATION_AUTHORITY"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "affectedAuthorityRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "expectedAuthorityTypes": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "CUSTOMER_PROFILE",
+          "WEBSITE_REQUIREMENT",
+          "SOURCE_DESIGN",
+          "RUNTIME_PROFILE",
+          "INTEGRATION_CONTRACT"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "affectedDomains": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "REQUIREMENT_FULFILLMENT",
+          "CUSTOMER_FACT_CORRECTNESS",
+          "DESIGN_FIDELITY",
+          "CONTENT_QUALITY",
+          "FUNCTIONAL_BEHAVIOR",
+          "NAVIGATION",
+          "RESPONSIVE_QUALITY",
+          "VISUAL_INTEGRITY",
+          "ACCESSIBILITY_BASELINE",
+          "ASSET_INTEGRITY",
+          "RUNTIME_BROWSER",
+          "INTEGRATION_BEHAVIOR",
+          "LOCALIZATION",
+          "SEO_METADATA_BASELINE",
+          "PERFORMANCE_BASELINE"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detectionMethod"
+      ],
+      "properties": {
+        "detectionMethod": {
+          "enum": [
+            "DETERMINISTIC",
+            "SEMANTIC",
+            "HYBRID"
+          ]
+        },
+        "validatorRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "semanticReviewRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

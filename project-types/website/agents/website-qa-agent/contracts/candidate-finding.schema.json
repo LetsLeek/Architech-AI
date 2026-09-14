@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-candidate-finding:v1",
+  "title": "CandidateFinding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "findingId",
+    "qaResultRef",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "findingCode",
+    "primaryDomain",
+    "severity",
+    "normativeBasis",
+    "summary",
+    "evidenceRefs",
+    "fingerprint",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "findingId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "findingCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 128
+    },
+    "primaryDomain": {
+      "enum": [
+        "REQUIREMENT_FULFILLMENT",
+        "CUSTOMER_FACT_CORRECTNESS",
+        "DESIGN_FIDELITY",
+        "CONTENT_QUALITY",
+        "FUNCTIONAL_BEHAVIOR",
+        "NAVIGATION",
+        "RESPONSIVE_QUALITY",
+        "VISUAL_INTEGRITY",
+        "ACCESSIBILITY_BASELINE",
+        "ASSET_INTEGRITY",
+        "RUNTIME_BROWSER",
+        "INTEGRATION_BEHAVIOR",
+        "LOCALIZATION",
+        "SEO_METADATA_BASELINE",
+        "PERFORMANCE_BASELINE"
+      ]
+    },
+    "severity": {
+      "enum": [
+        "CRITICAL",
+        "MAJOR",
+        "MINOR"
+      ]
+    },
+    "normativeBasis": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "ref"
+        ],
+        "properties": {
+          "type": {
+            "enum": [
+              "CUSTOMER_PROFILE",
+              "WEBSITE_REQUIREMENT",
+              "SOURCE_DESIGN",
+              "RUNTIME_PROFILE",
+              "INTEGRATION_CONTRACT",
+              "QA_POLICY",
+              "QA_RULE"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1500
+    },
+    "diagnosticDetails": {
+      "type": "string",
+      "maxLength": 5000
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string",
+          "maxLength": 2048
+        },
+        "viewportRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "locale": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "interactionState": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "implementationAnchorRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "detectionMethod"
+      ],
+      "properties": {
+        "detectionMethod": {
+          "enum": [
+            "DETERMINISTIC",
+            "SEMANTIC",
+            "HYBRID"
+          ]
+        },
+        "validatorRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "semanticReviewRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "normalizerRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

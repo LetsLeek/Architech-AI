@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-evaluation-issue:v1",
+  "title": "EvaluationIssue",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evaluationIssueId",
+    "qaResultRef",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "code",
+    "summary",
+    "affectedDomains",
+    "evidenceRefs",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "evaluationIssueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "code": {
+      "enum": [
+        "EXECUTION_SURFACE_UNAVAILABLE",
+        "EXECUTION_SURFACE_DRIFT",
+        "TOOL_FAILURE",
+        "REQUIRED_CAPABILITY_UNAVAILABLE",
+        "SAFE_TEST_NOT_AUTHORIZED",
+        "INSUFFICIENT_EVIDENCE",
+        "SEMANTIC_OUTPUT_INVALID",
+        "EVIDENCE_INTEGRITY_FAILURE"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "affectedDomains": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "REQUIREMENT_FULFILLMENT",
+          "CUSTOMER_FACT_CORRECTNESS",
+          "DESIGN_FIDELITY",
+          "CONTENT_QUALITY",
+          "FUNCTIONAL_BEHAVIOR",
+          "NAVIGATION",
+          "RESPONSIVE_QUALITY",
+          "VISUAL_INTEGRITY",
+          "ACCESSIBILITY_BASELINE",
+          "ASSET_INTEGRITY",
+          "RUNTIME_BROWSER",
+          "INTEGRATION_BEHAVIOR",
+          "LOCALIZATION",
+          "SEO_METADATA_BASELINE",
+          "PERFORMANCE_BASELINE"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "requiredCheckRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "toolCapabilityRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "executionSurfaceRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source"
+      ],
+      "properties": {
+        "source": {
+          "enum": [
+            "PREFLIGHT",
+            "TOOL",
+            "VALIDATOR",
+            "SEMANTIC_REVIEW",
+            "CORE"
+          ]
+        },
+        "producerRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

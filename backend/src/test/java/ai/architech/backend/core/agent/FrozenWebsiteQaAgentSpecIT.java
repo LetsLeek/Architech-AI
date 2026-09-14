@@ -16,14 +16,15 @@ import org.yaml.snakeyaml.constructor.SafeConstructor;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Verifies the frozen designer-agent handoff package (AIW-116..121) is actually intact and
- * internally consistent - mirrors {@link FrozenRequirementsAgentSpecIT}, extended to also cover
- * {@code inputs.artifacts}: unlike requirements-agent, the Designer Agent declares required
- * input artifact schemas (its inputs are prior canonical artifacts, not a raw Source Context
- * snapshot), so both directions need the same "genuinely exists and is valid JSON" proof.
+ * Verifies the frozen website-qa-agent handoff package (AIW-167) is actually intact and
+ * internally consistent - mirrors {@link FrozenDeveloperAgentSpecIT}. Like Developer, the QA
+ * Agent declares exactly one input artifact type ({@code qa-execution-input}) and exactly one
+ * output artifact type ({@code semantic-qa-review-output}), both opaque-ref-only payloads - QA
+ * never re-validates the upstream Customer Profile/Website Requirements/Design Proposal
+ * documents, it only references an already-verified {@code WebsiteImplementationCandidate}.
  */
 @SpringBootTest
-class FrozenDesignerAgentSpecIT {
+class FrozenWebsiteQaAgentSpecIT {
 
 	private static final String AGENT_DEFINITION_PATTERN = "classpath*:project-types/**/agent.yaml";
 
@@ -38,13 +39,13 @@ class FrozenDesignerAgentSpecIT {
 
 	@Test
 	void everyDeclaredInputAndOutputSchemaExistsAndIsValidJson() throws IOException {
-		AgentDefinition definition = agentDefinitionLoader.resolve("designer-agent", 1);
-		assertThat(definition.inputs().artifacts()).hasSize(2);
+		AgentDefinition definition = agentDefinitionLoader.resolve("website-qa-agent", 1);
+		assertThat(definition.inputs().artifacts()).hasSize(1);
 		assertThat(definition.outputs().artifacts()).hasSize(1);
 
 		Resource[] agentYamls = resourceResolver.getResources(AGENT_DEFINITION_PATTERN);
 		assertThat(agentYamls).hasSize(4);
-		Resource agentYaml = findAgentYamlById(agentYamls, "designer-agent");
+		Resource agentYaml = findAgentYamlById(agentYamls, "website-qa-agent");
 
 		for (AgentArtifactInput artifact : definition.inputs().artifacts()) {
 			assertSchemaExistsAndIsValidJson(agentYaml, artifact.type(), artifact.schema());
@@ -52,6 +53,42 @@ class FrozenDesignerAgentSpecIT {
 		for (AgentArtifactOutput artifact : definition.outputs().artifacts()) {
 			assertSchemaExistsAndIsValidJson(agentYaml, artifact.type(), artifact.schema());
 		}
+	}
+
+	@Test
+	void bindsExactlyOneQaExecutionInputAndOneSemanticQaReviewOutput() {
+		AgentDefinition definition = agentDefinitionLoader.resolve("website-qa-agent", 1);
+
+		assertThat(definition.inputs().artifacts()).extracting(AgentArtifactInput::type).containsExactly(
+				"qa-execution-input");
+		assertThat(definition.outputs().artifacts()).extracting(AgentArtifactOutput::type).containsExactly(
+				"semantic-qa-review-output");
+		assertThat(definition.modelProfile()).isEqualTo("qa-reasoning");
+		assertThat(definition.rules()).containsExactly("website-qa-integrity");
+	}
+
+	@Test
+	void loadsAllSixteenFrozenSkillsByTheirOwnIds() {
+		AgentDefinition definition = agentDefinitionLoader.resolve("website-qa-agent", 1);
+
+		assertThat(definition.skills())
+				.containsExactlyInAnyOrder(
+						"website-qa-review",
+						"evidence-assessment",
+						"finding-construction",
+						"requirement-fulfillment-review",
+						"customer-fact-review",
+						"design-fidelity-review",
+						"content-quality-review",
+						"functional-behavior-review",
+						"navigation-flow-review",
+						"responsive-quality-review",
+						"visual-defect-review",
+						"accessibility-semantic-review",
+						"integration-behavior-review",
+						"localization-review",
+						"finding-deduplication",
+						"remediation-reassessment");
 	}
 
 	private void assertSchemaExistsAndIsValidJson(Resource agentYaml, String artifactType, String schemaPath)

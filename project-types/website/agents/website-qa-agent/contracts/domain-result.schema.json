@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-domain-result:v1",
+  "title": "DomainResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "domain",
+    "applicability",
+    "findingRefs",
+    "authorityIssueRefs",
+    "evaluationIssueRefs",
+    "executedCheckRefs",
+    "semanticReviewRefs"
+  ],
+  "properties": {
+    "domain": {
+      "enum": [
+        "REQUIREMENT_FULFILLMENT",
+        "CUSTOMER_FACT_CORRECTNESS",
+        "DESIGN_FIDELITY",
+        "CONTENT_QUALITY",
+        "FUNCTIONAL_BEHAVIOR",
+        "NAVIGATION",
+        "RESPONSIVE_QUALITY",
+        "VISUAL_INTEGRITY",
+        "ACCESSIBILITY_BASELINE",
+        "ASSET_INTEGRITY",
+        "RUNTIME_BROWSER",
+        "INTEGRATION_BEHAVIOR",
+        "LOCALIZATION",
+        "SEO_METADATA_BASELINE",
+        "PERFORMANCE_BASELINE"
+      ]
+    },
+    "applicability": {
+      "enum": [
+        "APPLICABLE",
+        "NOT_APPLICABLE"
+      ]
+    },
+    "coverage": {
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "NONE"
+      ]
+    },
+    "assessment": {
+      "enum": [
+        "CONFORMING",
+        "NON_CONFORMING",
+        "UNDETERMINED"
+      ]
+    },
+    "findingRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "authorityIssueRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "evaluationIssueRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "executedCheckRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "semanticReviewRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    }
+  }
+}

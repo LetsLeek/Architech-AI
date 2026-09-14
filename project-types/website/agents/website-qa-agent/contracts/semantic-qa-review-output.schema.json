@@ -1,0 +1,480 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:semantic-qa-review-output:v1",
+  "title": "SemanticQAReviewOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "qaProfileRef",
+    "inputSnapshotRef",
+    "findingCandidates",
+    "authorityIssueCandidates",
+    "evaluationIssueCandidates",
+    "semanticReviewCoverage"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaProfileRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "inputSnapshotRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "findingCandidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/semanticFindingCandidate"
+      }
+    },
+    "authorityIssueCandidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/semanticAuthorityIssueCandidate"
+      }
+    },
+    "evaluationIssueCandidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/semanticEvaluationIssueCandidate"
+      }
+    },
+    "semanticReviewCoverage": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/semanticReviewCoverage"
+      }
+    },
+    "remediationAssessmentCandidates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/remediationAssessmentCandidate"
+      }
+    }
+  },
+  "$defs": {
+    "semanticFindingCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "findingCode",
+        "primaryDomain",
+        "proposedSeverity",
+        "normativeBasis",
+        "summary",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "localRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "findingCode": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "maxLength": 128
+        },
+        "primaryDomain": {
+          "enum": [
+            "REQUIREMENT_FULFILLMENT",
+            "CUSTOMER_FACT_CORRECTNESS",
+            "DESIGN_FIDELITY",
+            "CONTENT_QUALITY",
+            "FUNCTIONAL_BEHAVIOR",
+            "NAVIGATION",
+            "RESPONSIVE_QUALITY",
+            "VISUAL_INTEGRITY",
+            "ACCESSIBILITY_BASELINE",
+            "ASSET_INTEGRITY",
+            "RUNTIME_BROWSER",
+            "INTEGRATION_BEHAVIOR",
+            "LOCALIZATION",
+            "SEO_METADATA_BASELINE",
+            "PERFORMANCE_BASELINE"
+          ]
+        },
+        "proposedSeverity": {
+          "enum": [
+            "CRITICAL",
+            "MAJOR",
+            "MINOR"
+          ]
+        },
+        "normativeBasis": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "ref"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "CUSTOMER_PROFILE",
+                  "WEBSITE_REQUIREMENT",
+                  "SOURCE_DESIGN",
+                  "RUNTIME_PROFILE",
+                  "INTEGRATION_CONTRACT",
+                  "QA_POLICY",
+                  "QA_RULE"
+                ]
+              },
+              "ref": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              }
+            }
+          }
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "diagnosticDetails": {
+          "type": "string",
+          "maxLength": 5000
+        },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "route": {
+              "type": "string",
+              "maxLength": 2048
+            },
+            "viewportRef": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "locale": {
+              "type": "string",
+              "maxLength": 64
+            },
+            "interactionState": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "implementationAnchorRefs": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "semanticAuthorityIssueCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "code",
+        "summary",
+        "affectedAuthorityRefs",
+        "expectedAuthorityTypes",
+        "affectedDomains",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "localRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "code": {
+          "enum": [
+            "MISSING_AUTHORITY",
+            "CONFLICTING_AUTHORITY",
+            "INVALID_AUTHORITY_REFERENCE",
+            "INSUFFICIENT_UPSTREAM_INFORMATION",
+            "MISSING_INTEGRATION_AUTHORITY"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "affectedAuthorityRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        },
+        "expectedAuthorityTypes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "CUSTOMER_PROFILE",
+              "WEBSITE_REQUIREMENT",
+              "SOURCE_DESIGN",
+              "RUNTIME_PROFILE",
+              "INTEGRATION_CONTRACT"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "affectedDomains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "REQUIREMENT_FULFILLMENT",
+              "CUSTOMER_FACT_CORRECTNESS",
+              "DESIGN_FIDELITY",
+              "CONTENT_QUALITY",
+              "FUNCTIONAL_BEHAVIOR",
+              "NAVIGATION",
+              "RESPONSIVE_QUALITY",
+              "VISUAL_INTEGRITY",
+              "ACCESSIBILITY_BASELINE",
+              "ASSET_INTEGRITY",
+              "RUNTIME_BROWSER",
+              "INTEGRATION_BEHAVIOR",
+              "LOCALIZATION",
+              "SEO_METADATA_BASELINE",
+              "PERFORMANCE_BASELINE"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "semanticEvaluationIssueCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "code",
+        "summary",
+        "affectedDomains",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "localRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "code": {
+          "enum": [
+            "EXECUTION_SURFACE_UNAVAILABLE",
+            "EXECUTION_SURFACE_DRIFT",
+            "TOOL_FAILURE",
+            "REQUIRED_CAPABILITY_UNAVAILABLE",
+            "SAFE_TEST_NOT_AUTHORIZED",
+            "INSUFFICIENT_EVIDENCE",
+            "SEMANTIC_OUTPUT_INVALID",
+            "EVIDENCE_INTEGRITY_FAILURE"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "affectedDomains": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "REQUIREMENT_FULFILLMENT",
+              "CUSTOMER_FACT_CORRECTNESS",
+              "DESIGN_FIDELITY",
+              "CONTENT_QUALITY",
+              "FUNCTIONAL_BEHAVIOR",
+              "NAVIGATION",
+              "RESPONSIVE_QUALITY",
+              "VISUAL_INTEGRITY",
+              "ACCESSIBILITY_BASELINE",
+              "ASSET_INTEGRITY",
+              "RUNTIME_BROWSER",
+              "INTEGRATION_BEHAVIOR",
+              "LOCALIZATION",
+              "SEO_METADATA_BASELINE",
+              "PERFORMANCE_BASELINE"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "requiredCheckRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "toolCapabilityRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "executionSurfaceRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "semanticReviewCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewTaskRef",
+        "domain",
+        "status",
+        "evidenceRefs"
+      ],
+      "properties": {
+        "reviewTaskRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "domain": {
+          "enum": [
+            "REQUIREMENT_FULFILLMENT",
+            "CUSTOMER_FACT_CORRECTNESS",
+            "DESIGN_FIDELITY",
+            "CONTENT_QUALITY",
+            "FUNCTIONAL_BEHAVIOR",
+            "NAVIGATION",
+            "RESPONSIVE_QUALITY",
+            "VISUAL_INTEGRITY",
+            "ACCESSIBILITY_BASELINE",
+            "ASSET_INTEGRITY",
+            "RUNTIME_BROWSER",
+            "INTEGRATION_BEHAVIOR",
+            "LOCALIZATION",
+            "SEO_METADATA_BASELINE",
+            "PERFORMANCE_BASELINE"
+          ]
+        },
+        "status": {
+          "enum": [
+            "COMPLETED",
+            "PARTIAL",
+            "NOT_EVALUABLE"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    },
+    "remediationAssessmentCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previousFindingRef",
+        "proposedStatus",
+        "evidenceRefs",
+        "relatedFindingCandidateRefs"
+      ],
+      "properties": {
+        "previousFindingRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "proposedStatus": {
+          "enum": [
+            "RESOLVED",
+            "PERSISTS",
+            "CHANGED",
+            "NOT_EVALUABLE"
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        },
+        "relatedFindingCandidateRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

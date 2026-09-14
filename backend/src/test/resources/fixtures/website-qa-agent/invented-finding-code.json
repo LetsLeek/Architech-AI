@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "qaExecutionRef": "qa-exec-101",
+  "testedCandidateRef": "candidate-42",
+  "qaProfileRef": "website-qa-full-release@1.0.0",
+  "inputSnapshotRef": "qa-input-snapshot-101",
+  "findingCandidates": [
+    {
+      "localRef": "finding-local-1",
+      "findingCode": "WEBSITE_FEELS_UNPROFESSIONAL",
+      "primaryDomain": "NAVIGATION",
+      "proposedSeverity": "MAJOR",
+      "normativeBasis": [
+        {
+          "type": "SOURCE_DESIGN",
+          "ref": "design-b-3"
+        }
+      ],
+      "summary": "The primary mobile navigation opens but cannot be closed at the required narrow viewport.",
+      "context": {
+        "route": "/",
+        "viewportRef": "FULL_NARROW",
+        "interactionState": "mobile-navigation-open"
+      },
+      "evidenceRefs": [
+        "evidence-browser-trace-55",
+        "evidence-screenshot-56"
+      ]
+    }
+  ],
+  "authorityIssueCandidates": [],
+  "evaluationIssueCandidates": [],
+  "semanticReviewCoverage": [
+    {
+      "reviewTaskRef": "navigation-review-1",
+      "domain": "NAVIGATION",
+      "status": "COMPLETED",
+      "evidenceRefs": [
+        "evidence-browser-trace-55",
+        "evidence-screenshot-56"
+      ]
+    }
+  ]
+}

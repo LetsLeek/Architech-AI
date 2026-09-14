@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: remediation-reassessment
+name: Remediation Reassessment
+version: 1
+
+description: >
+  During Re-QA, assess each previous Finding against the new immutable Candidate as:

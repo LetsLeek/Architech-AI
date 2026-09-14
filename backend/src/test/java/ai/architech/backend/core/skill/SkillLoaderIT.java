@@ -3,6 +3,7 @@ package ai.architech.backend.core.skill;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -94,6 +95,36 @@ class SkillLoaderIT {
 						"06-dependency-and-project-changes.md",
 						"07-verification-and-correction.md",
 						"08-traceability-and-handoff.md");
+	}
+
+	@Test
+	void resolvesAllSixteenFrozenWebsiteQaSkillsEachWithItsOwnOneModule() {
+		List<String> qaSkillIds = List.of(
+				"website-qa-review",
+				"evidence-assessment",
+				"finding-construction",
+				"requirement-fulfillment-review",
+				"customer-fact-review",
+				"design-fidelity-review",
+				"content-quality-review",
+				"functional-behavior-review",
+				"navigation-flow-review",
+				"responsive-quality-review",
+				"visual-defect-review",
+				"accessibility-semantic-review",
+				"integration-behavior-review",
+				"localization-review",
+				"finding-deduplication",
+				"remediation-reassessment");
+
+		for (String skillId : qaSkillIds) {
+			SkillDefinition definition = loader.resolve(skillId, 1);
+
+			assertThat(definition.id()).as("skill id for '%s'", skillId).isEqualTo(skillId);
+			assertThat(definition.modules()).as("modules for '%s'", skillId).hasSize(1);
+			assertThat(definition.modules().get(0).filename()).isEqualTo("01-" + skillId + ".md");
+			assertThat(definition.modules().get(0).content()).isNotBlank();
+		}
 	}
 
 	@Test
