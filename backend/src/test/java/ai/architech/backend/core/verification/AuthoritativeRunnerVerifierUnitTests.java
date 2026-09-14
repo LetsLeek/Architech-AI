@@ -60,6 +60,9 @@ class AuthoritativeRunnerVerifierUnitTests {
 	private NetworkPolicyChecker networkPolicyChecker;
 
 	@Mock
+	private VerificationIntegrityGuard verificationIntegrityGuard;
+
+	@Mock
 	private ResourceLoader resourceLoader;
 
 	@TempDir
@@ -84,10 +87,12 @@ class AuthoritativeRunnerVerifierUnitTests {
 				handoffFreezeGate,
 				localRuntimeSmokeRunner,
 				networkPolicyChecker,
+				verificationIntegrityGuard,
 				resourceLoader);
 		workspace = new Workspace(root);
 		snapshot = new FrozenHandoffSnapshot("snapshot-hash", Instant.now());
 		lenient().when(lockfileConsistencyChecker.findMismatches(any(), any())).thenReturn(List.of());
+		lenient().when(verificationIntegrityGuard.findIntegrityViolations(any())).thenReturn(List.of());
 		lenient().when(dependencyPolicyClassifier.classifyDependency(anyString(), anyString()))
 				.thenReturn(new DependencyPolicyFinding("pkg", "1.0.0", DependencyClassification.PLATFORM_APPROVED, DependencyPolicyOutcome.PASS, "fine"));
 		lenient().when(dependencyPolicyClassifier.classifyLifecycleScripts(any())).thenReturn(List.of());

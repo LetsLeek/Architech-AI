@@ -44,6 +44,13 @@ import tools.jackson.databind.ObjectMapper;
  * is whatever the execution's own Runtime Profile/asset/Integration Contract authorization
  * actually allows (empty in V1, since {@code integrationContext.integrationContracts} is always
  * empty per AIW-151's assembler).
+ *
+ * <p>Gate 1 additionally runs {@link VerificationIntegrityGuard} (AIW-156): beyond the required
+ * npm script strings themselves (already checked here), it protects TypeScript compiler
+ * strictness, lint rule severity and baseline test-file presence against being weakened just to
+ * make gates 3-5 pass more easily. Every finding this class ever produces comes from Core code
+ * the Developer's own filesystem capability cannot reach or edit - there is no path by which a
+ * Developer execution could alter what a gate reports, only what its own project source contains.
  */
 @Component
 public class AuthoritativeRunnerVerifier {
@@ -85,6 +92,7 @@ public class AuthoritativeRunnerVerifier {
 	private final HandoffFreezeGate handoffFreezeGate;
 	private final LocalRuntimeSmokeRunner localRuntimeSmokeRunner;
 	private final NetworkPolicyChecker networkPolicyChecker;
+	private final VerificationIntegrityGuard verificationIntegrityGuard;
 	private final ResourceLoader resourceLoader;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -95,6 +103,7 @@ public class AuthoritativeRunnerVerifier {
 			HandoffFreezeGate handoffFreezeGate,
 			LocalRuntimeSmokeRunner localRuntimeSmokeRunner,
 			NetworkPolicyChecker networkPolicyChecker,
+			VerificationIntegrityGuard verificationIntegrityGuard,
 			ResourceLoader resourceLoader) {
 		this.dependencyPolicyClassifier = dependencyPolicyClassifier;
 		this.lockfileConsistencyChecker = lockfileConsistencyChecker;
@@ -102,6 +111,7 @@ public class AuthoritativeRunnerVerifier {
 		this.handoffFreezeGate = handoffFreezeGate;
 		this.localRuntimeSmokeRunner = localRuntimeSmokeRunner;
 		this.networkPolicyChecker = networkPolicyChecker;
+		this.verificationIntegrityGuard = verificationIntegrityGuard;
 		this.resourceLoader = resourceLoader;
 	}
 
@@ -238,6 +248,16 @@ public class AuthoritativeRunnerVerifier {
 		List<String> scriptIssues = scriptIntegrityIssues(packageJson);
 		if (!scriptIssues.isEmpty()) {
 			return GateResult.fail(gateName, String.join("; ", scriptIssues));
+		}
+
+		List<String> integrityViolations;
+		try {
+			integrityViolations = verificationIntegrityGuard.findIntegrityViolations(workspace);
+		} catch (UncheckedIOException e) {
+			return GateResult.fail(gateName, "protected verification surface missing or unreadable: " + e.getMessage());
+		}
+		if (!integrityViolations.isEmpty()) {
+			return GateResult.fail(gateName, String.join("; ", integrityViolations));
 		}
 
 		return GateResult.pass(gateName);
