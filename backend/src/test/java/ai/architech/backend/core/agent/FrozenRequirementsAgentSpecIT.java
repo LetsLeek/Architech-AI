@@ -51,7 +51,7 @@ class FrozenRequirementsAgentSpecIT {
 		// AIW-116) - find the one backing the definition just resolved above by its own
 		// declared id rather than assuming there is only one.
 		Resource[] agentYamls = resourceResolver.getResources(AGENT_DEFINITION_PATTERN);
-		assertThat(agentYamls).hasSize(3);
+		assertThat(agentYamls).hasSize(4);
 		Resource agentYaml = findAgentYamlById(agentYamls, "requirements-agent");
 
 		for (AgentArtifactOutput artifact : definition.outputs().artifacts()) {

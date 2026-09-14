@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: evidence-assessment
+name: Evidence Assessment
+version: 1
+
+description: >
+  Determine whether available Evidence is sufficient for the exact semantic claim.

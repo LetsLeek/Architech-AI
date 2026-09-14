@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: localization-review
+name: Localization Review
+version: 1
+
+description: >
+  Applicable only when Product Authority requires multiple customer-visible locales.

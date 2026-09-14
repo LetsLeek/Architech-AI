@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: finding-deduplication
+name: Finding Deduplication
+version: 1
+
+description: >
+  Normalize repeated descriptions of the same logical defect within one Candidate/QA execution.

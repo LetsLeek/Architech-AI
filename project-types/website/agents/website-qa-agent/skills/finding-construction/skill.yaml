@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: finding-construction
+name: Finding Construction
+version: 1
+
+description: >
+  Construct a semantic Finding candidate only after proving:

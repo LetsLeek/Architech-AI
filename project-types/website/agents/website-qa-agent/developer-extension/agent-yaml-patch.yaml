@@ -1,0 +1,19 @@
+supportedOperations:
+  - INITIAL_GENERATION
+  - QA_REMEDIATION
+
+operations:
+  QA_REMEDIATION:
+    requiresSourceCandidate: true
+    requiresAuthorizedFindingRefs: true
+    requiresStableProductAuthority: true
+    requiresStableSourceDesign: true
+    mayMutateSource: true
+    mayMutateProductAuthority: false
+    mayChangeSourceDesign: false
+    mayChangeRuntime: false
+    mayInventIntegrationAuthority: false
+    mayDeclareFindingResolved: false
+    mayDeclareQaPassed: false
+    mayApproveCandidate: false
+    mayDeploy: false

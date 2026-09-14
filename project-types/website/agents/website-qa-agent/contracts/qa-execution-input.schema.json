@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:qa-execution-input:v1",
+  "title": "QAExecutionInput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "qaExecutionRef",
+    "target",
+    "productAuthority",
+    "qaAuthority",
+    "executionContext",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateRef"
+      ],
+      "properties": {
+        "candidateRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "productAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "customerProfileRef",
+        "websiteRequirementsRef",
+        "sourceDesignRef",
+        "runtimeProfileRef",
+        "integrationContractRefs"
+      ],
+      "properties": {
+        "customerProfileRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "websiteRequirementsRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "sourceDesignRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "runtimeProfileRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "integrationContractRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "qaAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qaProfileRef",
+        "ruleSetRef",
+        "skillSetRef",
+        "validatorSetRef",
+        "findingTaxonomyRef",
+        "checkRegistryRef"
+      ],
+      "properties": {
+        "qaProfileRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "ruleSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "skillSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "validatorSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "findingTaxonomyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "checkRegistryRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "executionContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "toolCapabilityProfileRef"
+      ],
+      "properties": {
+        "executionSurfaceRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "toolCapabilityProfileRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "safeTestContextRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "browserContextRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    },
+    "remediationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "previousCandidateRef",
+        "previousQAResultRef",
+        "previousFindingRefs"
+      ],
+      "properties": {
+        "previousCandidateRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "previousQAResultRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "previousFindingRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputSnapshotRef",
+        "qaAgentVersion"
+      ],
+      "properties": {
+        "inputSnapshotRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "qaAgentVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      }
+    }
+  }
+}

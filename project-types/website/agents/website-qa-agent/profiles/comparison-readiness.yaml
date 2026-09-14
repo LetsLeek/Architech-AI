@@ -1,0 +1,128 @@
+id: website-qa-comparison-readiness
+version: 1.0.0
+profileType: COMPARISON_READINESS
+projectType: WEBSITE
+
+purpose: >
+  Determine whether one immutable, technically verified Candidate is sufficiently
+  intact, representative, usable and non-misleading for fair customer comparison.
+
+target:
+  artifactType: WebsiteImplementationCandidate
+  immutable: true
+  technicalVerificationPassRequired: true
+  candidateBoundExecutionSurfaceRequired: true
+
+testContexts:
+  viewports:
+    - { id: COMPARISON_WIDE, width: 1440, height: 900 }
+    - { id: COMPARISON_NARROW, width: 390, height: 844 }
+  localePolicy:
+    defaultAuthoritativeLocaleRequired: true
+    requiredAdditionalLocalesWhenConfigured: true
+
+preconditions:
+  requiredChecks:
+    - CANDIDATE_VERIFICATION_PROVENANCE
+    - CANDIDATE_SOURCE_IDENTITY
+    - EXECUTION_SURFACE_CANDIDATE_BINDING
+    - AUTHORITY_REFERENCE_INTEGRITY
+
+domains:
+  REQUIREMENT_FULFILLMENT:
+    applicability: REQUIRED
+    scope: COMPARISON_CRITICAL_VISIBLE_REQUIREMENTS
+    semanticReviews: [requirement-fulfillment-review]
+    coverageRequirement: COMPLETE
+  CUSTOMER_FACT_CORRECTNESS:
+    applicability: REQUIRED
+    requiredChecks: [EXACT_CUSTOMER_FACT_MATCH]
+    semanticReviews: [customer-fact-review]
+    coverageRequirement: COMPLETE
+  DESIGN_FIDELITY:
+    applicability: REQUIRED
+    semanticReviews: [design-fidelity-review]
+    coverageRequirement: COMPLETE
+  CONTENT_QUALITY:
+    applicability: REQUIRED
+    requiredChecks: [REQUIRED_TEXT_PRESENCE, PLACEHOLDER_PATTERN_SCAN]
+    semanticReviews: [content-quality-review]
+    coverageRequirement: COMPLETE
+  FUNCTIONAL_BEHAVIOR:
+    applicability: REQUIRED
+    requiredChecks: [FUNCTIONAL_BINDING_REFERENCE_INTEGRITY, PRIMARY_LOCAL_INTERACTION_SMOKE]
+    semanticReviews: [functional-behavior-review]
+    coverageRequirement: COMPLETE
+  NAVIGATION:
+    applicability: REQUIRED
+    requiredChecks: [PRIMARY_NAVIGATION_TARGETS, PRIMARY_NAVIGATION_INTERACTION, INTERNAL_LINK_INTEGRITY]
+    semanticReviews: [navigation-flow-review]
+    coverageRequirement: COMPLETE
+  RESPONSIVE_QUALITY:
+    applicability: REQUIRED
+    requiredChecks: [HORIZONTAL_OVERFLOW_SCAN, CRITICAL_ELEMENT_VIEWPORT_VISIBILITY, RESPONSIVE_PRIMARY_NAVIGATION_SMOKE]
+    semanticReviews: [responsive-quality-review]
+    coverageRequirement: COMPLETE
+  VISUAL_INTEGRITY:
+    applicability: REQUIRED
+    semanticReviews: [visual-defect-review]
+    coverageRequirement: COMPLETE
+  ACCESSIBILITY_BASELINE:
+    applicability: REQUIRED
+    requiredChecks: [A11Y_AUTOMATED_BASELINE, KEYBOARD_PRIMARY_NAVIGATION_SMOKE]
+    evidenceChecks: [A11Y_ACCESSIBILITY_TREE_CAPTURE]
+    semanticReviews: [accessibility-semantic-review]
+    coverageRequirement: COMPLETE
+  ASSET_INTEGRITY:
+    applicability: REQUIRED
+    requiredChecks: [BROKEN_ASSET_SCAN, REQUIRED_ASSET_PRESENCE]
+    coverageRequirement: COMPLETE
+  RUNTIME_BROWSER:
+    applicability: REQUIRED
+    requiredChecks: [CANONICAL_ROUTE_REACHABILITY, CLIENT_STARTUP_SANITY, FATAL_BROWSER_ERROR_SCAN, REQUIRED_RESOURCE_LOAD, EXTERNAL_RUNTIME_NETWORK_POLICY]
+    coverageRequirement: COMPLETE
+  INTEGRATION_BEHAVIOR:
+    applicability: CONDITIONAL
+    when: AUTHORIZED_BOUND_CAPABILITY_MATERIALLY_RELEVANT_TO_COMPARISON
+    requiredChecks: [INTEGRATION_CONTRACT_REFERENCE_INTEGRITY]
+    semanticReviews: [integration-behavior-review]
+    coverageRequirement: COMPLETE_WHEN_APPLICABLE
+  LOCALIZATION:
+    applicability: CONDITIONAL
+    when: MULTIPLE_REQUIRED_CUSTOMER_VISIBLE_LOCALES
+    requiredChecks: [REQUIRED_LOCALE_ENTRYPOINTS, LANGUAGE_SWITCH_SMOKE]
+    semanticReviews: [localization-review]
+    coverageRequirement: COMPLETE_WHEN_APPLICABLE
+  SEO_METADATA_BASELINE:
+    applicability: NOT_APPLICABLE
+  PERFORMANCE_BASELINE:
+    applicability: NOT_APPLICABLE
+
+findingDispositionPolicy:
+  severityDefaults:
+    CRITICAL: BLOCK
+    MAJOR: BLOCK
+    MINOR: ALLOW
+
+authorityIssuePolicy:
+  gateRelevantIssueDisposition: ESCALATE
+
+evaluationIssuePolicy:
+  requiredEvaluationDisposition: ESCALATE
+
+coveragePolicy:
+  requiredApplicableDomainsMustMeetCoverageRequirement: true
+  absenceOfFindingsDoesNotImplyCoverage: true
+  incompleteRequiredDomainPreventsPass: true
+
+gatePolicy:
+  passRequiresEvaluationState: COMPLETE
+  unresolvedBlockPreventsPass: true
+  unresolvedEscalatePreventsPass: true
+
+comparisonGroupPolicy:
+  requiredVariantLineages: 3
+  allRequiredVariantsMustPassComparisonReadiness: true
+  silentVariantRemovalAllowed: false
+  siblingCandidatesAreNormativeReferences: false
+  rankingAllowed: false

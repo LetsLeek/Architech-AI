@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: accessibility-semantic-review
+name: Accessibility Semantic Review
+version: 1
+
+description: >
+  Supplement deterministic accessibility baseline checks with contextual interpretation.

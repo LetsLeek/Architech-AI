@@ -1,0 +1,63 @@
+{
+  "package": "website-qa-agent-v1",
+  "version": "1.0.0",
+  "status": "FROZEN",
+  "profiles": [
+    "COMPARISON_READINESS",
+    "FULL_RELEASE"
+  ],
+  "skills": [
+    "website-qa-review",
+    "evidence-assessment",
+    "finding-construction",
+    "requirement-fulfillment-review",
+    "customer-fact-review",
+    "design-fidelity-review",
+    "content-quality-review",
+    "functional-behavior-review",
+    "navigation-flow-review",
+    "responsive-quality-review",
+    "visual-defect-review",
+    "accessibility-semantic-review",
+    "integration-behavior-review",
+    "localization-review",
+    "finding-deduplication",
+    "remediation-reassessment"
+  ],
+  "schemas": [
+    "authority-issue.schema.json",
+    "candidate-finding.schema.json",
+    "domain-result.schema.json",
+    "evaluation-issue.schema.json",
+    "policy-evaluation.schema.json",
+    "qa-execution-input.schema.json",
+    "qa-result.schema.json",
+    "remediation-assessment.schema.json",
+    "semantic-qa-review-output.schema.json"
+  ],
+  "rules": [
+    "authority.md",
+    "checks.md",
+    "evidence.md",
+    "execution-safety.md",
+    "findings.md",
+    "gate-semantics.md",
+    "lineage.md",
+    "profiles.md",
+    "remediation.md",
+    "retry-escalation.md",
+    "scope-boundaries.md",
+    "target-input-integrity.md"
+  ],
+  "registries": [
+    "qa-domains.yaml",
+    "finding-codes.yaml",
+    "qa-checks.yaml"
+  ],
+  "developerExtension": "developer-extension/QA_REMEDIATION.md",
+  "integrityCheck": {
+    "skills": 16,
+    "schemas": 9,
+    "requiredFilesPresent": true
+  }
+}

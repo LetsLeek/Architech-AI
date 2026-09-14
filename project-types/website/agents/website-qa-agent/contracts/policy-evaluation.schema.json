@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-qa-policy-evaluation:v1",
+  "title": "PolicyEvaluation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policyEvaluationId",
+    "qaResultRef",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "qaProfileRef",
+    "subjectType",
+    "subjectRef",
+    "policyRuleRef",
+    "disposition"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "policyEvaluationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaProfileRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "subjectType": {
+      "enum": [
+        "CANDIDATE_FINDING",
+        "AUTHORITY_ISSUE",
+        "EVALUATION_ISSUE"
+      ]
+    },
+    "subjectRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "policyRuleRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "disposition": {
+      "enum": [
+        "BLOCK",
+        "ALLOW",
+        "ESCALATE"
+      ]
+    },
+    "reasonCode": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "maxLength": 128
+    }
+  }
+}

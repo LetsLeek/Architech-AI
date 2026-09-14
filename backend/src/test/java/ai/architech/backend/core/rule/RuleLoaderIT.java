@@ -45,6 +45,17 @@ class RuleLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFrozenWebsiteQaIntegrityRule() {
+		RuleDefinition definition = loader.resolve("website-qa-integrity", 1);
+
+		assertThat(definition.id()).isEqualTo("website-qa-integrity");
+		assertThat(definition.name()).isEqualTo("Website QA Integrity");
+		assertThat(definition.content()).contains("# Website QA Integrity Rule V1");
+		assertThat(definition.content()).contains("## 1. Authority");
+		assertThat(definition.content()).contains("## 12. Target and Input Integrity");
+	}
+
+	@Test
 	void throwsWhenNoRuleMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("requirements-integrity", 99))
 				.isInstanceOf(RuleDefinitionNotFoundException.class);

@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: website-qa-review
+name: Website QA Review
+version: 1
+
+description: >
+  Orchestrates the semantic portion of one already-authorized QA execution.

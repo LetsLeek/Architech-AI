@@ -1,0 +1,570 @@
+id: website-qa-finding-taxonomy
+version: 1.0.0
+projectType: WEBSITE
+
+severity:
+  values: [CRITICAL, MAJOR, MINOR]
+
+findings:
+
+  - code: REQ_MUST_UNFULFILLED
+    domain: REQUIREMENT_FULFILLMENT
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+
+  - code: REQ_SHOULD_MATERIALLY_UNFULFILLED
+    domain: REQUIREMENT_FULFILLMENT
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+
+  - code: REQ_IMPLEMENTATION_MATERIALLY_INCOMPLETE
+    domain: REQUIREMENT_FULFILLMENT
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+
+  - code: REQ_OTHER_MATERIAL_DEFECT
+    domain: REQUIREMENT_FULFILLMENT
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - QA_POLICY
+
+  - code: FACT_CONTRADICTION
+    domain: CUSTOMER_FACT_CORRECTNESS
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+
+  - code: FACT_UNSUPPORTED_CLAIM
+    domain: CUSTOMER_FACT_CORRECTNESS
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+
+  - code: FACT_UNKNOWN_MATERIALIZED
+    domain: CUSTOMER_FACT_CORRECTNESS
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+
+  - code: FACT_IDENTITY_MISREPRESENTATION
+    domain: CUSTOMER_FACT_CORRECTNESS
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+
+  - code: FACT_OTHER_MATERIAL_DEFECT
+    domain: CUSTOMER_FACT_CORRECTNESS
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+      - QA_POLICY
+
+  - code: DESIGN_INFORMATION_ARCHITECTURE_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: DESIGN_SECTION_STRUCTURE_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: DESIGN_HIERARCHY_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: DESIGN_VISUAL_DIRECTION_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: DESIGN_RESPONSIVE_INTENT_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: DESIGN_MATERIAL_DEVIATION
+    domain: DESIGN_FIDELITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+
+  - code: CONTENT_REQUIRED_MISSING
+    domain: CONTENT_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+
+  - code: CONTENT_PLACEHOLDER_LEAK
+    domain: CONTENT_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: CONTENT_TRUNCATED_OR_BROKEN
+    domain: CONTENT_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+      - SOURCE_DESIGN
+
+  - code: CONTENT_MATERIAL_CONTRADICTION
+    domain: CONTENT_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - CUSTOMER_PROFILE
+      - QA_POLICY
+
+  - code: CONTENT_OTHER_MATERIAL_DEFECT
+    domain: CONTENT_QUALITY
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - CUSTOMER_PROFILE
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: FUNCTION_PRIMARY_BEHAVIOR_BROKEN
+    domain: FUNCTIONAL_BEHAVIOR
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - INTEGRATION_CONTRACT
+
+  - code: FUNCTION_LOCAL_BEHAVIOR_BROKEN
+    domain: FUNCTIONAL_BEHAVIOR
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+
+  - code: FUNCTION_FAKE_SUCCESS
+    domain: FUNCTIONAL_BEHAVIOR
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - INTEGRATION_CONTRACT
+      - QA_POLICY
+
+  - code: FUNCTION_STATE_TRANSITION_BROKEN
+    domain: FUNCTIONAL_BEHAVIOR
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: FUNCTION_OTHER_MATERIAL_DEFECT
+    domain: FUNCTIONAL_BEHAVIOR
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - INTEGRATION_CONTRACT
+      - QA_POLICY
+
+  - code: NAV_PRIMARY_FLOW_BROKEN
+    domain: NAVIGATION
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: NAV_TARGET_MISMATCH
+    domain: NAVIGATION
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+
+  - code: NAV_DEAD_END
+    domain: NAVIGATION
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: NAV_MOBILE_CONTROL_BROKEN
+    domain: NAVIGATION
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: NAV_OTHER_MATERIAL_DEFECT
+    domain: NAVIGATION
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: RESPONSIVE_HORIZONTAL_OVERFLOW
+    domain: RESPONSIVE_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+      - SOURCE_DESIGN
+
+  - code: RESPONSIVE_CRITICAL_CONTENT_HIDDEN
+    domain: RESPONSIVE_QUALITY
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: RESPONSIVE_CONTROL_UNUSABLE
+    domain: RESPONSIVE_QUALITY
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: RESPONSIVE_COMPOSITION_BREAKDOWN
+    domain: RESPONSIVE_QUALITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: RESPONSIVE_OTHER_MATERIAL_DEFECT
+    domain: RESPONSIVE_QUALITY
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - QA_POLICY
+
+  - code: VISUAL_CONTENT_OVERLAP
+    domain: VISUAL_INTEGRITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: VISUAL_CRITICAL_ELEMENT_CLIPPED
+    domain: VISUAL_INTEGRITY
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+      - SOURCE_DESIGN
+
+  - code: VISUAL_TEXT_UNREADABLE
+    domain: VISUAL_INTEGRITY
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: VISUAL_INTERACTION_OBSTRUCTED
+    domain: VISUAL_INTEGRITY
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: VISUAL_OTHER_MATERIAL_DEFECT
+    domain: VISUAL_INTEGRITY
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+      - SOURCE_DESIGN
+
+  - code: A11Y_CONTROL_WITHOUT_ACCESSIBLE_NAME
+    domain: ACCESSIBILITY_BASELINE
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: A11Y_MEANINGFUL_IMAGE_ALT_INADEQUATE
+    domain: ACCESSIBILITY_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: A11Y_HEADING_STRUCTURE_MATERIAL_DEFECT
+    domain: ACCESSIBILITY_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: A11Y_FOCUS_FLOW_MATERIAL_DEFECT
+    domain: ACCESSIBILITY_BASELINE
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: A11Y_OTHER_BASELINE_DEFECT
+    domain: ACCESSIBILITY_BASELINE
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: ASSET_REQUIRED_MISSING
+    domain: ASSET_INTEGRITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - WEBSITE_REQUIREMENT
+      - QA_POLICY
+
+  - code: ASSET_BROKEN
+    domain: ASSET_INTEGRITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: ASSET_MATERIAL_WRONG_USAGE
+    domain: ASSET_INTEGRITY
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - CUSTOMER_PROFILE
+
+  - code: ASSET_OTHER_MATERIAL_DEFECT
+    domain: ASSET_INTEGRITY
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - SOURCE_DESIGN
+      - WEBSITE_REQUIREMENT
+      - CUSTOMER_PROFILE
+      - QA_POLICY
+
+  - code: RUNTIME_FATAL_BROWSER_ERROR
+    domain: RUNTIME_BROWSER
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - RUNTIME_PROFILE
+      - QA_POLICY
+
+  - code: RUNTIME_PRIMARY_ROUTE_UNAVAILABLE
+    domain: RUNTIME_BROWSER
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+      - RUNTIME_PROFILE
+
+  - code: RUNTIME_REQUIRED_RESOURCE_FAILURE
+    domain: RUNTIME_BROWSER
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - RUNTIME_PROFILE
+      - QA_POLICY
+
+  - code: RUNTIME_PROHIBITED_EXTERNAL_REQUEST
+    domain: RUNTIME_BROWSER
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - RUNTIME_PROFILE
+      - INTEGRATION_CONTRACT
+      - QA_POLICY
+
+  - code: RUNTIME_OTHER_MATERIAL_DEFECT
+    domain: RUNTIME_BROWSER
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - RUNTIME_PROFILE
+      - QA_POLICY
+
+  - code: INTEGRATION_BOUND_OPERATION_FAILED
+    domain: INTEGRATION_BEHAVIOR
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - INTEGRATION_CONTRACT
+      - WEBSITE_REQUIREMENT
+
+  - code: INTEGRATION_RESPONSE_MISREPRESENTED
+    domain: INTEGRATION_BEHAVIOR
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - INTEGRATION_CONTRACT
+      - QA_POLICY
+
+  - code: INTEGRATION_CONTRACT_BEHAVIOR_MISMATCH
+    domain: INTEGRATION_BEHAVIOR
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - INTEGRATION_CONTRACT
+
+  - code: INTEGRATION_OTHER_MATERIAL_DEFECT
+    domain: INTEGRATION_BEHAVIOR
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - INTEGRATION_CONTRACT
+      - WEBSITE_REQUIREMENT
+      - QA_POLICY
+
+  - code: LOCALIZATION_REQUIRED_LANGUAGE_MISSING
+    domain: LOCALIZATION
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+
+  - code: LOCALIZATION_MAJOR_SECTION_UNTRANSLATED
+    domain: LOCALIZATION
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - QA_POLICY
+
+  - code: LOCALIZATION_LANGUAGE_SWITCH_BROKEN
+    domain: LOCALIZATION
+    minimumSeverity: MAJOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - SOURCE_DESIGN
+
+  - code: LOCALIZATION_FACTUAL_DRIFT
+    domain: LOCALIZATION
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - CUSTOMER_PROFILE
+      - WEBSITE_REQUIREMENT
+
+  - code: LOCALIZATION_OTHER_MATERIAL_DEFECT
+    domain: LOCALIZATION
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - WEBSITE_REQUIREMENT
+      - CUSTOMER_PROFILE
+      - QA_POLICY
+
+  - code: SEO_REQUIRED_TITLE_MISSING
+    domain: SEO_METADATA_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MINOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: SEO_REQUIRED_LANG_MISSING
+    domain: SEO_METADATA_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MINOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: SEO_INDEXABILITY_POLICY_MISMATCH
+    domain: SEO_METADATA_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: SEO_OTHER_BASELINE_DEFECT
+    domain: SEO_METADATA_BASELINE
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MINOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: PERFORMANCE_CATASTROPHIC_LOAD_FAILURE
+    domain: PERFORMANCE_BASELINE
+    minimumSeverity: MAJOR
+    maximumSeverity: CRITICAL
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: PERFORMANCE_BASELINE_THRESHOLD_EXCEEDED
+    domain: PERFORMANCE_BASELINE
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY
+
+  - code: PERFORMANCE_OTHER_BASELINE_DEFECT
+    domain: PERFORMANCE_BASELINE
+    fallback: true
+    minimumSeverity: MINOR
+    maximumSeverity: MAJOR
+    allowedNormativeBasisTypes:
+      - QA_POLICY

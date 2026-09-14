@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: integration-behavior-review
+name: Integration Behavior Review
+version: 1
+
+description: >
+  Applicable only to authorized externally bound functionality.

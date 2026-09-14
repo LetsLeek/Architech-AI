@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:qa-result:v1",
+  "title": "QAResult",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "qaResultRef",
+    "qaExecutionRef",
+    "testedCandidateRef",
+    "qaProfileRef",
+    "inputSnapshotRef",
+    "evaluationState",
+    "domainResults",
+    "findingRefs",
+    "authorityIssueRefs",
+    "evaluationIssueRefs",
+    "policyEvaluationRefs",
+    "remediationAssessmentRefs",
+    "aggregation",
+    "evidenceManifestRef",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaExecutionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "testedCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "qaProfileRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "inputSnapshotRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "executionSurfaceRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "evaluationState": {
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "INVALID"
+      ]
+    },
+    "domainResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "urn:aiw:schema:website-qa-domain-result:v1"
+      }
+    },
+    "findingRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "authorityIssueRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "evaluationIssueRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "policyEvaluationRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "remediationAssessmentRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "uniqueItems": true
+    },
+    "aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateOutcome",
+        "holdReasons"
+      ],
+      "properties": {
+        "gateOutcome": {
+          "enum": [
+            "PASS",
+            "HOLD"
+          ]
+        },
+        "holdReasons": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "BLOCKING_CANDIDATE_FINDING",
+              "AUTHORITY_RESOLUTION_REQUIRED",
+              "EVALUATION_INCOMPLETE",
+              "HUMAN_REVIEW_REQUIRED",
+              "EXECUTION_INVALID"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "evidenceManifestRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qaSystemVersion",
+        "qaAgentVersion",
+        "ruleSetRef",
+        "skillSetRef",
+        "validatorSetRef",
+        "toolCapabilityProfileRef",
+        "findingTaxonomyRef",
+        "checkRegistryRef"
+      ],
+      "properties": {
+        "qaSystemVersion": {
+          "type": "string"
+        },
+        "qaAgentVersion": {
+          "type": "string"
+        },
+        "ruleSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "skillSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "validatorSetRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "toolCapabilityProfileRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "findingTaxonomyRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "checkRegistryRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      }
+    }
+  }
+}

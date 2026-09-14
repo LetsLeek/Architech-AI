@@ -44,6 +44,11 @@ architech:
       implementation-reasoning:
         provider: mock
         model: mock-model
+      # AIW-167: the Website QA Agent's own modelProfile - mock by default for the same
+      # reason design-reasoning/implementation-reasoning are.
+      qa-reasoning:
+        provider: mock
+        model: mock-model
     # Per-1000-token USD pricing, keyed provider -> model. Harmless to keep here even while
     # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
     # provider/model actually answered, and returns null (never fabricated) for anything not
@@ -148,5 +153,8 @@ architech:
         provider: anthropic
         model: claude-sonnet-5
       implementation-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      qa-reasoning:
         provider: anthropic
         model: claude-sonnet-5

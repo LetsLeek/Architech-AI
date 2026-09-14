@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: responsive-quality-review
+name: Responsive Quality Review
+version: 1
+
+description: >
+  Evaluate only Profile-defined viewport contexts.

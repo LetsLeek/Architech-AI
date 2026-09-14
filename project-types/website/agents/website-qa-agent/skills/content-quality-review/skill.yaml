@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: content-quality-review
+name: Content Quality Review
+version: 1
+
+description: >
+  Evaluate required content completeness and integrity, not copy optimization.
