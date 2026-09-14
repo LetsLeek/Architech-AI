@@ -88,6 +88,12 @@ architech:
   runner:
     # Platform-owned retry budget - agents never decide this for themselves.
     max-attempts: 3
+  developer:
+    initial-generation:
+      # Platform-owned bounds for the A/B/C initial-generation fan-out (AIW-146) - Workflow/Core
+      # decides these, never the Developer Agent or a single sibling execution.
+      max-correction-cycles-per-sibling: 2
+      max-sibling-retries: 2
 
 management:
   endpoints:
