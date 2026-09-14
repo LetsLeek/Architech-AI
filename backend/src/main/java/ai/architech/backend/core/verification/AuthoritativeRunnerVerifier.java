@@ -30,24 +30,20 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Authoritative final Website Developer Runner Verification against the exact frozen Developer
- * handoff state (AIW-143). Runs a fixed sequence of mandatory gates and stops at the first
- * non-{@code PASS} one (a technical-source or infrastructure failure cascading into every later
- * gate would just repeat the same underlying cause with no new information) - see {@link
+ * handoff state (AIW-143). Runs a fixed sequence of all 14 mandatory gates and stops at the
+ * first non-{@code PASS} one (a technical-source or infrastructure failure cascading into every
+ * later gate would just repeat the same underlying cause with no new information) - see {@link
  * RunnerVerificationResult} for how the overall outcome is computed from whichever gates
  * actually ran.
  *
- * <p><strong>Scope of this V1 slice:</strong> this class implements the eight gates that are
- * fully deterministic and buildable against infrastructure that already exists in this codebase
- * (repository/dependency integrity, clean policy-compliant install, typecheck, lint, test,
- * build, secret/credential scan, final source-state integrity - AIW-143's own gates 1-6, 13 and
- * 14). Gates 7-12 (local runtime startup, canonical route smoke, primary navigation smoke,
- * browser/runtime integrity, and the two representative responsive-sanity gates) require a real
- * browser-automation harness driving a locally-started dev server against specific viewport
- * projects - infrastructure AIW-157 (browser runtime/network policy + Playwright viewport
- * projects) has not built yet. Deferring those six gates here, explicitly, rather than faking
- * or skipping them silently, was a deliberate scoping decision for this ticket (see the M3
- * sequencing plan): {@link #verify} never claims a {@code PASS} outcome for a gate it did not
- * actually run - it simply does not run gates 7-12 at all yet.
+ * <p>Gates 1-6, 13 and 14 are pure filesystem/process checks against infrastructure already in
+ * this codebase (dependency policy, lockfile consistency, the scaffold's own npm scripts, secret
+ * scanning, the frozen handoff snapshot). Gates 7-12 drive a real headless browser via {@link
+ * LocalRuntimeSmokeRunner} against the Developer execution's own locally-started dev server, and
+ * classify what it observed via {@link NetworkPolicyChecker} - {@code authorizedExternalTargets}
+ * is whatever the execution's own Runtime Profile/asset/Integration Contract authorization
+ * actually allows (empty in V1, since {@code integrationContext.integrationContracts} is always
+ * empty per AIW-151's assembler).
  */
 @Component
 public class AuthoritativeRunnerVerifier {
@@ -55,11 +51,16 @@ public class AuthoritativeRunnerVerifier {
 	private static final String SCAFFOLD_PACKAGE_JSON =
 			"classpath:project-types/website/agents/developer-agent/scaffold/package.json";
 	private static final List<String> REQUIRED_SCRIPTS = List.of("typecheck", "lint", "test", "build");
+	// Matches LocalRuntimeSmokeRunner's own BASE_URL host exactly - see that class for why the
+	// literal IPv4 address, not "localhost", is what requests actually observe as the self-origin host.
+	private static final String LOCAL_RUNTIME_HOST = "127.0.0.1";
 
 	private final DependencyPolicyClassifier dependencyPolicyClassifier;
 	private final LockfileConsistencyChecker lockfileConsistencyChecker;
 	private final SecretScanGate secretScanGate;
 	private final HandoffFreezeGate handoffFreezeGate;
+	private final LocalRuntimeSmokeRunner localRuntimeSmokeRunner;
+	private final NetworkPolicyChecker networkPolicyChecker;
 	private final ResourceLoader resourceLoader;
 	private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -68,15 +69,22 @@ public class AuthoritativeRunnerVerifier {
 			LockfileConsistencyChecker lockfileConsistencyChecker,
 			SecretScanGate secretScanGate,
 			HandoffFreezeGate handoffFreezeGate,
+			LocalRuntimeSmokeRunner localRuntimeSmokeRunner,
+			NetworkPolicyChecker networkPolicyChecker,
 			ResourceLoader resourceLoader) {
 		this.dependencyPolicyClassifier = dependencyPolicyClassifier;
 		this.lockfileConsistencyChecker = lockfileConsistencyChecker;
 		this.secretScanGate = secretScanGate;
 		this.handoffFreezeGate = handoffFreezeGate;
+		this.localRuntimeSmokeRunner = localRuntimeSmokeRunner;
+		this.networkPolicyChecker = networkPolicyChecker;
 		this.resourceLoader = resourceLoader;
 	}
 
-	public RunnerVerificationResult verify(Workspace workspace, FrozenHandoffSnapshot snapshot) {
+	public RunnerVerificationResult verify(
+			Workspace workspace,
+			FrozenHandoffSnapshot snapshot,
+			List<AuthorizedExternalTarget> authorizedExternalTargets) {
 		List<GateResult> gates = new ArrayList<>();
 
 		if (!runGate(gates, () -> repositoryDependencyIntegrityGate(workspace))) {
@@ -97,12 +105,87 @@ public class AuthoritativeRunnerVerifier {
 		if (!runGate(gates, () -> projectExecutionGate(workspace, "build (gate 6)", ProjectExecutionTask.BUILD))) {
 			return new RunnerVerificationResult(gates);
 		}
+
+		LocalRuntimeSmokeOutcome smoke = localRuntimeSmokeRunner.run(workspace);
+		if (!appendLocalRuntimeGates(gates, smoke, authorizedExternalTargets)) {
+			return new RunnerVerificationResult(gates);
+		}
+
 		if (!runGate(gates, () -> secretCredentialScanGate(workspace))) {
 			return new RunnerVerificationResult(gates);
 		}
 		runGate(gates, () -> finalSourceStateIntegrityGate(workspace, snapshot));
 
 		return new RunnerVerificationResult(gates);
+	}
+
+	/** Returns {@code false} the moment any of gates 7-12 is not PASS, matching every other gate's fail-fast contract. */
+	private boolean appendLocalRuntimeGates(
+			List<GateResult> gates, LocalRuntimeSmokeOutcome smoke, List<AuthorizedExternalTarget> authorizedExternalTargets) {
+		if (!smoke.startedSuccessfully()) {
+			gates.add(GateResult.error("local-runtime-startup (gate 7)", smoke.startupFailureDetail()));
+			return false;
+		}
+		gates.add(GateResult.pass("local-runtime-startup (gate 7)"));
+
+		GateResult routeGate = smoke.canonicalRouteLoaded()
+				? GateResult.pass("canonical-route-smoke (gate 8)")
+				: GateResult.fail("canonical-route-smoke (gate 8)", "canonical route '/' did not load successfully");
+		gates.add(routeGate);
+		if (routeGate.outcome() != VerificationOutcome.PASS) {
+			return false;
+		}
+
+		List<String> navigationFailures = smoke.runtimeIssues().stream()
+				.filter(issue -> "navigation".equals(issue.source()))
+				.map(BrowserRuntimeIssue::message)
+				.toList();
+		GateResult navigationGate = navigationFailures.isEmpty()
+				? GateResult.pass("primary-navigation-smoke (gate 9)")
+				: GateResult.fail("primary-navigation-smoke (gate 9)", String.join("; ", navigationFailures));
+		gates.add(navigationGate);
+		if (navigationGate.outcome() != VerificationOutcome.PASS) {
+			return false;
+		}
+
+		GateResult runtimeIntegrityGate = browserRuntimeIntegrityGate(smoke, authorizedExternalTargets);
+		gates.add(runtimeIntegrityGate);
+		if (runtimeIntegrityGate.outcome() != VerificationOutcome.PASS) {
+			return false;
+		}
+
+		GateResult wideGate = smoke.wideViewportOverflow()
+				? GateResult.fail("wide-responsive-sanity (gate 11)", "horizontal overflow detected at the wide viewport")
+				: GateResult.pass("wide-responsive-sanity (gate 11)");
+		gates.add(wideGate);
+		if (wideGate.outcome() != VerificationOutcome.PASS) {
+			return false;
+		}
+
+		GateResult narrowGate = smoke.narrowViewportOverflow()
+				? GateResult.fail("narrow-responsive-sanity (gate 12)", "horizontal overflow detected at the narrow viewport")
+				: GateResult.pass("narrow-responsive-sanity (gate 12)");
+		gates.add(narrowGate);
+		return narrowGate.outcome() == VerificationOutcome.PASS;
+	}
+
+	private GateResult browserRuntimeIntegrityGate(
+			LocalRuntimeSmokeOutcome smoke, List<AuthorizedExternalTarget> authorizedExternalTargets) {
+		String gateName = "browser-runtime-integrity (gate 10)";
+		List<String> problems = new ArrayList<>();
+
+		smoke.runtimeIssues().stream()
+				.filter(issue -> !"navigation".equals(issue.source()))
+				.forEach(issue -> problems.add(issue.source() + ": " + issue.message()));
+
+		networkPolicyChecker.classify(LOCAL_RUNTIME_HOST, authorizedExternalTargets, smoke.observedRequests()).stream()
+				.filter(finding -> finding.outcome() == NetworkPolicyOutcome.BLOCKED)
+				.forEach(finding -> problems.add(finding.url() + " - " + finding.reason()));
+
+		if (!problems.isEmpty()) {
+			return GateResult.fail(gateName, String.join("; ", problems));
+		}
+		return GateResult.pass(gateName);
 	}
 
 	private boolean runGate(List<GateResult> gates, java.util.function.Supplier<GateResult> gate) {

@@ -34,7 +34,18 @@ public final class ProjectExecutionCapability {
 		return ProcessRunner.run(workspace, commandFor(task), BOUNDED_TASK_TIMEOUT);
 	}
 
-	/** Starts the local dev server; the caller owns the returned handle and must stop it itself. */
+	/**
+	 * Starts the local dev server; the caller owns the returned handle and must stop it itself -
+	 * and must stop its descendants too: {@code npm run dev} forks its own {@code vite} child
+	 * process, so destroying only this returned handle leaves that child running and still bound
+	 * to its port (use {@code Process.descendants()} to reach it, exactly the way
+	 * {@code core.verification.LocalRuntimeSmokeRunner} does). Output is discarded rather than
+	 * left as the default {@code PIPE} - the classic ProcessBuilder deadlock ({@link ProcessRunner}
+	 * drains bounded tasks' output concurrently for the same reason) is a real risk here
+	 * specifically: a dev server runs indefinitely and keeps logging (HMR, request activity) for
+	 * as long as a caller's browser smoke check keeps it alive, so an undrained pipe would
+	 * eventually fill and block the server from ever responding.
+	 */
 	public Process startLocalRuntime() {
 		try {
 			// commandFor(...) always returns a fixed List.of(...) literal keyed off the closed
@@ -43,6 +54,8 @@ public final class ProjectExecutionCapability {
 			// nosemgrep: java.lang.security.audit.command-injection-process-builder.command-injection-process-builder
 			return new ProcessBuilder(commandFor(ProjectExecutionTask.LOCAL_RUNTIME))
 					.directory(workspace.root().toFile())
+					.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+					.redirectError(ProcessBuilder.Redirect.DISCARD)
 					.start();
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to start local runtime", e);
@@ -56,7 +69,11 @@ public final class ProjectExecutionCapability {
 			case LINT -> List.of("npm", "run", "lint");
 			case TEST -> List.of("npm", "run", "test");
 			case BUILD -> List.of("npm", "run", "build");
-			case LOCAL_RUNTIME -> List.of("npm", "run", "dev");
+			// `--host 127.0.0.1` pins Vite's dev-server bind address deterministically - without
+			// it, Vite's own default ("localhost") resolves to whatever a given host's resolver
+			// order happens to prefer (observed IPv6-only on some Linux hosts), which a plain
+			// java.net.HttpURLConnection to "localhost" does not reliably reach.
+			case LOCAL_RUNTIME -> List.of("npm", "run", "dev", "--", "--host", "127.0.0.1");
 		};
 	}
 }

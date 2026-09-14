@@ -84,6 +84,20 @@
 			<artifactId>json-schema-validator</artifactId>
 			<version>3.0.7</version>
 		</dependency>
+		<dependency>
+			<!--
+				AIW-143 (gates 7-12): drives a real headless Chromium directly from this JVM to
+				smoke-check a Developer execution's own generated site - self-contained (no Node/
+				npx step needed the way e2e/'s own Node-based Playwright config requires), matching
+				this backend's own Java-native tooling elsewhere. Browser binaries are a separate,
+				one-time install (`mvn -q exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI
+				-Dexec.args=install`), not managed by Maven itself - see
+				backend-ci.yml's own install step for the CI-side equivalent.
+			-->
+			<groupId>com.microsoft.playwright</groupId>
+			<artifactId>playwright</artifactId>
+			<version>1.62.0</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
