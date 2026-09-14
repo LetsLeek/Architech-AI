@@ -115,6 +115,21 @@ public class WebsiteImplementationCandidate {
 		return sourceDesignProposalLocalRef;
 	}
 
+	/**
+	 * The single opaque {@code sourceDesignRef} string the Website QA V1 contracts expect
+	 * (AIW-169) - this row itself stores the design identity as two separate fields ({@link
+	 * #getSourceDesignArtifactVersionRef()}/{@link #getSourceDesignProposalLocalRef()}, matching
+	 * how {@code WebsiteImplementationCandidatePromoter} composes a Candidate in the first place),
+	 * so this is a computed, never-stored composition of the two - {@code
+	 * "<designArtifactVersionRef>:<proposalLocalRef>"} - rather than a second, driftable copy of
+	 * the same identity. Every QA validator that compares a claimed {@code sourceDesignRef}
+	 * against a Candidate's actual design binding does so against this exact method, so the
+	 * composition rule only ever needs to change in one place.
+	 */
+	public String getSourceDesignRef() {
+		return sourceDesignArtifactVersionRef + ":" + sourceDesignProposalLocalRef;
+	}
+
 	public String getRuntimeProfileRef() {
 		return runtimeProfileRef;
 	}
