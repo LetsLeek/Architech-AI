@@ -27,7 +27,7 @@ class ProjectExecutionCapabilityTests {
 		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.TEST)).isEqualTo(List.of("npm", "run", "test"));
 		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.BUILD)).isEqualTo(List.of("npm", "run", "build"));
 		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.LOCAL_RUNTIME))
-				.isEqualTo(List.of("npm", "run", "dev"));
+				.isEqualTo(List.of("npm", "run", "dev", "--", "--host", "127.0.0.1"));
 	}
 
 	@Test

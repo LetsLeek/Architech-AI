@@ -19,20 +19,14 @@ import org.springframework.util.FileSystemUtils;
 
 /**
  * Real end-to-end proof against AIW-138's actual Development Base scaffold: real {@code npm ci},
- * real {@code tsc -b}/{@code oxlint}/{@code vitest run}/{@code vite build}, real local git.
+ * real {@code tsc -b}/{@code oxlint}/{@code vitest run}/{@code vite build}, real local git, and
+ * (gates 7-12) a real headless Chromium via {@link LocalRuntimeSmokeRunner} against the real
+ * {@code npm run dev} server.
  *
- * <p>Covers exactly the scenarios this V1 slice's own gates (1, 2, 3-6, 13, 14) can produce: a
- * real source (typecheck) failure, a real secret finding, a broken repository state being caught
- * rather than silently trusted, and a full successful run. This class does NOT cover
- * "unauthorized network request", "route/nav failure" or "responsive overflow" - {@link
- * AuthoritativeRunnerVerifier}'s own javadoc explains those gates (7-12) are out of scope for
- * this slice pending AIW-157.
- *
- * <p>Genuine {@code ERROR} classification (a process failing to even start, or timing out) is
- * not separately re-proven here: {@link AuthoritativeRunnerVerifier}'s gate wrapping is a direct
- * catch of exactly the exception types {@code core.sandbox.ProcessRunnerTests} already proves
- * {@code ProcessRunner} throws for those cases - reasoning about a straightforward catch clause
- * does not need a second, contrived real-infrastructure-breakage IT to be trustworthy.
+ * <p>Genuine {@code ERROR} classification for gates 1-6/13/14 (a process failing to even start,
+ * or timing out) is not separately re-proven here: {@link AuthoritativeRunnerVerifier}'s gate
+ * wrapping is a direct catch of exactly the exception types {@code core.sandbox.ProcessRunnerTests}
+ * already proves {@code ProcessRunner} throws for those cases.
  */
 @SpringBootTest
 class AuthoritativeRunnerVerifierIT {
@@ -59,14 +53,14 @@ class AuthoritativeRunnerVerifierIT {
 	}
 
 	@Test
-	void aCleanUnmodifiedScaffoldPassesEveryImplementedGate() {
+	void aCleanUnmodifiedScaffoldPassesAllFourteenGates() {
 		Workspace workspace = new Workspace(root);
 		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
 
-		RunnerVerificationResult result = verifier.verify(workspace, snapshot);
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
 
 		assertThat(result.passed()).as(result.gates().toString()).isTrue();
-		assertThat(result.gates()).hasSize(8);
+		assertThat(result.gates()).hasSize(14);
 		assertThat(result.gates()).allSatisfy(gate -> assertThat(gate.outcome()).isEqualTo(VerificationOutcome.PASS));
 	}
 
@@ -78,7 +72,7 @@ class AuthoritativeRunnerVerifierIT {
 		Workspace workspace = new Workspace(root);
 		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
 
-		RunnerVerificationResult result = verifier.verify(workspace, snapshot);
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
 
 		assertThat(result.outcome()).isEqualTo(VerificationOutcome.FAIL);
 		assertThat(result.gates()).last().satisfies(gate -> {
@@ -88,21 +82,92 @@ class AuthoritativeRunnerVerifierIT {
 	}
 
 	@Test
-	void aPlantedSecretFailsTheSecretScanGate() throws IOException, InterruptedException {
-		Path appFile = root.resolve("src/App.tsx");
+	void anUndeclaredGoogleFontsRequestFailsBrowserRuntimeIntegrity() throws IOException, InterruptedException {
+		Path indexHtml = root.resolve("index.html");
 		Files.writeString(
-				appFile, Files.readString(appFile) + "\nexport const leakedKey = \"AKIAABCDEFGHIJKLMNOP\";\n");
+				indexHtml,
+				Files.readString(indexHtml)
+						.replace(
+								"</head>",
+								"<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Roboto\"></head>"));
 		run(root, "git", "add", "-A");
 		Workspace workspace = new Workspace(root);
 		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
 
-		RunnerVerificationResult result = verifier.verify(workspace, snapshot);
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
+
+		assertThat(result.outcome()).as(result.gates().toString()).isEqualTo(VerificationOutcome.FAIL);
+		assertThat(result.gates()).last().satisfies(gate -> {
+			assertThat(gate.gateName()).contains("browser-runtime-integrity");
+			assertThat(gate.detail()).contains("fonts.googleapis.com");
+		});
+	}
+
+	@Test
+	void anAuthorizedExternalTargetPassesDespiteBeingExternal() throws IOException, InterruptedException {
+		Path indexHtml = root.resolve("index.html");
+		Files.writeString(
+				indexHtml,
+				Files.readString(indexHtml)
+						.replace(
+								"</head>",
+								"<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css2?family=Roboto\"></head>"));
+		run(root, "git", "add", "-A");
+		Workspace workspace = new Workspace(root);
+		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
+		List<AuthorizedExternalTarget> authorized =
+				List.of(new AuthorizedExternalTarget("fonts.googleapis.com", "stylesheet"));
+
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, authorized);
+
+		assertThat(result.passed()).as(result.gates().toString()).isTrue();
+	}
+
+	@Test
+	void aFatalConsoleErrorFailsBrowserRuntimeIntegrity() throws IOException, InterruptedException {
+		Path homePage = root.resolve("src/pages/HomePage.tsx");
+		Files.writeString(
+				homePage,
+				Files.readString(homePage)
+						.replace(
+								"return <main>Website Development Base</main>",
+								"console.error('simulated fatal runtime error')\n  return <main>Website Development Base</main>"));
+		run(root, "git", "add", "-A");
+		Workspace workspace = new Workspace(root);
+		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
+
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
 
 		assertThat(result.outcome()).isEqualTo(VerificationOutcome.FAIL);
 		assertThat(result.gates()).last().satisfies(gate -> {
-			assertThat(gate.gateName()).contains("secret-credential-scan");
-			assertThat(gate.detail()).contains("AWS_ACCESS_KEY");
+			assertThat(gate.gateName()).contains("browser-runtime-integrity");
+			assertThat(gate.detail()).contains("simulated fatal runtime error");
 		});
+	}
+
+	@Test
+	void aWideElementOverflowsOnlyTheNarrowViewportAndFailsThatResponsiveGate() throws IOException, InterruptedException {
+		Path homePage = root.resolve("src/pages/HomePage.tsx");
+		Files.writeString(
+				homePage,
+				Files.readString(homePage)
+						.replace(
+								"return <main>Website Development Base</main>",
+								"return <main style={{ width: '500px' }}>Website Development Base</main>"));
+		run(root, "git", "add", "-A");
+		Workspace workspace = new Workspace(root);
+		FrozenHandoffSnapshot snapshot = handoffFreezeGate.freeze(workspace);
+
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
+
+		assertThat(result.outcome()).isEqualTo(VerificationOutcome.FAIL);
+		assertThat(result.gates()).last().satisfies(gate -> {
+			assertThat(gate.gateName()).contains("narrow-responsive-sanity");
+			assertThat(gate.outcome()).isEqualTo(VerificationOutcome.FAIL);
+		});
+		assertThat(result.gates()).filteredOn(gate -> gate.gateName().contains("wide-responsive-sanity"))
+				.singleElement()
+				.satisfies(gate -> assertThat(gate.outcome()).isEqualTo(VerificationOutcome.PASS));
 	}
 
 	@Test
@@ -114,7 +179,7 @@ class AuthoritativeRunnerVerifierIT {
 		// gate does not just trust that nothing happened, it actually recomputes and compares.
 		FileSystemUtils.deleteRecursively(root.resolve(".git"));
 
-		RunnerVerificationResult result = verifier.verify(workspace, snapshot);
+		RunnerVerificationResult result = verifier.verify(workspace, snapshot, List.of());
 
 		assertThat(result.outcome()).isEqualTo(VerificationOutcome.FAIL);
 		assertThat(result.gates()).last().satisfies(gate -> {
