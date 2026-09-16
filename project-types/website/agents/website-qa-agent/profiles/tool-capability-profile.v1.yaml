@@ -1,0 +1,37 @@
+ref: website-qa-tools@1.0.0
+capabilities:
+  - BROWSER_AUTOMATION
+  - DOM_INSPECTION
+  - ACCESSIBILITY_TREE
+  - ACCESSIBILITY_SCANNER
+  - BROWSER_CONSOLE_INSPECTION
+  - NETWORK_INSPECTION
+  - LAYOUT_MEASUREMENT
+  - METADATA_INSPECTION
+  - PERFORMANCE_MEASUREMENT
+  - SOURCE_INSPECTION
+  - SAFE_INTEGRATION_TEST
+browser:
+  candidateSurfaceOnly: true
+sourceInspection:
+  allowed:
+    - list
+    - read
+    - search
+  readOnly: true
+network:
+  rawOutbound: false
+  allowedOnlyThroughAuthorizedCapabilities: true
+  allowlist:
+    - candidate-execution-surface
+safeIntegrationTest:
+  realSideEffects: false
+  credentialEncapsulation: true
+security:
+  unrestrictedShell: false
+  arbitraryPackageInstallation: false
+  hostFilesystem: false
+  dockerSocket: false
+  cloudCredentials: false
+  deploymentCredentials: false
+  unrestrictedOutboundNetworking: false
