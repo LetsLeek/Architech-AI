@@ -25,3 +25,10 @@ backend/src/test/java/ai/architech/backend/core/toolexecution/ToolExecutionTests
 # to this repository as generated content) to prove the secret-credential-scan gate really finds
 # it. Verified individually against the exact gitleaks JSON report before being added here.
 backend/src/test/java/ai/architech/backend/core/verification/AuthoritativeRunnerVerifierIT.java:aws-access-token:94
+
+# AIW-170: EvidenceRecordTests deliberately contains the same fake, made-up AWS-style access key
+# fixture (not a real secret - authored for this test) to prove EvidenceRecord redacts
+# secret-shaped content out of persisted Evidence content. Verified individually against the
+# exact gitleaks JSON report before being added here.
+backend/src/test/java/ai/architech/backend/core/qa/EvidenceRecordTests.java:aws-access-token:102
+backend/src/test/java/ai/architech/backend/core/qa/EvidenceRecordTests.java:aws-access-token:106
