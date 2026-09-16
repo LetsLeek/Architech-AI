@@ -4,8 +4,10 @@ import ai.architech.backend.core.artifact.Artifact;
 import ai.architech.backend.core.artifact.ArtifactRepository;
 import ai.architech.backend.core.artifact.ArtifactVersion;
 import ai.architech.backend.core.artifact.ArtifactVersionRepository;
+import ai.architech.backend.core.candidate.WebsiteImplementationCandidate;
 import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.error.ErrorCode;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -69,6 +71,54 @@ public class DeveloperExecutionInputAssembler {
 		return assemble(projectId, targetProposalLocalRef, developmentBaseRef, maxCorrectionCycles, null);
 	}
 
+	/**
+	 * AIW-180's {@code QA_REMEDIATION} shape - the one meaningful difference from {@link #assemble}
+	 * is {@code targetDesign}/{@code technicalContext}: those come from {@code sourceCandidate}'s
+	 * own exact {@code sourceDesignArtifactVersionRef}/{@code sourceDesignProposalLocalRef}/{@code
+	 * runtimeProfileRef} - never "latest" and never another variant - satisfying "Start from the
+	 * exact source Candidate state" and "Product Authority, Source Design and Variant Lineage
+	 * remain stable for normal remediation." {@code canonicalUpstream} (Customer Profile/Website
+	 * Requirements) still resolves to the project's current canonical artifacts, same as {@link
+	 * #assemble} - {@code WebsiteImplementationCandidate} does not itself track which exact
+	 * upstream artifact versions its own originating execution used (no such field exists,
+	 * AIW-145), so full byte-exact upstream stability across a remediation cycle is not yet
+	 * something this codebase can verify; a real gap, not silently worked around.
+	 */
+	public String assembleForRemediation(
+			UUID projectId,
+			WebsiteImplementationCandidate sourceCandidate,
+			String sourceQaResultRef,
+			List<String> authorizedFindingRefs,
+			List<String> relevantEvidenceRefs,
+			String developmentBaseRef,
+			int maxCorrectionCycles) {
+		ArtifactVersion customerProfile = latestVersion(projectId, CUSTOMER_PROFILE_TYPE);
+		ArtifactVersion websiteRequirements = latestVersion(projectId, WEBSITE_REQUIREMENTS_TYPE);
+
+		UUID designArtifactVersionId = UUID.fromString(sourceCandidate.getSourceDesignArtifactVersionRef());
+		ArtifactVersion proposalSet = artifactVersionRepository
+				.findById(designArtifactVersionId)
+				.orElseThrow(() -> new ApplicationException(
+						ErrorCode.CANONICAL_ARTIFACT_NOT_FOUND,
+						"Source Candidate's own design artifact version " + designArtifactVersionId + " no longer exists"));
+		JsonNode proposalSetContent = objectMapper.readTree(proposalSet.getContent());
+		JsonNode targetProposal =
+				findProposal(proposalSetContent, sourceCandidate.getSourceDesignProposalLocalRef(), proposalSet.getArtifactId());
+
+		ObjectNode root = objectMapper.createObjectNode();
+		root.set("projectContext", remediationProjectContext(projectId));
+		root.set("canonicalUpstream", canonicalUpstream(customerProfile, websiteRequirements));
+		root.set("targetDesign", targetDesign(proposalSet, sourceCandidate.getSourceDesignProposalLocalRef(), targetProposal));
+		root.set("technicalContext", technicalContextFromCandidate(sourceCandidate, developmentBaseRef));
+		root.set("integrationContext", integrationContext());
+		root.set("executionContext", executionContext(maxCorrectionCycles, null));
+		root.set(
+				"remediationContext",
+				remediationContext(sourceCandidate, sourceQaResultRef, authorizedFindingRefs, relevantEvidenceRefs));
+
+		return objectMapper.writeValueAsString(root);
+	}
+
 	public String assemble(
 			UUID projectId,
 			String targetProposalLocalRef,
@@ -98,6 +148,44 @@ public class DeveloperExecutionInputAssembler {
 		node.put("projectRef", projectId.toString());
 		node.put("projectType", "WEBSITE");
 		node.put("operation", "INITIAL_GENERATION");
+		return node;
+	}
+
+	private ObjectNode remediationProjectContext(UUID projectId) {
+		ObjectNode node = objectMapper.createObjectNode();
+		node.put("projectRef", projectId.toString());
+		node.put("projectType", "WEBSITE");
+		node.put("operation", "QA_REMEDIATION");
+		return node;
+	}
+
+	private ObjectNode technicalContextFromCandidate(WebsiteImplementationCandidate sourceCandidate, String developmentBaseRef) {
+		ObjectNode node = objectMapper.createObjectNode();
+		node.put("runtimeProfileRef", sourceCandidate.getRuntimeProfileRef());
+		node.put("developmentBaseRef", developmentBaseRef);
+		node.put("dependencyPolicyRef", DEPENDENCY_POLICY_REF);
+		node.put("verificationPolicyRef", VERIFICATION_POLICY_REF);
+		node.put("toolCapabilityProfileRef", TOOL_CAPABILITY_PROFILE_REF);
+		return node;
+	}
+
+	private ObjectNode remediationContext(
+			WebsiteImplementationCandidate sourceCandidate,
+			String sourceQaResultRef,
+			List<String> authorizedFindingRefs,
+			List<String> relevantEvidenceRefs) {
+		ObjectNode node = objectMapper.createObjectNode();
+		node.put("sourceCandidateRef", sourceCandidate.getId().toString());
+		node.put("sourceRepositoryStateRef", sourceCandidate.getRepositoryStateRef());
+		node.put("sourceQAResultRef", sourceQaResultRef);
+		ArrayNode findingRefs = objectMapper.createArrayNode();
+		authorizedFindingRefs.forEach(findingRefs::add);
+		node.set("authorizedFindingRefs", findingRefs);
+		ArrayNode evidenceRefs = objectMapper.createArrayNode();
+		if (relevantEvidenceRefs != null) {
+			relevantEvidenceRefs.forEach(evidenceRefs::add);
+		}
+		node.set("relevantEvidenceRefs", evidenceRefs);
 		return node;
 	}
 
