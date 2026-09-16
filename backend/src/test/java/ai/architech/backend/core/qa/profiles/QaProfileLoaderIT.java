@@ -3,6 +3,8 @@ package ai.architech.backend.core.qa.profiles;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ai.architech.backend.core.qa.invariants.QaSeverity;
+import ai.architech.backend.core.qa.policy.PolicyDisposition;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -79,6 +81,34 @@ class QaProfileLoaderIT {
 		assertThat(comparison.preconditionChecks()).containsExactlyInAnyOrder(
 				"CANDIDATE_VERIFICATION_PROVENANCE", "CANDIDATE_SOURCE_IDENTITY",
 				"EXECUTION_SURFACE_CANDIDATE_BINDING", "AUTHORITY_REFERENCE_INTEGRITY");
+	}
+
+	@Test
+	void fullReleaseDeclaresItsOwnExplicitCodeRulesSeverityDefaultsAndRequirementPolicy() {
+		QaProfile fullRelease = loader.resolve("website-qa-full-release@1.0.0");
+
+		assertThat(fullRelease.findingDispositionPolicy().explicitCodeRules())
+				.containsEntry("CONTENT_PLACEHOLDER_LEAK", PolicyDisposition.BLOCK)
+				.containsEntry("SEO_REQUIRED_TITLE_MISSING", PolicyDisposition.BLOCK);
+		assertThat(fullRelease.findingDispositionPolicy().severityDefaults())
+				.containsEntry(QaSeverity.CRITICAL, PolicyDisposition.BLOCK)
+				.containsEntry(QaSeverity.MAJOR, PolicyDisposition.BLOCK)
+				.containsEntry(QaSeverity.MINOR, PolicyDisposition.ALLOW);
+		assertThat(fullRelease.requirementPolicy()).isPresent();
+		assertThat(fullRelease.requirementPolicy().get().materiallyUnfulfilledMust()).isEqualTo(PolicyDisposition.BLOCK);
+		assertThat(fullRelease.authorityIssuePolicy().gateRelevantIssueDisposition()).isEqualTo(PolicyDisposition.ESCALATE);
+		assertThat(fullRelease.evaluationIssuePolicy().requiredEvaluationDisposition()).isEqualTo(PolicyDisposition.ESCALATE);
+	}
+
+	@Test
+	void comparisonReadinessDeclaresNoExplicitCodeRulesAndNoRequirementPolicy() {
+		QaProfile comparison = loader.resolve("website-qa-comparison-readiness@1.0.0");
+
+		assertThat(comparison.findingDispositionPolicy().explicitCodeRules()).isEmpty();
+		assertThat(comparison.findingDispositionPolicy().severityDefaults())
+				.containsEntry(QaSeverity.MAJOR, PolicyDisposition.BLOCK)
+				.containsEntry(QaSeverity.MINOR, PolicyDisposition.ALLOW);
+		assertThat(comparison.requirementPolicy()).isEmpty();
 	}
 
 	@Test
