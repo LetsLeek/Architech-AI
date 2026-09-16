@@ -2,6 +2,7 @@ package ai.architech.backend.core.qa.profiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ai.architech.backend.core.qa.policy.PolicyDisposition;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -112,7 +113,10 @@ class QaDomainApplicabilityResolverTests {
 	}
 
 	private QaProfile profileWith(QaDomainDefinition... domains) {
-		return new QaProfile("test-profile@1.0.0", QaProfileType.FULL_RELEASE, List.of(), List.of(), List.of(domains));
+		return new QaProfile(
+				"test-profile@1.0.0", QaProfileType.FULL_RELEASE, List.of(), List.of(), List.of(domains),
+				new FindingDispositionPolicy(Map.of(), Map.of()), java.util.Optional.empty(),
+				new AuthorityIssuePolicy(PolicyDisposition.ESCALATE), new EvaluationIssuePolicy(PolicyDisposition.ESCALATE));
 	}
 
 	private ProductAuthorityContext emptyContext() {

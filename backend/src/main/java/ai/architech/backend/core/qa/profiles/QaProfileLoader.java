@@ -1,10 +1,13 @@
 package ai.architech.backend.core.qa.profiles;
 
+import ai.architech.backend.core.qa.invariants.QaSeverity;
+import ai.architech.backend.core.qa.policy.PolicyDisposition;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.stereotype.Component;
@@ -80,10 +83,41 @@ public class QaProfileLoader {
 					.map(entry -> toDomainDefinition(entry.getKey(), (Map<String, Object>) entry.getValue()))
 					.toList();
 
-			return new QaProfile(ref, profileType, viewports, preconditionChecks, domains);
+			FindingDispositionPolicy findingDispositionPolicy = toFindingDispositionPolicy(requireMap(raw, "findingDispositionPolicy"));
+			Optional<RequirementPolicy> requirementPolicy = raw.containsKey("requirementPolicy")
+					? Optional.of(toRequirementPolicy(requireMap(raw, "requirementPolicy")))
+					: Optional.empty();
+			AuthorityIssuePolicy authorityIssuePolicy = new AuthorityIssuePolicy(
+					PolicyDisposition.valueOf((String) requireField(requireMap(raw, "authorityIssuePolicy"), "gateRelevantIssueDisposition")));
+			EvaluationIssuePolicy evaluationIssuePolicy = new EvaluationIssuePolicy(
+					PolicyDisposition.valueOf((String) requireField(requireMap(raw, "evaluationIssuePolicy"), "requiredEvaluationDisposition")));
+
+			return new QaProfile(
+					ref, profileType, viewports, preconditionChecks, domains,
+					findingDispositionPolicy, requirementPolicy, authorityIssuePolicy, evaluationIssuePolicy);
 		} catch (RuntimeException e) {
 			throw new InvalidQaProfileException(resource, "Malformed QA profile", e);
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private FindingDispositionPolicy toFindingDispositionPolicy(Map<String, Object> raw) {
+		Map<String, Object> explicitCodeRulesRaw = (Map<String, Object>) raw.getOrDefault("explicitCodeRules", Map.of());
+		Map<String, PolicyDisposition> explicitCodeRules = explicitCodeRulesRaw.entrySet().stream()
+				.collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> PolicyDisposition.valueOf((String) e.getValue())));
+
+		Map<String, Object> severityDefaultsRaw = requireMap(raw, "severityDefaults");
+		Map<QaSeverity, PolicyDisposition> severityDefaults = severityDefaultsRaw.entrySet().stream()
+				.collect(java.util.stream.Collectors.toMap(
+						e -> QaSeverity.valueOf(e.getKey()), e -> PolicyDisposition.valueOf((String) e.getValue())));
+
+		return new FindingDispositionPolicy(explicitCodeRules, severityDefaults);
+	}
+
+	private RequirementPolicy toRequirementPolicy(Map<String, Object> raw) {
+		return new RequirementPolicy(
+				PolicyDisposition.valueOf((String) requireField(raw, "materiallyUnfulfilledMust")),
+				(Boolean) raw.getOrDefault("absentCouldWithoutDefectiveImplementationCreateFinding", Boolean.FALSE));
 	}
 
 	@SuppressWarnings("unchecked")

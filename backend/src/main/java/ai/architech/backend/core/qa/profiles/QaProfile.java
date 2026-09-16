@@ -17,7 +17,11 @@ public record QaProfile(
 		QaProfileType profileType,
 		List<QaViewport> viewports,
 		List<String> preconditionChecks,
-		List<QaDomainDefinition> domains) {
+		List<QaDomainDefinition> domains,
+		FindingDispositionPolicy findingDispositionPolicy,
+		Optional<RequirementPolicy> requirementPolicy,
+		AuthorityIssuePolicy authorityIssuePolicy,
+		EvaluationIssuePolicy evaluationIssuePolicy) {
 
 	public Optional<QaDomainDefinition> domain(String domainName) {
 		return domains.stream().filter(d -> d.domain().equals(domainName)).findFirst();
