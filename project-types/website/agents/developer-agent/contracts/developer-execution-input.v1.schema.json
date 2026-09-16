@@ -29,7 +29,10 @@
           "const": "WEBSITE"
         },
         "operation": {
-          "const": "INITIAL_GENERATION"
+          "enum": [
+            "INITIAL_GENERATION",
+            "QA_REMEDIATION"
+          ]
         }
       }
     },
@@ -197,6 +200,77 @@
           }
         }
       }
+    },
+    "remediationContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceCandidateRef",
+        "sourceRepositoryStateRef",
+        "sourceQAResultRef",
+        "authorizedFindingRefs"
+      ],
+      "properties": {
+        "sourceCandidateRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "sourceRepositoryStateRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "sourceQAResultRef": {
+          "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+        },
+        "authorizedFindingRefs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+          }
+        },
+        "relevantEvidenceRefs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:aiw:schema:developer-common:v1#/$defs/OpaqueRef"
+          }
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "projectContext": {
+            "properties": {
+              "operation": {
+                "const": "QA_REMEDIATION"
+              }
+            },
+            "required": [
+              "operation"
+            ]
+          }
+        },
+        "required": [
+          "projectContext"
+        ]
+      },
+      "then": {
+        "required": [
+          "remediationContext"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "remediationContext"
+          ]
+        }
+      }
+    }
+  ]
 }

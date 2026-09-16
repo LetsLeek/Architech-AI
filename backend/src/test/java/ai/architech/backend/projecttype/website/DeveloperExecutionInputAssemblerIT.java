@@ -9,11 +9,14 @@ import ai.architech.backend.core.artifact.Artifact;
 import ai.architech.backend.core.artifact.ArtifactRepository;
 import ai.architech.backend.core.artifact.ArtifactVersion;
 import ai.architech.backend.core.artifact.ArtifactVersionRepository;
+import ai.architech.backend.core.candidate.WebsiteImplementationCandidate;
+import ai.architech.backend.core.candidate.WebsiteImplementationCandidateRepository;
 import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.project.Project;
 import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.validation.DeveloperExecutionInputValidator;
 import ai.architech.backend.core.validation.PreExecutionValidationResult;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,6 +115,9 @@ class DeveloperExecutionInputAssemblerIT {
 	private AgentExecutionRepository agentExecutionRepository;
 
 	@Autowired
+	private WebsiteImplementationCandidateRepository candidateRepository;
+
+	@Autowired
 	private DeveloperExecutionInputAssembler assembler;
 
 	@Autowired
@@ -184,6 +190,69 @@ class DeveloperExecutionInputAssemblerIT {
 				.isInstanceOf(IllegalArgumentException.class);
 	}
 
+	@Test
+	void assembledRemediationInputPassesTheRealPreExecutionValidator() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		persistArtifactVersion(project.getId(), "customer-profile", CUSTOMER_PROFILE);
+		persistArtifactVersion(project.getId(), "website-requirements", WEBSITE_REQUIREMENTS);
+		ArtifactVersion designVersion = persistArtifactVersion(project.getId(), "design-proposal-set", PROPOSAL_SET_JSON);
+		WebsiteImplementationCandidate candidate = seedCandidate(project.getId(), designVersion, "prop-a");
+
+		String assembled = assembler.assembleForRemediation(
+				project.getId(), candidate, UUID.randomUUID().toString(), List.of(UUID.randomUUID().toString()), List.of(),
+				"commit-sha-fixture", 3);
+
+		PreExecutionValidationResult result = validator.validate(project.getId(), assembled);
+		assertThat(result.valid()).as(result.issues().toString()).isTrue();
+	}
+
+	@Test
+	void remediationSetsTheQaRemediationOperationAndEmbedsTheRemediationContext() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		persistArtifactVersion(project.getId(), "customer-profile", CUSTOMER_PROFILE);
+		persistArtifactVersion(project.getId(), "website-requirements", WEBSITE_REQUIREMENTS);
+		ArtifactVersion designVersion = persistArtifactVersion(project.getId(), "design-proposal-set", PROPOSAL_SET_JSON);
+		WebsiteImplementationCandidate candidate = seedCandidate(project.getId(), designVersion, "prop-b");
+		String findingRef = UUID.randomUUID().toString();
+		String qaResultRef = UUID.randomUUID().toString();
+
+		String assembled = assembler.assembleForRemediation(
+				project.getId(), candidate, qaResultRef, List.of(findingRef), List.of("evidence-1"), "commit-sha-fixture", 3);
+		JsonNode input = objectMapper.readTree(assembled);
+
+		assertThat(input.path("projectContext").path("operation").asString()).isEqualTo("QA_REMEDIATION");
+		assertThat(input.path("targetDesign").path("proposal").path("localRef").asString()).isEqualTo("prop-b");
+		assertThat(input.path("remediationContext").path("sourceCandidateRef").asString()).isEqualTo(candidate.getId().toString());
+		assertThat(input.path("remediationContext").path("sourceRepositoryStateRef").asString())
+				.isEqualTo(candidate.getRepositoryStateRef());
+		assertThat(input.path("remediationContext").path("sourceQAResultRef").asString()).isEqualTo(qaResultRef);
+		assertThat(input.path("remediationContext").path("authorizedFindingRefs").get(0).asString()).isEqualTo(findingRef);
+		assertThat(input.path("remediationContext").path("relevantEvidenceRefs").get(0).asString()).isEqualTo("evidence-1");
+	}
+
+	@Test
+	void remediationUsesTheSourceCandidatesOwnDesignBindingNeverANewerArtifactVersion() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		persistArtifactVersion(project.getId(), "customer-profile", CUSTOMER_PROFILE);
+		persistArtifactVersion(project.getId(), "website-requirements", WEBSITE_REQUIREMENTS);
+		ArtifactVersion originalDesignVersion = persistArtifactVersion(project.getId(), "design-proposal-set", PROPOSAL_SET_JSON);
+		WebsiteImplementationCandidate candidate = seedCandidate(project.getId(), originalDesignVersion, "prop-c");
+
+		// A later, newer design-proposal-set version now exists for the project (e.g. a fresh
+		// regeneration) - remediation must still bind to the Candidate's own original version.
+		Artifact designArtifact = artifactRepository.findByProjectIdAndType(project.getId(), "design-proposal-set").orElseThrow();
+		artifactVersionRepository.saveAndFlush(new ArtifactVersion(
+				designArtifact.getId(), 2, agentExecutionRepository.saveAndFlush(new AgentExecution(project.getId(), "designer-agent", 2)).getId(),
+				PROPOSAL_SET_JSON.replace("prop-a", "prop-x")));
+
+		String assembled = assembler.assembleForRemediation(
+				project.getId(), candidate, UUID.randomUUID().toString(), List.of(UUID.randomUUID().toString()), List.of(),
+				"commit-sha-fixture", 3);
+		JsonNode input = objectMapper.readTree(assembled);
+
+		assertThat(input.path("targetDesign").path("designArtifactVersionRef").asString()).isEqualTo(originalDesignVersion.getId().toString());
+	}
+
 	private UUID seedProject() {
 		Project project = projectRepository.saveAndFlush(new Project("website"));
 		persistArtifactVersion(project.getId(), "customer-profile", CUSTOMER_PROFILE);
@@ -192,9 +261,27 @@ class DeveloperExecutionInputAssemblerIT {
 		return project.getId();
 	}
 
-	private void persistArtifactVersion(UUID projectId, String type, String content) {
+	private ArtifactVersion persistArtifactVersion(UUID projectId, String type, String content) {
 		Artifact artifact = artifactRepository.saveAndFlush(new Artifact(projectId, type));
 		AgentExecution execution = agentExecutionRepository.saveAndFlush(new AgentExecution(projectId, "requirements-agent", 1));
-		artifactVersionRepository.saveAndFlush(new ArtifactVersion(artifact.getId(), 1, execution.getId(), content));
+		return artifactVersionRepository.saveAndFlush(new ArtifactVersion(artifact.getId(), 1, execution.getId(), content));
+	}
+
+	private WebsiteImplementationCandidate seedCandidate(UUID projectId, ArtifactVersion designArtifactVersion, String proposalLocalRef) {
+		AgentExecution developerExecution = new AgentExecution(projectId, "developer-agent", 1);
+		developerExecution.start();
+		developerExecution.succeed();
+		agentExecutionRepository.saveAndFlush(developerExecution);
+		return candidateRepository.saveAndFlush(new WebsiteImplementationCandidate(
+				projectId,
+				developerExecution.getId(),
+				designArtifactVersion.getId().toString(),
+				proposalLocalRef,
+				"runtime-profile-fixture",
+				"snapshot-hash-" + UUID.randomUUID(),
+				"summary",
+				"[]",
+				"[]",
+				"[]"));
 	}
 }
