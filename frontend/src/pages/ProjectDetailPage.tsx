@@ -4,6 +4,7 @@ import { errorMessage } from '../api/http'
 import { getProject, type Project } from '../api/projects'
 import CustomerProfileView from '../components/CustomerProfileView'
 import DesignProposalGenerationSection from '../components/DesignProposalGenerationSection'
+import DesignProposalSetView from '../components/DesignProposalSetView'
 import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
 import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
@@ -21,6 +22,7 @@ function ProjectDetailPage() {
   const [structuredCount, setStructuredCount] = useState(0)
   const [fileCount, setFileCount] = useState(0)
   const [profileRefreshKey, setProfileRefreshKey] = useState(0)
+  const [designsRefreshKey, setDesignsRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!projectId) {
@@ -88,7 +90,12 @@ function ProjectDetailPage() {
       <CustomerProfileView projectId={project.id} refreshKey={profileRefreshKey} />
       <WebsiteRequirementsView projectId={project.id} refreshKey={profileRefreshKey} />
 
-      <DesignProposalGenerationSection projectId={project.id} />
+      <DesignProposalGenerationSection
+        projectId={project.id}
+        onSucceeded={() => setDesignsRefreshKey((key) => key + 1)}
+        onViewDesigns={() => document.getElementById('design-proposal-set-view')?.scrollIntoView({ behavior: 'smooth' })}
+      />
+      <DesignProposalSetView projectId={project.id} refreshKey={designsRefreshKey} />
     </section>
   )
 }

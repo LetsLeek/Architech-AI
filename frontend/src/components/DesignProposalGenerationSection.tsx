@@ -23,9 +23,10 @@ type ActionState =
 interface DesignProposalGenerationSectionProps {
   projectId: string
   onViewDesigns?: () => void
+  onSucceeded?: () => void
 }
 
-function DesignProposalGenerationSection({ projectId, onViewDesigns }: DesignProposalGenerationSectionProps) {
+function DesignProposalGenerationSection({ projectId, onViewDesigns, onSucceeded }: DesignProposalGenerationSectionProps) {
   const [readiness, setReadiness] = useState<DesignerReadiness | null>(null)
   const [readinessError, setReadinessError] = useState<string | null>(null)
   const [action, setAction] = useState<ActionState>({ kind: 'idle' })
@@ -77,6 +78,7 @@ function DesignProposalGenerationSection({ projectId, onViewDesigns }: DesignPro
         // The generation just produced (or replaced) the canonical design-proposal-set - load
         // the now-current persisted state rather than assuming what it looks like.
         await refreshReadiness()
+        onSucceeded?.()
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 502) {
@@ -141,7 +143,7 @@ function DesignProposalGenerationSection({ projectId, onViewDesigns }: DesignPro
           <button type="button" onClick={() => onViewDesigns?.()}>
             Designs ansehen
           </button>
-          <button type="button" onClick={() => setAction({ kind: 'confirm-regeneration' })} disabled={blocked}>
+          <button type="button" onClick={() => setAction({ kind: 'confirm-regeneration' })} disabled={!readiness.ready || blocked}>
             Designs neu generieren
           </button>
         </>
