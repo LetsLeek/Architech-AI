@@ -16,7 +16,7 @@ permissions:
 jobs:
   e2e:
     name: Playwright E2E
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # AIW-99: observed ~100s at time of writing, but this job installs a Chromium download
     # each run - a slow/rate-limited download shouldn't be able to hang the job past a
     # reasonable bound.
@@ -29,8 +29,12 @@ jobs:
           POSTGRES_DB: architech
           POSTGRES_USER: architech
           POSTGRES_PASSWORD: architech
+        # No fixed host port: a self-hosted runner is a persistent, possibly-shared machine
+        # (unlike a fresh ubuntu-latest VM every time) - a hardcoded "5432:5432" collides with
+        # any Postgres already running on the host. Publishing only the container port lets
+        # Docker pick a free host port, resolved below via the job.services context.
         ports:
-          - 5432:5432
+          - 5432
         options: >-
           --health-cmd "pg_isready -U architech -d architech"
           --health-interval 5s
@@ -38,12 +42,18 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/architech
       SPRING_DATASOURCE_USERNAME: architech
       SPRING_DATASOURCE_PASSWORD: architech
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve dynamic Postgres host port
+        # The job.services.*.ports context is only available inside a step, not in a job-level
+        # env: block (a job-level env: referencing it made GitHub reject the whole workflow file
+        # at parse time, confirmed on the real self-hosted runner - zero jobs ever ran). Writing
+        # to GITHUB_ENV here makes SPRING_DATASOURCE_URL available to every later step instead.
+        run: echo "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -73,8 +83,12 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
+        # Deliberately omits --with-deps: that flag shells out to apt-get, which assumes a
+        # Debian/Ubuntu base - since runs-on switched to self-hosted (any OS/distro), that
+        # assumption no longer holds. A self-hosted runner operator's own machine is responsible
+        # for already having whatever shared libraries Chromium needs to launch.
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run Playwright tests
         working-directory: e2e
@@ -99,7 +113,7 @@ jobs:
 
   visual-regression:
     name: Visual Regression
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     # AIW-102: deliberately NOT added to develop's required status checks - visual diffs are
     # inherently more prone to environment-driven flakiness than the other gates even with
@@ -114,8 +128,12 @@ jobs:
           POSTGRES_DB: architech
           POSTGRES_USER: architech
           POSTGRES_PASSWORD: architech
+        # No fixed host port: a self-hosted runner is a persistent, possibly-shared machine
+        # (unlike a fresh ubuntu-latest VM every time) - a hardcoded "5432:5432" collides with
+        # any Postgres already running on the host. Publishing only the container port lets
+        # Docker pick a free host port, resolved below via the job.services context.
         ports:
-          - 5432:5432
+          - 5432
         options: >-
           --health-cmd "pg_isready -U architech -d architech"
           --health-interval 5s
@@ -123,12 +141,18 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/architech
       SPRING_DATASOURCE_USERNAME: architech
       SPRING_DATASOURCE_PASSWORD: architech
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve dynamic Postgres host port
+        # The job.services.*.ports context is only available inside a step, not in a job-level
+        # env: block (a job-level env: referencing it made GitHub reject the whole workflow file
+        # at parse time, confirmed on the real self-hosted runner - zero jobs ever ran). Writing
+        # to GITHUB_ENV here makes SPRING_DATASOURCE_URL available to every later step instead.
+        run: echo "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -156,11 +180,16 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        # `--with-deps` installs the same OS font/rendering package set the official Playwright
-        # Docker image bundles for this Ubuntu version - baselines were generated inside that
-        # image locally (see e2e/README.md) specifically so they'd match this environment.
+        # `--with-deps` used to install the same OS font/rendering package set the official
+        # Playwright Docker image bundles for Ubuntu, matching how the e2e/README.md baselines
+        # were generated - but that flag shells out to apt-get, which no longer holds now that
+        # runs-on is self-hosted (any OS/distro). Dropping it avoids the hard crash on a non-
+        # Debian runner, but means font/rendering packages here may now differ from whatever
+        # generated the current baselines - if this job starts failing on rendering-only diffs
+        # (not real regressions), the baselines likely need regenerating against this runner's
+        # own environment rather than the Ubuntu-based Playwright Docker image.
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run visual regression tests
         working-directory: e2e
