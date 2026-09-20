@@ -18,7 +18,7 @@ permissions:
 jobs:
   test:
     name: Backend tests
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # AIW-99: observed ~75s at time of writing - generous multiple so real CI variance (cold
     # runner, dependency-download hiccups) doesn't cause a flaky timeout, while still failing
     # clearly well before GitHub's 360-minute default would let a genuinely hung job sit there.
@@ -99,7 +99,7 @@ jobs:
 
   docker-build:
     name: Backend Docker image
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     # AIW-101: job-level permissions replace the workflow-level default for this job, not add
     # to it - contents: read is restated alongside the two new scopes attestations need.
@@ -270,7 +270,7 @@ jobs:
     # own push step has the same gate, so `needs` alone isn't enough to guarantee the tag
     # exists).
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 15
     permissions:
       contents: read

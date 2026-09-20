@@ -27,7 +27,7 @@ env:
 jobs:
   trivy:
     name: Dependency scan (Trivy)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 8
 
     steps:

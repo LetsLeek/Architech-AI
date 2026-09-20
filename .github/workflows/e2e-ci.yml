@@ -16,7 +16,7 @@ permissions:
 jobs:
   e2e:
     name: Playwright E2E
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     # AIW-99: observed ~100s at time of writing, but this job installs a Chromium download
     # each run - a slow/rate-limited download shouldn't be able to hang the job past a
     # reasonable bound.
@@ -99,7 +99,7 @@ jobs:
 
   visual-regression:
     name: Visual Regression
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 10
     # AIW-102: deliberately NOT added to develop's required status checks - visual diffs are
     # inherently more prone to environment-driven flakiness than the other gates even with
