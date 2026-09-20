@@ -38,15 +38,22 @@ jobs:
       - name: Install Playwright browser (Chromium)
         # AIW-143's gates 7-12 drive a real headless Chromium directly from the backend JVM
         # (com.microsoft.playwright:playwright) - the browser binary is a separate download this
-        # runner doesn't have by default. --with-deps also installs the OS-level libraries
-        # Chromium needs on a bare ubuntu-latest runner (sudo apt, handled internally by the
-        # installer). Uses the exec-maven-plugin goal directly (no plugin declaration needed in
-        # pom.xml) purely to get a resolved classpath onto java's -cp for the CLI main class.
+        # runner doesn't have by default. Uses the exec-maven-plugin goal directly (no plugin
+        # declaration needed in pom.xml) purely to get a resolved classpath onto java's -cp for
+        # the CLI main class.
+        #
+        # Deliberately omits --with-deps: that flag shells out to apt-get, which assumes a
+        # Debian/Ubuntu base - since runs-on switched to self-hosted (self-hosted runners can be
+        # any OS/distro, e.g. Arch), that assumption no longer holds and the install step fails
+        # outright with "apt-get: command not found" on anything else. A self-hosted runner
+        # operator's own machine is responsible for already having whatever shared libraries
+        # Chromium needs to launch - true by construction for any machine that already runs a
+        # graphical browser, which every runner host used so far does.
         working-directory: backend
         run: >
           ./mvnw --batch-mode --no-transfer-progress
           org.codehaus.mojo:exec-maven-plugin:3.1.0:java
-          -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
+          -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chromium"
 
       - name: Build, test and check coverage
         working-directory: backend

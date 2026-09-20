@@ -73,8 +73,12 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
+        # Deliberately omits --with-deps: that flag shells out to apt-get, which assumes a
+        # Debian/Ubuntu base - since runs-on switched to self-hosted (any OS/distro), that
+        # assumption no longer holds. A self-hosted runner operator's own machine is responsible
+        # for already having whatever shared libraries Chromium needs to launch.
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run Playwright tests
         working-directory: e2e
@@ -156,11 +160,16 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        # `--with-deps` installs the same OS font/rendering package set the official Playwright
-        # Docker image bundles for this Ubuntu version - baselines were generated inside that
-        # image locally (see e2e/README.md) specifically so they'd match this environment.
+        # `--with-deps` used to install the same OS font/rendering package set the official
+        # Playwright Docker image bundles for Ubuntu, matching how the e2e/README.md baselines
+        # were generated - but that flag shells out to apt-get, which no longer holds now that
+        # runs-on is self-hosted (any OS/distro). Dropping it avoids the hard crash on a non-
+        # Debian runner, but means font/rendering packages here may now differ from whatever
+        # generated the current baselines - if this job starts failing on rendering-only diffs
+        # (not real regressions), the baselines likely need regenerating against this runner's
+        # own environment rather than the Ubuntu-based Playwright Docker image.
         working-directory: e2e
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install chromium
 
       - name: Run visual regression tests
         working-directory: e2e
