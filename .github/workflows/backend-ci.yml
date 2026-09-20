@@ -134,11 +134,15 @@ jobs:
         # AIW-96: scans this exact just-built image (by tag, before anything could push or
         # retag it) - same pinned, checksum-verified install pattern as AIW-94's filesystem
         # scan; Trivy's vulnerability DB is downloaded fresh at scan time either way.
+        #
+        # Installs to $RUNNER_TEMP (always writable, no sudo needed) rather than
+        # /usr/local/bin - see dependency-scan-ci.yml's identical fix for why.
         run: |
           curl -sfL -o trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
           tar xzf trivy.tar.gz trivy
-          sudo mv trivy /usr/local/bin/
+          mv trivy "$RUNNER_TEMP/trivy"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
           rm trivy.tar.gz
 
       - name: Full image scan (report, never blocks)
