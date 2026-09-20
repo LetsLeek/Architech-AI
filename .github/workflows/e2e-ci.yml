@@ -42,12 +42,18 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech
       SPRING_DATASOURCE_USERNAME: architech
       SPRING_DATASOURCE_PASSWORD: architech
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve dynamic Postgres host port
+        # The job.services.*.ports context is only available inside a step, not in a job-level
+        # env: block (a job-level env: referencing it made GitHub reject the whole workflow file
+        # at parse time, confirmed on the real self-hosted runner - zero jobs ever ran). Writing
+        # to GITHUB_ENV here makes SPRING_DATASOURCE_URL available to every later step instead.
+        run: echo "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
@@ -135,12 +141,18 @@ jobs:
           --health-retries 10
 
     env:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech
       SPRING_DATASOURCE_USERNAME: architech
       SPRING_DATASOURCE_PASSWORD: architech
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Resolve dynamic Postgres host port
+        # The job.services.*.ports context is only available inside a step, not in a job-level
+        # env: block (a job-level env: referencing it made GitHub reject the whole workflow file
+        # at parse time, confirmed on the real self-hosted runner - zero jobs ever ran). Writing
+        # to GITHUB_ENV here makes SPRING_DATASOURCE_URL available to every later step instead.
+        run: echo "SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:${{ job.services.postgres.ports['5432'] }}/architech" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
