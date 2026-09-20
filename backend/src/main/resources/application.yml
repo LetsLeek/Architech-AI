@@ -99,6 +99,13 @@ architech:
       # decides these, never the Developer Agent or a single sibling execution.
       max-correction-cycles-per-sibling: 2
       max-sibling-retries: 2
+    tool-loop:
+      # Platform-owned bounds for the multi-turn tool-calling loop (AIW-184) - never the
+      # Developer Agent's own decision. max-turns bounds model round-trips within one execution;
+      # max-tool-calls separately bounds the total number of individual tool calls dispatched
+      # across every turn.
+      max-turns: 20
+      max-tool-calls: 40
 
 management:
   endpoints:
