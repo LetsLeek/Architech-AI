@@ -1,0 +1,22 @@
+# OWASP ZAP baseline scan rule classification (AIW-97)
+#
+# Format: <ZAP rule ID>\t<action>\t(url)
+#   action is one of: IGNORE, WARN, FAIL, INFO
+#   Any rule ID NOT listed here defaults to WARN (ZAP's own baseline-scan default) - visible in
+#   the report/job summary, never blocks the workflow (the workflow itself is also run with
+#   `-I`, ignore-warnings-for-exit-code, during this initial tuning period - see
+#   docs/operations/dast-scanning.md).
+#
+# No findings have been triaged yet - nothing has actually run against a real STAGING deployment
+# during this build (see docs/operations/dast-scanning.md's own "Status" section). This file is
+# where that triage gets recorded once it happens: a rule ID that produces a confirmed false
+# positive (or an accepted, documented risk) gets an explicit IGNORE line with a comment
+# explaining why; a rule ID confirmed to be a real, high-confidence severe finding that should
+# block PROD promotion gets an explicit FAIL line - per this ticket's own AC ("known acceptable
+# findings are explicitly documented rather than globally ignored", "high-confidence severe
+# findings block production promotion ... after an initial tuning period").
+#
+# Example of what a tuned entry looks like once real triage happens (commented out - not a real
+# finding, just the format):
+# 10021	IGNORE	Accepted: X-Content-Type-Options missing on the SPA's static asset host, not this API - tracked in AIW-XXX
+# 40012	FAIL	Confirmed real XSS risk in <route> - triaged 2026-XX-XX, see AIW-XXX
