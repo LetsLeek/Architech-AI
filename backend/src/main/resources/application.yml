@@ -106,6 +106,12 @@ architech:
       # across every turn.
       max-turns: 20
       max-tool-calls: 40
+  qa:
+    remediation:
+      # Platform-owned bound for Developer remediation cycles per (project, stage, Variant
+      # Lineage) (AIW-181) - Workflow/Core decides this, never the Developer Agent or a single
+      # QA execution.
+      max-remediation-cycles-per-stage: 2
 
 management:
   endpoints:

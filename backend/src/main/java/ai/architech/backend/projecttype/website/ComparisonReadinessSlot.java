@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,6 +26,12 @@ import java.util.UUID;
  * comparisonGroupPolicy.silentVariantRemovalAllowed: false} in both frozen profiles' own workflow
  * policy is exactly this: "A failed/unready variant cannot be silently removed from a
  * three-variant comparison."
+ *
+ * <p>{@code @Version}-based optimistic locking (AIW-181) protects this pointer from a late/stale
+ * concurrent update: two racing remediation results both trying to advance the same slot will
+ * have the second, stale one fail with a real {@code ObjectOptimisticLockingFailureException}
+ * rather than silently overwriting a newer result - "Late/stale concurrent results cannot
+ * overwrite newer workflow pointers without state validation."
  */
 @Entity
 @Table(name = "comparison_readiness_slot")
@@ -41,6 +48,10 @@ public class ComparisonReadinessSlot {
 
 	@Column(name = "current_candidate_id", nullable = false)
 	private UUID currentCandidateId;
+
+	@Version
+	@Column(name = "version", nullable = false)
+	private long version;
 
 	@Column(name = "created_at", nullable = false, updatable = false)
 	private Instant createdAt;
@@ -80,6 +91,10 @@ public class ComparisonReadinessSlot {
 
 	public UUID getCurrentCandidateId() {
 		return currentCandidateId;
+	}
+
+	public long getVersion() {
+		return version;
 	}
 
 	public Instant getCreatedAt() {
