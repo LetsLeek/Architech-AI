@@ -212,6 +212,131 @@ class AnthropicProviderTests {
 	}
 
 	@Test
+	void sendsToolsWhenTheRequestDeclaresThem() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+		String expectedToolsJson =
+				"""
+				[{"name": "filesystem", "description": "reads and writes files", "input_schema": {"type": "object", "properties": {"path": {"type": "string"}}}}]""";
+
+		server.expect(requestTo(MESSAGES_URL))
+				.andExpect(content().json("{\"tools\": " + expectedToolsJson + "}", false))
+				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		ToolSchema filesystemTool = new ToolSchema(
+				"filesystem", "reads and writes files", objectMapper.readTree("{\"type\": \"object\", \"properties\": {\"path\": {\"type\": \"string\"}}}"));
+		AiRequest request = new AiRequest(
+				"structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-10", List.of(filesystemTool));
+
+		provider.invoke(request, "claude-sonnet-5");
+
+		server.verify();
+	}
+
+	@Test
+	void sendsAssistantToolUseBlocksAndUserToolResultBlocksAsContentArrays() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+		String expectedMessagesJson =
+				"""
+				[
+				  {"role": "user", "content": "start"},
+				  {"role": "assistant", "content": [
+				    {"type": "text", "text": "I will write the file."},
+				    {"type": "tool_use", "id": "call-1", "name": "filesystem", "input": {"operation": "write"}}
+				  ]},
+				  {"role": "user", "content": [
+				    {"type": "tool_result", "tool_use_id": "call-1", "content": "wrote it", "is_error": false}
+				  ]}
+				]""";
+
+		server.expect(requestTo(MESSAGES_URL))
+				.andExpect(content().json("{\"messages\": " + expectedMessagesJson + "}", false))
+				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiMessage assistantTurn = new AiMessage(
+				"assistant",
+				List.of(
+						new ContentBlock.Text("I will write the file."),
+						new ContentBlock.ToolUse("call-1", "filesystem", objectMapper.readTree("{\"operation\": \"write\"}"))));
+		AiMessage toolResultTurn = new AiMessage("user", List.of(new ContentBlock.ToolResult("call-1", "wrote it", false)));
+		AiRequest request = new AiRequest(
+				"structured-reasoning", List.of(new AiMessage("user", "start"), assistantTurn, toolResultTurn), 100, "corr-11");
+
+		provider.invoke(request, "claude-sonnet-5");
+
+		server.verify();
+	}
+
+	@Test
+	void parsesAToolUseStopReasonAndSurfacesTheRequestedToolCalls() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{
+				  "model": "claude-sonnet-5",
+				  "stop_reason": "tool_use",
+				  "content": [
+				    {"type": "text", "text": "Let me check the build."},
+				    {"type": "tool_use", "id": "call-2", "name": "project_execution", "input": {"task": "build"}}
+				  ],
+				  "usage": {"input_tokens": 5, "output_tokens": 5}
+				}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-12");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.stopReason()).isEqualTo("tool_use");
+		assertThat(response.requiresToolUse()).isTrue();
+		assertThat(response.content()).isEqualTo("Let me check the build.");
+		assertThat(response.toolUses()).hasSize(1);
+		assertThat(response.toolUses().get(0).name()).isEqualTo("project_execution");
+		assertThat(response.toolUses().get(0).id()).isEqualTo("call-2");
+		assertThat(response.toolUses().get(0).input().path("task").asString()).isEqualTo("build");
+	}
+
+	@Test
+	void aPlainTextResponseNeverRequiresToolUse() {
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson =
+				"""
+				{"model": "claude-sonnet-5", "stop_reason": "end_turn", "content": [{"type": "text", "text": "done"}], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL)).andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "hi")), 100, "corr-13");
+
+		AiResponse response = provider.invoke(request, "claude-sonnet-5");
+
+		assertThat(response.stopReason()).isEqualTo("end_turn");
+		assertThat(response.requiresToolUse()).isFalse();
+		assertThat(response.toolUses()).isEmpty();
+	}
+
+	@Test
 	void throwsWhenNoApiKeyIsConfiguredWithoutMakingAnyRequest() {
 		RestClient.Builder builder = RestClient.builder();
 		MockRestServiceServer.bindTo(builder).build();
