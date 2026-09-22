@@ -46,6 +46,10 @@ jobs:
     env:
       APP_NAME: ca-aiw-backend-staging
       RESOURCE_GROUP: rg-aiw-staging-swc
+      # Routed through env: rather than interpolated directly into each run: block below -
+      # inputs.* is caller-supplied, and Semgrep's run-shell-injection rule correctly flags
+      # direct ${{ }} interpolation in `run:` regardless of how trusted a caller is today.
+      TARGET_REVISION: ${{ inputs.target_revision }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -62,20 +66,20 @@ jobs:
         # with a less obvious Azure CLI error.
         run: |
           if ! az containerapp revision show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
-              --revision "${{ inputs.target_revision }}" >/dev/null 2>&1; then
-            echo "::error::Revision '${{ inputs.target_revision }}' not found for $APP_NAME - list existing revisions with: az containerapp revision list --name $APP_NAME --resource-group $RESOURCE_GROUP -o table"
+              --revision "$TARGET_REVISION" >/dev/null 2>&1; then
+            echo "::error::Revision '$TARGET_REVISION' not found for $APP_NAME - list existing revisions with: az containerapp revision list --name $APP_NAME --resource-group $RESOURCE_GROUP -o table"
             exit 1
           fi
 
       - name: Activate target revision
         # A no-op if it's already active (e.g. re-running after a transient traffic-set
         # failure) - `revision activate` on an already-active revision succeeds idempotently.
-        run: az containerapp revision activate --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "${{ inputs.target_revision }}"
+        run: az containerapp revision activate --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$TARGET_REVISION"
 
       - name: Shift all traffic to the target revision
         # Single revision mode still supports an explicit traffic-weight set - this is what
         # actually completes the rollback (activation alone doesn't route requests to it).
-        run: az containerapp ingress traffic set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision-weight "${{ inputs.target_revision }}=100"
+        run: az containerapp ingress traffic set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision-weight "${TARGET_REVISION}=100"
 
       - name: Resolve backend URL
         id: url
@@ -95,11 +99,13 @@ jobs:
           environment-name: STAGING (post-rollback)
 
       - name: Summary
+        env:
+          BASE_URL: ${{ steps.url.outputs.base-url }}
         run: |
           {
             echo "## STAGING rollback"
             echo ""
-            echo "- **Rolled back to revision**: \`${{ inputs.target_revision }}\`"
-            echo "- **URL**: ${{ steps.url.outputs.base-url }}"
+            echo "- **Rolled back to revision**: \`$TARGET_REVISION\`"
+            echo "- **URL**: $BASE_URL"
             echo "- **Database**: not touched by this workflow - see docs/operations/rollback-runbook.md if a schema rollback is also needed"
           } >> "$GITHUB_STEP_SUMMARY"
