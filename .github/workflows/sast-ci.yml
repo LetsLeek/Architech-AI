@@ -20,7 +20,7 @@ concurrency:
 jobs:
   semgrep:
     name: SAST (Semgrep)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 8
     container:
       image: semgrep/semgrep:1.176.1
