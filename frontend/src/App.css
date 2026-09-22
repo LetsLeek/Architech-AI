@@ -157,3 +157,44 @@
   background: var(--accent-bg);
   border: 1px solid var(--accent-border);
 }
+
+/* Wider than the default .input-section content width so three proposals can sit side by
+   side - the three-column grid collapses to one column on narrow viewports. */
+.input-section.proposal-set-section {
+  max-width: 1024px;
+}
+
+.proposal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.proposal-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+}
+
+.proposal-card h3 {
+  margin: 0 0 8px;
+  color: var(--text-h);
+}
+
+.proposal-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.9em;
+  color: var(--text-h);
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  border: 1px solid var(--border);
+  vertical-align: middle;
+}

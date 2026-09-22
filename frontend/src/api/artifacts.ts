@@ -187,3 +187,170 @@ export function getCustomerProfile(projectId: string): Promise<ArtifactVersionIn
 export function getWebsiteRequirements(projectId: string): Promise<ArtifactVersionInfo<WebsiteRequirements>> {
   return requestJson(`/api/projects/${encodeURIComponent(projectId)}/artifacts/website-requirements`)
 }
+
+export interface NavigationTarget {
+  type: 'page' | 'section' | 'customer-data' | 'requirement'
+  pageRef?: string
+  sectionRef?: string
+  customerDataRef?: string
+  requirementRef?: string
+}
+
+export interface NavigationItem {
+  label: string
+  target: NavigationTarget
+  requirementRefs?: string[]
+}
+
+export interface NavigationGroup {
+  localRef: string
+  kind: string
+  customKind?: string
+  requirementRefs?: string[]
+  items: NavigationItem[]
+}
+
+// Named DesignElement/DesignSection/DesignPage (not Element/Section/Page) to avoid shadowing
+// DOM globals of the same name.
+export interface DesignElement {
+  localRef: string
+  kind: string
+  customKind?: string
+  role: string
+  contentIntent: string
+  requirementRefs?: string[]
+  customerDataRefs?: string[]
+  patternRef?: string
+  target?: NavigationTarget
+}
+
+export interface DesignSection {
+  localRef: string
+  kind: string
+  customKind?: string
+  purpose: string
+  layoutIntent: string
+  responsiveBehavior?: string
+  requirementRefs?: string[]
+  customerDataRefs?: string[]
+  elements: DesignElement[]
+}
+
+export interface DesignPage {
+  localRef: string
+  name: string
+  route: string
+  purpose: string
+  requirementRefs?: string[]
+  sections: DesignSection[]
+}
+
+export interface WebsitePlan {
+  requirementRefs?: string[]
+  pages: DesignPage[]
+  navigationGroups?: NavigationGroup[]
+}
+
+export interface ColorToken {
+  role: string
+  value: string
+  requirementRefs?: string[]
+}
+
+export interface TypographyToken {
+  role: string
+  fontFamily: string
+  fontWeight: number
+  fontSizeRem: number
+  lineHeight: number
+  letterSpacingEm?: number
+  fontStyle?: string
+  requirementRefs?: string[]
+}
+
+export interface SpacingToken {
+  role: string
+  valueRem: number
+  requirementRefs?: string[]
+}
+
+export interface Layout {
+  contentWidth: 'narrow' | 'standard' | 'wide' | 'mixed'
+  density: 'compact' | 'balanced' | 'spacious'
+  pageGutterRem: number
+  sectionGapRem: number
+  gridIntent: string
+  maxContentWidthRem?: number
+  requirementRefs?: string[]
+}
+
+export interface UiPattern {
+  localRef: string
+  kind: string
+  customKind?: string
+  description: string
+  visualTreatment: string
+  interactionBehavior?: string
+  requirementRefs?: string[]
+}
+
+export interface Imagery {
+  direction: string
+  treatment: string
+  iconStyle?: string
+  requirementRefs?: string[]
+}
+
+export interface Motion {
+  intensity: 'low' | 'moderate' | 'high'
+  style: string
+  reducedMotionBehavior: string
+  requirementRefs?: string[]
+}
+
+export interface ResponsiveBehavior {
+  navigationBehavior: string
+  contentStacking: string
+  typeScaling: string
+  spacingAdjustment: string
+  mediaBehavior: string
+  requirementRefs?: string[]
+}
+
+export interface Localization {
+  languageSwitcherBehavior: string
+  textExpansionBehavior: string
+  directionalityBehavior: string
+  requirementRefs: string[]
+}
+
+export interface DesignSpecification {
+  requirementRefs?: string[]
+  colors: ColorToken[]
+  typography: TypographyToken[]
+  spacing: SpacingToken[]
+  layout: Layout
+  uiPatterns: UiPattern[]
+  imagery: Imagery
+  motion?: Motion
+  responsive: ResponsiveBehavior
+  localization?: Localization
+}
+
+export interface DesignProposal {
+  localRef: string
+  name: string
+  concept: string
+  websitePlan: WebsitePlan
+  designSpecification: DesignSpecification
+}
+
+// Exactly 3 proposals, equally weighted (design-proposal-set.schema.json) - never presented as
+// ranked, so nothing here carries a "recommended"/"best" field to begin with.
+export interface DesignProposalSet {
+  proposals: DesignProposal[]
+}
+
+export function getDesignProposalSet(projectId: string): Promise<ArtifactVersionInfo<DesignProposalSet>> {
+  return requestJson(`/api/projects/${encodeURIComponent(projectId)}/artifacts/design-proposal-set`)
+}
