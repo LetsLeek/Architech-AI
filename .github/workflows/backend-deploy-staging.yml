@@ -47,13 +47,19 @@ jobs:
       name: staging
       url: ${{ steps.url.outputs.base-url }}
 
+    env:
+      # Routed through env: rather than interpolated directly into each run: block below -
+      # inputs.* is caller-supplied, and Semgrep's run-shell-injection rule correctly flags
+      # direct ${{ }} interpolation in `run:` regardless of how trusted a caller is today.
+      IMAGE_TAG: ${{ inputs.image_tag }}
+
     steps:
       - name: Validate image tag looks like a commit SHA
         # Cheap guard against a typo'd branch name or "latest" reaching terraform apply - AIW-82
         # AC ("no source rebuild") depends on this actually being an immutable, already-built tag.
         run: |
-          if ! [[ "${{ inputs.image_tag }}" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::error::image_tag must be a full 40-character Git commit SHA, got: ${{ inputs.image_tag }}"
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be a full 40-character Git commit SHA, got: $IMAGE_TAG"
             exit 1
           fi
 
@@ -84,7 +90,7 @@ jobs:
         # workflow at all, satisfying "no source rebuild occurs during promotion" by
         # construction, not by convention.
         working-directory: infrastructure/environments/staging
-        run: terraform apply -input=false -auto-approve -var="backend_image_tag=${{ inputs.image_tag }}"
+        run: terraform apply -input=false -auto-approve -var="backend_image_tag=$IMAGE_TAG"
 
       - name: Resolve backend URL
         id: url
@@ -103,11 +109,13 @@ jobs:
           environment-name: STAGING
 
       - name: Summary
+        env:
+          BASE_URL: ${{ steps.url.outputs.base-url }}
         run: |
           {
             echo "## STAGING promotion"
             echo ""
-            echo "- **Image tag**: \`${{ inputs.image_tag }}\`"
-            echo "- **URL**: ${{ steps.url.outputs.base-url }}"
+            echo "- **Image tag**: \`$IMAGE_TAG\`"
+            echo "- **URL**: $BASE_URL"
             echo "- **Migrations**: applied automatically at application startup against the \`aiw_staging\` database only - see docs/operations/database-migrations.md"
           } >> "$GITHUB_STEP_SUMMARY"
