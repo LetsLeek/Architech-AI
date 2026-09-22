@@ -18,7 +18,7 @@ permissions:
 jobs:
   test:
     name: Backend tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     # AIW-99: observed ~75s at time of writing - generous multiple so real CI variance (cold
     # runner, dependency-download hiccups) doesn't cause a flaky timeout, while still failing
     # clearly well before GitHub's 360-minute default would let a genuinely hung job sit there.
@@ -38,22 +38,15 @@ jobs:
       - name: Install Playwright browser (Chromium)
         # AIW-143's gates 7-12 drive a real headless Chromium directly from the backend JVM
         # (com.microsoft.playwright:playwright) - the browser binary is a separate download this
-        # runner doesn't have by default. Uses the exec-maven-plugin goal directly (no plugin
-        # declaration needed in pom.xml) purely to get a resolved classpath onto java's -cp for
-        # the CLI main class.
-        #
-        # Deliberately omits --with-deps: that flag shells out to apt-get, which assumes a
-        # Debian/Ubuntu base - since runs-on switched to self-hosted (self-hosted runners can be
-        # any OS/distro, e.g. Arch), that assumption no longer holds and the install step fails
-        # outright with "apt-get: command not found" on anything else. A self-hosted runner
-        # operator's own machine is responsible for already having whatever shared libraries
-        # Chromium needs to launch - true by construction for any machine that already runs a
-        # graphical browser, which every runner host used so far does.
+        # runner doesn't have by default. --with-deps also installs the OS-level libraries
+        # Chromium needs on a bare ubuntu-latest runner (sudo apt, handled internally by the
+        # installer). Uses the exec-maven-plugin goal directly (no plugin declaration needed in
+        # pom.xml) purely to get a resolved classpath onto java's -cp for the CLI main class.
         working-directory: backend
         run: >
           ./mvnw --batch-mode --no-transfer-progress
           org.codehaus.mojo:exec-maven-plugin:3.1.0:java
-          -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chromium"
+          -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
 
       - name: Build, test and check coverage
         working-directory: backend
@@ -106,7 +99,7 @@ jobs:
 
   docker-build:
     name: Backend Docker image
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     # AIW-101: job-level permissions replace the workflow-level default for this job, not add
     # to it - contents: read is restated alongside the two new scopes attestations need.
@@ -134,15 +127,11 @@ jobs:
         # AIW-96: scans this exact just-built image (by tag, before anything could push or
         # retag it) - same pinned, checksum-verified install pattern as AIW-94's filesystem
         # scan; Trivy's vulnerability DB is downloaded fresh at scan time either way.
-        #
-        # Installs to $RUNNER_TEMP (always writable, no sudo needed) rather than
-        # /usr/local/bin - see dependency-scan-ci.yml's identical fix for why.
         run: |
           curl -sfL -o trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
           tar xzf trivy.tar.gz trivy
-          mv trivy "$RUNNER_TEMP/trivy"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          sudo mv trivy /usr/local/bin/
           rm trivy.tar.gz
 
       - name: Full image scan (report, never blocks)
@@ -281,7 +270,7 @@ jobs:
     # own push step has the same gate, so `needs` alone isn't enough to guarantee the tag
     # exists).
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
