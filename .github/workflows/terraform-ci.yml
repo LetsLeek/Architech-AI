@@ -32,7 +32,7 @@ env:
 jobs:
   fmt:
     name: Terraform fmt
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -46,7 +46,7 @@ jobs:
 
   validate-and-plan:
     name: Terraform validate + plan (${{ matrix.environment }})
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
