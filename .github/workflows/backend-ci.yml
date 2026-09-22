@@ -317,23 +317,16 @@ jobs:
         working-directory: infrastructure/environments/dev
         run: terraform apply -input=false -auto-approve -var="backend_image_tag=${{ github.sha }}"
 
-      - name: Post-deployment health check
-        # AIW-81 AC: "fails the workflow when DEV is unhealthy" - retries allow for the real,
-        # observed cold-start delay (min_replicas=0) rather than failing on the first request.
+      - name: Resolve backend URL
+        id: url
         working-directory: infrastructure/environments/dev
-        run: |
-          fqdn=$(terraform output -raw backend_fqdn)
-          url="https://${fqdn}/actuator/health"
-          echo "Checking ${url}"
-          for attempt in 1 2 3 4 5 6; do
-            status=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 20 "$url" || echo "000")
-            if [ "$status" = "200" ] && grep -q '"status":"UP"' /tmp/health.json; then
-              echo "DEV backend is healthy."
-              exit 0
-            fi
-            echo "Attempt ${attempt}: HTTP ${status} - retrying in 10s..."
-            sleep 10
-          done
-          echo "::error::DEV backend failed its post-deployment health check"
-          cat /tmp/health.json 2>/dev/null || true
-          exit 1
+        run: echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+
+      - name: Post-deployment health check and smoke test
+        # AIW-81/AIW-85 AC: "fails the workflow when DEV is unhealthy" - retries allow for the
+        # real, observed cold-start delay (min_replicas=0) rather than failing on the first
+        # request. Shared composite action (AIW-85) so DEV/STAGING/PROD run the identical check.
+        uses: ./.github/actions/backend-smoke-test
+        with:
+          base-url: ${{ steps.url.outputs.base-url }}
+          environment-name: DEV
