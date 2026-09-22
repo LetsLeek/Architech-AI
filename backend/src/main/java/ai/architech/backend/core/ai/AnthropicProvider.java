@@ -1,5 +1,7 @@
 package ai.architech.backend.core.ai;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -118,8 +120,17 @@ class AnthropicProvider implements AiProvider {
 					system.append("\n\n");
 				}
 				system.append(message.content());
+				continue;
+			}
+			ObjectNode messageNode = messages.addObject();
+			messageNode.put("role", message.role());
+			if (message.blocks().isEmpty()) {
+				messageNode.put("content", message.content());
 			} else {
-				messages.addObject().put("role", message.role()).put("content", message.content());
+				ArrayNode contentBlocks = messageNode.putArray("content");
+				for (ContentBlock block : message.blocks()) {
+					appendContentBlock(contentBlocks, block);
+				}
 			}
 		}
 		if (!system.isEmpty()) {
@@ -127,11 +138,43 @@ class AnthropicProvider implements AiProvider {
 					body.putArray("system").addObject().put("type", "text").put("text", system.toString());
 			systemBlock.putObject("cache_control").put("type", "ephemeral");
 		}
+		if (!request.tools().isEmpty()) {
+			ArrayNode tools = body.putArray("tools");
+			for (ToolSchema tool : request.tools()) {
+				ObjectNode toolNode = tools.addObject();
+				toolNode.put("name", tool.name());
+				toolNode.put("description", tool.description());
+				toolNode.set("input_schema", tool.inputSchema());
+			}
+		}
 		return body;
 	}
 
+	private void appendContentBlock(ArrayNode contentBlocks, ContentBlock block) {
+		switch (block) {
+			case ContentBlock.Text text -> contentBlocks.addObject().put("type", "text").put("text", text.text());
+			case ContentBlock.ToolUse toolUse -> {
+				ObjectNode node = contentBlocks.addObject();
+				node.put("type", "tool_use");
+				node.put("id", toolUse.id());
+				node.put("name", toolUse.name());
+				node.set("input", toolUse.input());
+			}
+			case ContentBlock.ToolResult toolResult -> {
+				ObjectNode node = contentBlocks.addObject();
+				node.put("type", "tool_result");
+				node.put("tool_use_id", toolResult.toolUseId());
+				node.put("content", toolResult.content());
+				node.put("is_error", toolResult.isError());
+			}
+		}
+	}
+
 	private static AiResponse toAiResponse(JsonNode responseBody, String correlationId) {
-		String text = extractJsonObject(extractText(responseBody.path("content")));
+		JsonNode contentBlocks = responseBody.path("content");
+		String text = extractJsonObject(extractText(contentBlocks));
+		List<ContentBlock> blocks = extractBlocks(contentBlocks);
+		String stopReason = responseBody.path("stop_reason").asString(null);
 		JsonNode usage = responseBody.path("usage");
 		Integer promptTokens = intOrNull(usage.path("input_tokens"));
 		Integer completionTokens = intOrNull(usage.path("output_tokens"));
@@ -146,7 +189,9 @@ class AnthropicProvider implements AiProvider {
 				promptTokens,
 				completionTokens,
 				cacheCreationInputTokens,
-				cacheReadInputTokens);
+				cacheReadInputTokens,
+				stopReason == null ? "end_turn" : stopReason,
+				blocks);
 	}
 
 	private static String extractText(JsonNode contentBlocks) {
@@ -159,6 +204,23 @@ class AnthropicProvider implements AiProvider {
 			}
 		}
 		return text.toString();
+	}
+
+	/** Only {@code text}/{@code tool_use} blocks are surfaced - any other block type (e.g. a future {@code thinking} echo) is silently skipped, same posture {@link #extractText} already takes. */
+	private static List<ContentBlock> extractBlocks(JsonNode contentBlocks) {
+		List<ContentBlock> blocks = new ArrayList<>();
+		if (contentBlocks.isArray()) {
+			for (JsonNode block : contentBlocks) {
+				String type = block.path("type").asString(null);
+				if ("text".equals(type)) {
+					blocks.add(new ContentBlock.Text(block.path("text").asString()));
+				} else if ("tool_use".equals(type)) {
+					blocks.add(new ContentBlock.ToolUse(
+							block.path("id").asString(), block.path("name").asString(), block.path("input")));
+				}
+			}
+		}
+		return blocks;
 	}
 
 	/**
