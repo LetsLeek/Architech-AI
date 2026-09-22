@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { errorMessage } from '../api/http'
 import { getProject, type Project } from '../api/projects'
 import CustomerProfileView from '../components/CustomerProfileView'
+import DesignProposalGenerationSection from '../components/DesignProposalGenerationSection'
 import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
 import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
@@ -86,6 +87,8 @@ function ProjectDetailPage() {
 
       <CustomerProfileView projectId={project.id} refreshKey={profileRefreshKey} />
       <WebsiteRequirementsView projectId={project.id} refreshKey={profileRefreshKey} />
+
+      <DesignProposalGenerationSection projectId={project.id} />
     </section>
   )
 }
