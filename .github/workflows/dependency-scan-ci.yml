@@ -27,7 +27,7 @@ env:
 jobs:
   trivy:
     name: Dependency scan (Trivy)
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 8
 
     steps:
@@ -51,18 +51,11 @@ jobs:
       - name: Install Trivy
         # Pinned release tarball + checksum verification, not a piped install script from a
         # mutable branch ref (exactly the supply-chain pattern AIW-93 hardened elsewhere).
-        #
-        # Installs to $RUNNER_TEMP (always writable, no sudo needed) rather than
-        # /usr/local/bin: a self-hosted runner's sudo configuration is the operator's own to
-        # manage and shouldn't be a hard requirement just to install a scanner binary - confirmed
-        # actually failing on the real self-hosted runner ("sudo: a terminal is required to read
-        # the password"), unlike a GitHub-hosted runner's own passwordless sudo default.
         run: |
           curl -sfL -o trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
           echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
           tar xzf trivy.tar.gz trivy
-          mv trivy "$RUNNER_TEMP/trivy"
-          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          sudo mv trivy /usr/local/bin/
           rm trivy.tar.gz
 
       - name: Full scan (report, never blocks)
