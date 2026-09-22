@@ -99,6 +99,12 @@ architech:
       # decides these, never the Developer Agent or a single sibling execution.
       max-correction-cycles-per-sibling: 2
       max-sibling-retries: 2
+  qa:
+    remediation:
+      # Platform-owned bound for Developer remediation cycles per (project, stage, Variant
+      # Lineage) (AIW-181) - Workflow/Core decides this, never the Developer Agent or a single
+      # QA execution.
+      max-remediation-cycles-per-stage: 2
 
 management:
   endpoints:
