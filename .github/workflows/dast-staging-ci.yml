@@ -1,0 +1,68 @@
+name: DAST (OWASP ZAP baseline)
+
+# AIW-97: dynamic application security testing against the deployed STAGING application - never
+# PROD (see docs/operations/dast-scanning.md's own "never targets production" section; this
+# workflow has no PROD URL anywhere in it, by construction, not just by convention).
+#
+# workflow_dispatch only, deliberately - matches AIW-82/AIW-83's own established pattern of
+# "STAGING/PROD actions are a deliberate human step, never automatic on a commit." A
+# `workflow_run` trigger chained off backend-deploy-staging.yml was considered and rejected: this
+# repo's default branch is `main` (workflow_run only fires for workflow files that exist on the
+# default branch), while all real deploy activity happens on `develop` - that mismatch would make
+# the trigger silently not fire rather than reliably chaining, which is worse than an explicit
+# manual step.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  # staging-environment.md's own real, currently-deployed URL - never derived from a build
+  # output here, since this workflow intentionally needs zero Azure credentials (a passive HTTP
+  # scan against an already-public URL needs no cloud access at all).
+  STAGING_URL: https://ca-aiw-backend-staging.happyflower-cd7e5ebd.swedencentral.azurecontainerapps.io
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP baseline scan (STAGING)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Confirm STAGING is reachable before scanning
+        # Fails clearly and immediately if STAGING is down, rather than letting the scan itself
+        # produce a confusing wall of connection-refused findings.
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 "${{ env.STAGING_URL }}/actuator/health" || echo "000")
+          if [ "$status" != "200" ]; then
+            echo "::error::STAGING (${{ env.STAGING_URL }}) is not reachable (HTTP ${status}) - nothing to scan."
+            exit 1
+          fi
+
+      - name: ZAP baseline scan
+        # Pinned by commit SHA (verified against the real v0.15.0 tag), matching this project's
+        # existing supply-chain policy for every other third-party action. This is a plain
+        # Node.js action (runs: node24), not a job-level `container:` - it shells out to `docker
+        # run` internally against docker_name (default ghcr.io/zaproxy/zaproxy:stable) itself,
+        # so it needs no special job-level container config here.
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25 # v0.15.0
+        with:
+          target: ${{ env.STAGING_URL }}
+          rules_file_name: ".zap/rules.tsv"
+          artifact_name: zap-baseline-report
+          # -I: never fail the build on a WARN-level finding during this initial tuning period
+          # (AIW-97 AC) - a rule explicitly promoted to FAIL in rules.tsv still fails the scan
+          # regardless of -I, since that's a per-rule override, not a global one.
+          cmd_options: "-I"
+          # This repo has no GitHub Issues workflow for security findings (SAST/Trivy/Gitleaks
+          # all write to the job summary + a retained artifact instead, never auto-file an
+          # issue) - ZAP follows the same established pattern, not a new one.
+          allow_issue_writing: false
+        # The action uploads its own artifact (named above) internally - AIW-100's 30-day
+        # retention-by-type policy isn't configurable through this action's own inputs, so this
+        # one artifact uses GitHub's default retention (90 days) rather than matching the other
+        # security-finding uploads exactly; a longer retention is a strictly safe deviation
+        # (more history kept, not less), so left as-is rather than adding a second, duplicate
+        # manual upload step just to force the number down.
