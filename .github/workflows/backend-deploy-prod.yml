@@ -1,0 +1,149 @@
+name: Deploy backend to PRODUCTION
+
+# AIW-83: manual (workflow_dispatch) AND reviewer-approved (the "production" GitHub Environment's
+# own required-reviewers protection rule, configured outside this file - see
+# docs/operations/prod-deployment-pipeline.md) - production is never deployed automatically on
+# any commit. Like STAGING (AIW-82), no source rebuild happens here: the image tag is promoted
+# as-is, and this workflow additionally refuses to even reach the approval gate unless that exact
+# tag already has a successful STAGING deployment on record.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: >
+          Git commit SHA of the architech-backend image to promote to PRODUCTION - must already
+          have a successful STAGING deployment recorded for this exact SHA.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  deployments: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+env:
+  TFSTATE_RESOURCE_GROUP: rg-aiw-tfstate-swc
+  TFSTATE_STORAGE_ACCOUNT: staiwtfstateswc
+  TFSTATE_CONTAINER: tfstate
+  ARM_USE_MSI: "false"
+
+jobs:
+  verify-staging:
+    name: Verify STAGING validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Deliberately its own job, with no `environment:` on it - this check must run and fail (if
+    # it's going to fail) *before* a reviewer is ever asked to approve anything, not after. A
+    # reviewer approving "deploy commit X to PROD" should never discover afterward that X was
+    # never actually validated on STAGING.
+    env:
+      # Routed through env: rather than interpolated directly into each run: block below -
+      # inputs.*/github.* are caller/event-supplied, and Semgrep's run-shell-injection rule
+      # correctly flags direct ${{ }} interpolation in `run:` regardless of how trusted a
+      # caller is today.
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      REPO: ${{ github.repository }}
+
+    steps:
+      - name: Validate image tag looks like a commit SHA
+        run: |
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be a full 40-character Git commit SHA, got: $IMAGE_TAG"
+            exit 1
+          fi
+
+      - name: Require a successful STAGING deployment for this exact commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          deployment_ids=$(gh api "repos/${REPO}/deployments?environment=staging&sha=${IMAGE_TAG}" --jq '.[].id')
+          if [ -z "$deployment_ids" ]; then
+            echo "::error::No STAGING deployment found for commit ${IMAGE_TAG} - promote it to STAGING first (backend-deploy-staging.yml) and let its smoke test pass."
+            exit 1
+          fi
+          for id in $deployment_ids; do
+            state=$(gh api "repos/${REPO}/deployments/${id}/statuses" --jq '.[0].state')
+            if [ "$state" = "success" ]; then
+              echo "Found a successful STAGING deployment (id ${id}) for ${IMAGE_TAG} - proceeding to PROD approval gate."
+              exit 0
+            fi
+          done
+          echo "::error::STAGING deployment(s) found for ${IMAGE_TAG}, but none succeeded - fix and re-promote to STAGING before deploying to PROD."
+          exit 1
+
+  deploy:
+    name: Promote to PRODUCTION
+    needs: verify-staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # This is the actual approval gate: the "production" environment's required-reviewers
+    # protection rule (configured via the GitHub API/UI, not in this file - GitHub does not
+    # support declaring environment protection rules in workflow YAML) pauses this job here
+    # until a reviewer approves the run. Nothing below this line executes before that happens.
+    environment:
+      name: production
+      url: ${{ steps.url.outputs.base-url }}
+
+    env:
+      # A separate job from verify-staging above (job-level env: doesn't cross jobs), same
+      # routed-through-env: reasoning.
+      IMAGE_TAG: ${{ inputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Azure login (OIDC, no client secret)
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        working-directory: infrastructure/environments/prod
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ env.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ env.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}"
+          -backend-config="key=prod.tfstate"
+
+      - name: terraform apply
+        working-directory: infrastructure/environments/prod
+        run: terraform apply -input=false -auto-approve -var="backend_image_tag=$IMAGE_TAG"
+
+      - name: Resolve backend URL
+        id: url
+        working-directory: infrastructure/environments/prod
+        run: echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+
+      - name: Post-deployment health check and smoke test
+        # A failure here means PROD reports a clear failure - AIW-83's own "failed production
+        # validation clearly reports failure and supports rollback" AC. Rollback follows the
+        # identical mechanism documented in rollback-runbook.md (this workflow doesn't
+        # auto-rollback on failure; that stays a deliberate, separate human action, matching
+        # AIW-86's own "human-triggered" rollback design for STAGING).
+        uses: ./.github/actions/backend-smoke-test
+        with:
+          base-url: ${{ steps.url.outputs.base-url }}
+          environment-name: PRODUCTION
+
+      - name: Summary
+        env:
+          BASE_URL: ${{ steps.url.outputs.base-url }}
+        run: |
+          {
+            echo "## PRODUCTION deployment"
+            echo ""
+            echo "- **Image tag**: \`$IMAGE_TAG\`"
+            echo "- **URL**: $BASE_URL"
+            echo "- **Migrations**: applied automatically at application startup against the \`aiw_prod\` database only - see docs/operations/database-migrations.md"
+          } >> "$GITHUB_STEP_SUMMARY"
