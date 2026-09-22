@@ -27,19 +27,28 @@ runs:
   steps:
     - name: Wait for /actuator/health
       shell: bash
+      # Every input flows through env:, never interpolated directly into the script - a
+      # composite action's own inputs are caller-supplied and Semgrep's
+      # run-shell-injection rule correctly flags direct ${{ }} interpolation in `run:`
+      # regardless of how trusted a given caller happens to be today.
+      env:
+        BASE_URL: ${{ inputs.base-url }}
+        ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+        HEALTH_CHECK_ATTEMPTS: ${{ inputs.health-check-attempts }}
+        HEALTH_CHECK_INTERVAL_SECONDS: ${{ inputs.health-check-interval-seconds }}
       run: |
-        url="${{ inputs.base-url }}/actuator/health"
+        url="${BASE_URL}/actuator/health"
         echo "Checking ${url}"
-        for attempt in $(seq 1 "${{ inputs.health-check-attempts }}"); do
+        for attempt in $(seq 1 "$HEALTH_CHECK_ATTEMPTS"); do
           status=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 20 "$url" || echo "000")
           if [ "$status" = "200" ] && grep -q '"status":"UP"' /tmp/health.json; then
-            echo "${{ inputs.environment-name }} backend is healthy."
+            echo "${ENVIRONMENT_NAME} backend is healthy."
             exit 0
           fi
-          echo "Attempt ${attempt}: HTTP ${status} - retrying in ${{ inputs.health-check-interval-seconds }}s..."
-          sleep "${{ inputs.health-check-interval-seconds }}"
+          echo "Attempt ${attempt}: HTTP ${status} - retrying in ${HEALTH_CHECK_INTERVAL_SECONDS}s..."
+          sleep "$HEALTH_CHECK_INTERVAL_SECONDS"
         done
-        echo "::error::${{ inputs.environment-name }} backend failed its post-deployment health check"
+        echo "::error::${ENVIRONMENT_NAME} backend failed its post-deployment health check"
         cat /tmp/health.json 2>/dev/null || true
         exit 1
 
@@ -53,13 +62,16 @@ runs:
       # and the only two valid outcomes are exactly what this checks for - 404 (route + DB query
       # both work, project genuinely doesn't exist) is success, anything else (5xx, connection
       # failure, wrong content type) is a real reachability or dependency problem.
+      env:
+        BASE_URL: ${{ inputs.base-url }}
+        ENVIRONMENT_NAME: ${{ inputs.environment-name }}
       run: |
         probe_id="00000000-0000-0000-0000-000000000000"
-        url="${{ inputs.base-url }}/api/projects/${probe_id}"
+        url="${BASE_URL}/api/projects/${probe_id}"
         status=$(curl -s -o /tmp/smoke.json -w "%{http_code}" --max-time 20 "$url" || echo "000")
         if [ "$status" != "404" ]; then
-          echo "::error::${{ inputs.environment-name }} smoke test failed - expected HTTP 404 from ${url}, got ${status}"
+          echo "::error::${ENVIRONMENT_NAME} smoke test failed - expected HTTP 404 from ${url}, got ${status}"
           cat /tmp/smoke.json 2>/dev/null || true
           exit 1
         fi
-        echo "${{ inputs.environment-name }} smoke test passed (API reachable, database query path healthy)."
+        echo "${ENVIRONMENT_NAME} smoke test passed (API reachable, database query path healthy)."
