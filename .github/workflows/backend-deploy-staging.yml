@@ -92,10 +92,16 @@ jobs:
         working-directory: infrastructure/environments/staging
         run: terraform apply -input=false -auto-approve -var="backend_image_tag=$IMAGE_TAG"
 
-      - name: Resolve backend URL
+      - name: Resolve backend URL and API key
         id: url
         working-directory: infrastructure/environments/staging
-        run: echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+        # AIW-185: ::add-mask:: so the key never appears in this run's logs, even though it
+        # flows through a step output here.
+        run: |
+          echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+          api_key=$(terraform output -raw backend_api_key)
+          echo "::add-mask::${api_key}"
+          echo "api-key=${api_key}" >> "$GITHUB_OUTPUT"
 
       - name: Post-deployment health check and smoke test
         # AIW-85's shared check - a failure here fails this workflow (AIW-82 AC: "failed
@@ -106,6 +112,7 @@ jobs:
         uses: ./.github/actions/backend-smoke-test
         with:
           base-url: ${{ steps.url.outputs.base-url }}
+          api-key: ${{ steps.url.outputs.api-key }}
           environment-name: STAGING
 
       - name: Summary

@@ -105,6 +105,22 @@ resource "azurerm_role_assignment" "terraform_admin_kv_secrets_officer" {
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
+# AIW-185: backend-deploy-staging.yml runs `terraform apply` as this CI identity, and that apply
+# now writes a Key Vault secret (backend_api_key below). Key Vault's data plane is a separate
+# RBAC namespace from the Contributor role CI holds on this resource group - without this grant
+# the STAGING promotion would fail the moment it tried to write that secret. environments/dev
+# already carries the identical grant; its own comment documents the real 2026-09-12 failure
+# that established this pattern.
+data "azuread_service_principal" "github_actions" {
+  display_name = "aiw-github-actions-terraform"
+}
+
+resource "azurerm_role_assignment" "github_actions_kv_secrets_officer" {
+  scope                = module.key_vault.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azuread_service_principal.github_actions.object_id
+}
+
 resource "azurerm_role_assignment" "backend_kv_secrets_user" {
   scope                = module.key_vault.id
   role_definition_name = "Key Vault Secrets User"
@@ -141,6 +157,23 @@ resource "azurerm_key_vault_secret" "spring_datasource_password" {
   depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
 }
 
+# AIW-185: the shared secret ApiKeyAuthenticationFilter checks on every /api/** request - its
+# own value, independent from DEV's, matching this environment's already-isolated Key Vault and
+# managed identity (no DEV credential has any access path to a STAGING secret, and vice versa).
+resource "random_password" "backend_api_key" {
+  length  = 40
+  special = false
+}
+
+resource "azurerm_key_vault_secret" "backend_api_key" {
+  name            = "backend-api-key"
+  value           = random_password.backend_api_key.result
+  content_type    = "text/plain"
+  key_vault_id    = module.key_vault.id
+  expiration_date = "2027-09-11T00:00:00Z"
+  depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
+}
+
 module "backend" {
   source = "../../modules/container-app"
 
@@ -167,11 +200,13 @@ module "backend" {
     { name = "spring-datasource-url", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_url.versionless_id },
     { name = "spring-datasource-username", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_username.versionless_id },
     { name = "spring-datasource-password", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_password.versionless_id },
+    { name = "backend-api-key", key_vault_secret_id = azurerm_key_vault_secret.backend_api_key.versionless_id },
   ]
   secret_env = [
     { name = "SPRING_DATASOURCE_URL", secret_name = "spring-datasource-url" },
     { name = "SPRING_DATASOURCE_USERNAME", secret_name = "spring-datasource-username" },
     { name = "SPRING_DATASOURCE_PASSWORD", secret_name = "spring-datasource-password" },
+    { name = "API_KEY", secret_name = "backend-api-key" },
   ]
 
   tags = {

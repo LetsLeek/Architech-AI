@@ -6,6 +6,12 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    # AIW-185: looks up the CI service principal by display name for its own Key Vault
+    # data-plane grant, same as environments/dev and environments/staging already do.
+    azuread = {
+      source  = "hashicorp/azuread"
+      version = "~> 3.0"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
@@ -24,6 +30,8 @@ terraform {
 provider "azurerm" {
   features {}
 }
+
+provider "azuread" {}
 
 # Connects directly to the real server this same apply creates (module.postgresql.fqdn/
 # administrator_login/administrator_password) - same single-root "create the server, then
