@@ -1,0 +1,32 @@
+workflowPolicyId: DOCUMENTATION_WORKFLOW_POLICY
+version: 1.0.0
+enabledTriggers:
+- event: FULL_RELEASE_QA_FINALIZED
+  profileRef: TECHNICAL_HANDOVER@1.0.0
+  conditions:
+  - release-relevant exact Candidate
+  - QA profile FULL_RELEASE
+  - QA gate PASS
+- event: SCOPED_APPROVAL_RECORDED
+  profileRef: CUSTOMER_HANDOVER@1.0.0
+  conditions:
+  - affirmative approval of exact QA-eligible Candidate
+  - bound FULL_RELEASE QA PASS
+onDemand:
+- profileRef: TECHNICAL_HANDOVER@1.0.0
+  conditions:
+  - FULL_RELEASE PASS or terminal HOLD
+- profileRef: CUSTOMER_HANDOVER@1.0.0
+  conditions:
+  - FULL_RELEASE PASS; approval may be absent
+optionalRefreshEvents:
+- DEPLOYMENT_RECORDED
+ignoredAutomaticTriggers:
+- GENERIC_PROJECT_UPDATED
+- DOCUMENTATION_CANONICALIZED
+- RENDER_COMPLETED
+- DOWNLOAD_RECORDED
+triggerIdempotencyRequired: true
+productGateDependency: false
+maxGenerationAttempts: 3
+maxSemanticEvaluatorExecutionsPerUnchangedCandidate: 2

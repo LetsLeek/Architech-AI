@@ -1,0 +1,48 @@
+policyId: DOCUMENTATION_POLICY
+version: 1.0.0
+security:
+  forbidSecretValues: true
+  fieldLevelMinimization: true
+  preModelSecurityRequired: true
+  postGenerationSecurityBeforeSemanticModel: true
+  failClosed: true
+  audienceClassificationIndependent: true
+epistemic:
+  unknown: DISCLOSE_WHEN_MATERIAL
+  missingOptionalAuthority: DISCLOSE_IF_PROFILE_SECTION_REQUIRES
+  authorityConflict: DISCLOSE_OR_BLOCK_BY_MATERIALITY
+  lineageIncompatibility: BLOCK_PRE_GENERATION
+  noInference: true
+findingDisclosure:
+  onlyCurrentCandidateFindings: true
+  qaGateDoesNotEraseFindings: true
+  customer:
+    qaRequiredProfile: FULL_RELEASE
+    qaRequiredGate: PASS
+    materialCustomerImpact: DISCLOSE
+    blockingOrUnresolvedEscalation: BLOCK_DOCUMENT
+    resolvedHistorical: OMIT
+    notEvaluableMaterial: BLOCK_DOCUMENT
+    technicalOnlyNonmaterial: OMIT_IF_POLICY_MATCHES
+    unmappedMaterialFallback: BLOCK_DOCUMENT
+  developer:
+    qaRequiredProfile: FULL_RELEASE
+    qaAllowedGates:
+    - PASS
+    - HOLD
+    allTechnicallyRelevantCurrent: DISCLOSE
+    materialSecurityDetail: DISCLOSE_REDACTED_IMPACT_ONLY
+    resolvedHistorical: OMIT
+    unmappedCurrentFallback: DISCLOSE
+validation:
+  semanticFactualConsistencyRequired: true
+  unsupportedClaimBlocks: true
+  notEvaluableBlocks: true
+  requiredDisclosureSemanticFidelity: true
+  includeBoundedCounterfacts: true
+profileSpecificOverrides:
+  allowWeakeningGlobalAuthority: false
+  allowSecrets: false
+  allowBypassSemanticValidation: false
+note: Classification requires an authoritative structured QA category/impact or explicit reviewed mapping. Never
+  ask the LLM to make DISCLOSE/OMIT/BLOCK decisions.

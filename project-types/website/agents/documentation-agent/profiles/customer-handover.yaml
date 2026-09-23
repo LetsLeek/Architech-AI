@@ -1,0 +1,78 @@
+profileId: CUSTOMER_HANDOVER
+version: 1.0.0
+active: true
+primaryAudience: CUSTOMER
+operation: GENERATE_DOCUMENTATION
+requiredRoots:
+- CUSTOMER_PROFILE
+- WEBSITE_REQUIREMENTS
+- SELECTED_SOURCE_DESIGN
+- WEBSITE_IMPLEMENTATION_CANDIDATE
+- QA_RESULT
+optionalRoots:
+- SELECTION_DECISION
+- APPROVAL_RECORD
+- DEPLOYMENT_RECORD
+qaPreconditions:
+  qaProfile: FULL_RELEASE
+  allowedGates:
+  - PASS
+semanticDocuments:
+- documentType: CUSTOMER_WEBSITE_HANDOVER
+  required: true
+  sections:
+  - sectionType: WEBSITE_OVERVIEW
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: WEBSITE_STRUCTURE
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: FEATURES
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: CONTENT_AND_LANGUAGES
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: INTEGRATIONS
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: KNOWN_LIMITATIONS
+    required: true
+    allowEmptyAgentBlocks: true
+  - sectionType: PROJECT_STATUS
+    required: true
+    allowEmptyAgentBlocks: true
+  - sectionType: CHANGE_AND_MAINTENANCE
+    required: true
+    allowEmptyAgentBlocks: true
+deterministicReports: []
+composerDeterministicBlocks:
+  KNOWN_LIMITATIONS:
+  - SCOPED_ZERO_DISCLOSABLE_FINDINGS_IF_APPLICABLE
+  PROJECT_STATUS:
+  - SCOPED_CORE_LIFECYCLE_STATUS
+  - SCOPED_MISSING_DEPLOYMENT_IF_APPLICABLE
+  CHANGE_AND_MAINTENANCE:
+  - SCOPED_SECTION_UNAVAILABLE_IF_APPLICABLE
+allowedClaimTypes:
+- CUSTOMER_FACT
+- REQUIREMENT_DESCRIPTION
+- DESIGN_DESCRIPTION
+- IMPLEMENTATION_DESCRIPTION
+- FUNCTIONAL_BEHAVIOR
+- INTEGRATION_DESCRIPTION
+- QA_STATUS
+- KNOWN_LIMITATION
+- APPROVAL_STATUS
+- DEPLOYMENT_STATUS
+- AUTHORITY_AVAILABILITY
+- UNKNOWN_REPRESENTATION
+- CONFLICT_REPRESENTATION
+- TECHNICAL_CONSTRAINT
+defaultSkillSet: DOCUMENTATION_SKILL_SET@1.0.0
+compositionSkill: customer-handover-composition
+semanticValidationRequired: true
+supportedLocales:
+- de-AT
+- en-GB
+findingPolicyRef: DOCUMENTATION_POLICY@1.0.0
