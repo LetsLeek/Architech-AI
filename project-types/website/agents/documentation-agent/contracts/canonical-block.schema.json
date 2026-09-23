@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:canonical-block:v1",
+  "title": "Core-composed semantic or deterministic block",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "NARRATIVE"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:aiw:schema:documentation:documentation-claim:v1"
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "blockType",
+        "claims"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "LIST"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "claims": {
+                "type": "array",
+                "items": {
+                  "$ref": "urn:aiw:schema:documentation:documentation-claim:v1"
+                },
+                "minItems": 1,
+                "maxItems": 6
+              }
+            },
+            "required": [
+              "claims"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "blockType",
+        "items"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "DETERMINISTIC_EMBED"
+        },
+        "reportRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+        }
+      },
+      "required": [
+        "blockType",
+        "reportRef"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "SCOPED_CORE_STATEMENT"
+        },
+        "statementCode": {
+          "type": "string",
+          "enum": [
+            "NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED",
+            "CORE_LIFECYCLE_SUMMARY",
+            "SECTION_AUTHORITY_UNAVAILABLE",
+            "SCOPED_MISSING_DEPLOYMENT_AUTHORITY"
+          ]
+        },
+        "authorityRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:aiw:schema:documentation:authority-ref:v1"
+          },
+          "minItems": 1,
+          "maxItems": 10
+        }
+      },
+      "required": [
+        "blockType",
+        "statementCode",
+        "authorityRefs"
+      ]
+    }
+  ]
+}

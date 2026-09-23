@@ -44,7 +44,7 @@ class FrozenWebsiteQaAgentSpecIT {
 		assertThat(definition.outputs().artifacts()).hasSize(1);
 
 		Resource[] agentYamls = resourceResolver.getResources(AGENT_DEFINITION_PATTERN);
-		assertThat(agentYamls).hasSize(4);
+		assertThat(agentYamls).hasSize(5);
 		Resource agentYaml = findAgentYamlById(agentYamls, "website-qa-agent");
 
 		for (AgentArtifactInput artifact : definition.inputs().artifacts()) {

@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: claim-construction-and-traceability
+name: Claim Construction and Traceability
+version: 1
+
+description: >
+  Produce a useful independently verifiable claim for every factual proposition, with
+  minimum sufficient context-local authority keys.

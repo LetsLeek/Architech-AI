@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:qa-finding-register:v1",
+  "title": "Exact candidate-scoped QA snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "qaResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "candidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "qaProfile": {
+      "const": "FULL_RELEASE"
+    },
+    "gate": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "HOLD"
+      ]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "findingRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "MAJOR",
+              "MINOR"
+            ]
+          },
+          "qaDisposition": {
+            "type": "string",
+            "enum": [
+              "BLOCK",
+              "ALLOW",
+              "ESCALATE"
+            ]
+          },
+          "currentAssessment": {
+            "type": "string",
+            "enum": [
+              "CURRENT",
+              "PERSISTS",
+              "CHANGED",
+              "NOT_EVALUABLE"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "affectedRequirementRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+            },
+            "minItems": 0,
+            "maxItems": 30,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "findingRef",
+          "severity",
+          "qaDisposition",
+          "currentAssessment",
+          "category",
+          "affectedRequirementRefs"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 300
+    }
+  },
+  "required": [
+    "qaResultRef",
+    "candidateRef",
+    "qaProfile",
+    "gate",
+    "findings"
+  ]
+}

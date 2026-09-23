@@ -56,6 +56,17 @@ class RuleLoaderIT {
 	}
 
 	@Test
+	void resolvesTheFrozenDocumentationIntegrityRule() {
+		RuleDefinition definition = loader.resolve("documentation-integrity", 1);
+
+		assertThat(definition.id()).isEqualTo("documentation-integrity");
+		assertThat(definition.name()).isEqualTo("Documentation Integrity");
+		assertThat(definition.content()).contains("# Documentation Integrity Rule V1");
+		assertThat(definition.content()).contains("## 1. Authority");
+		assertThat(definition.content()).contains("## 12. Testing");
+	}
+
+	@Test
 	void throwsWhenNoRuleMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("requirements-integrity", 99))
 				.isInstanceOf(RuleDefinitionNotFoundException.class);

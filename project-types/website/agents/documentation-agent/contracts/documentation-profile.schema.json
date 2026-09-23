@@ -1,0 +1,338 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-profile:v1",
+  "title": "Registered DocumentationProfile",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "profileId": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_HANDOVER",
+        "TECHNICAL_HANDOVER"
+      ]
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "primaryAudience": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER",
+        "DEVELOPER"
+      ]
+    },
+    "operation": {
+      "const": "GENERATE_DOCUMENTATION"
+    },
+    "requiredRoots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "CUSTOMER_PROFILE",
+          "WEBSITE_REQUIREMENTS",
+          "SELECTED_SOURCE_DESIGN",
+          "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "QA_RESULT",
+          "SELECTION_DECISION",
+          "APPROVAL_RECORD",
+          "DEPLOYMENT_RECORD",
+          "INTEGRATION_CONTRACT",
+          "DOCUMENTATION_CONTEXT",
+          "DOCUMENTATION_PACKAGE",
+          "DOCUMENTATION_ARTIFACT",
+          "DETERMINISTIC_REPORT"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 15,
+      "uniqueItems": true
+    },
+    "optionalRoots": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "CUSTOMER_PROFILE",
+          "WEBSITE_REQUIREMENTS",
+          "SELECTED_SOURCE_DESIGN",
+          "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "QA_RESULT",
+          "SELECTION_DECISION",
+          "APPROVAL_RECORD",
+          "DEPLOYMENT_RECORD",
+          "INTEGRATION_CONTRACT",
+          "DOCUMENTATION_CONTEXT",
+          "DOCUMENTATION_PACKAGE",
+          "DOCUMENTATION_ARTIFACT",
+          "DETERMINISTIC_REPORT"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 15,
+      "uniqueItems": true
+    },
+    "qaPreconditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "qaProfile": {
+          "const": "FULL_RELEASE"
+        },
+        "allowedGates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "HOLD"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "qaProfile",
+        "allowedGates"
+      ]
+    },
+    "candidateSafeProjectionRequired": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "semanticDocuments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "documentType": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER_WEBSITE_HANDOVER",
+              "TECHNICAL_HANDOVER_GUIDE"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "sectionType": {
+                  "type": "string",
+                  "enum": [
+                    "CHANGE_AND_MAINTENANCE",
+                    "CONTENT_AND_LANGUAGES",
+                    "DEPLOYMENT_INFORMATION",
+                    "FEATURES",
+                    "FUNCTIONAL_BEHAVIOR",
+                    "IMPLEMENTATION_OVERVIEW",
+                    "INTEGRATIONS",
+                    "KNOWN_LIMITATIONS",
+                    "MAINTENANCE_NOTES",
+                    "PROJECT_STATUS",
+                    "QA_AND_OUTSTANDING_ISSUES",
+                    "REFERENCES",
+                    "ROUTING",
+                    "RUNTIME_AND_ARCHITECTURE",
+                    "TECHNICAL_CONSTRAINTS",
+                    "WEBSITE_OVERVIEW",
+                    "WEBSITE_STRUCTURE"
+                  ]
+                },
+                "required": {
+                  "type": "boolean"
+                },
+                "allowEmptyAgentBlocks": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "sectionType",
+                "required",
+                "allowEmptyAgentBlocks"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 20
+          }
+        },
+        "required": [
+          "documentType",
+          "required",
+          "sections"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 3
+    },
+    "deterministicReports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "reportType": {
+            "type": "string",
+            "enum": [
+              "ARTIFACT_VERSION_MANIFEST",
+              "IMPLEMENTATION_MANIFEST",
+              "FUNCTIONAL_BINDING_REPORT",
+              "INTEGRATION_REFERENCE_REPORT",
+              "QA_FINDING_REGISTER"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "deliveryDisposition": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER_VISIBLE",
+              "DEVELOPER_VISIBLE",
+              "INTERNAL_SUPPORT"
+            ]
+          }
+        },
+        "required": [
+          "reportType",
+          "required",
+          "deliveryDisposition"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 10
+    },
+    "composerDeterministicBlocks": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "CHANGE_AND_MAINTENANCE",
+          "CONTENT_AND_LANGUAGES",
+          "DEPLOYMENT_INFORMATION",
+          "FEATURES",
+          "FUNCTIONAL_BEHAVIOR",
+          "IMPLEMENTATION_OVERVIEW",
+          "INTEGRATIONS",
+          "KNOWN_LIMITATIONS",
+          "MAINTENANCE_NOTES",
+          "PROJECT_STATUS",
+          "QA_AND_OUTSTANDING_ISSUES",
+          "REFERENCES",
+          "ROUTING",
+          "RUNTIME_AND_ARCHITECTURE",
+          "TECHNICAL_CONSTRAINTS",
+          "WEBSITE_OVERVIEW",
+          "WEBSITE_STRUCTURE"
+        ]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "minItems": 1,
+        "maxItems": 10,
+        "uniqueItems": true
+      }
+    },
+    "allowedClaimTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "CUSTOMER_FACT",
+          "REQUIREMENT_DESCRIPTION",
+          "DESIGN_DESCRIPTION",
+          "IMPLEMENTATION_DESCRIPTION",
+          "FUNCTIONAL_BEHAVIOR",
+          "INTEGRATION_DESCRIPTION",
+          "QA_STATUS",
+          "KNOWN_LIMITATION",
+          "APPROVAL_STATUS",
+          "DEPLOYMENT_STATUS",
+          "AUTHORITY_AVAILABILITY",
+          "UNKNOWN_REPRESENTATION",
+          "CONFLICT_REPRESENTATION",
+          "TECHNICAL_CONSTRAINT"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 30,
+      "uniqueItems": true
+    },
+    "defaultSkillSet": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "compositionSkill": {
+      "type": "string",
+      "enum": [
+        "customer-handover-composition",
+        "technical-handover-composition"
+      ]
+    },
+    "semanticValidationRequired": {
+      "const": true
+    },
+    "supportedLocales": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "de-AT",
+          "en-GB"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "findingPolicyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    }
+  },
+  "required": [
+    "profileId",
+    "version",
+    "active",
+    "primaryAudience",
+    "operation",
+    "requiredRoots",
+    "optionalRoots",
+    "qaPreconditions",
+    "semanticDocuments",
+    "deterministicReports",
+    "allowedClaimTypes",
+    "defaultSkillSet",
+    "compositionSkill",
+    "semanticValidationRequired",
+    "supportedLocales",
+    "findingPolicyRef"
+  ]
+}

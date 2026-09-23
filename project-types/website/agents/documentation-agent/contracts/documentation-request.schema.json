@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-request:v1",
+  "title": "Exact Core-resolved workflow request",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "projectRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "trigger": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "triggerType": {
+          "type": "string",
+          "enum": [
+            "FULL_RELEASE_QA_FINALIZED",
+            "SCOPED_APPROVAL_RECORDED",
+            "DEPLOYMENT_RECORDED",
+            "MANUAL_DOCUMENTATION_REQUEST"
+          ]
+        },
+        "triggerRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+        }
+      },
+      "required": [
+        "triggerType",
+        "triggerRef"
+      ]
+    },
+    "documentationProfileRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "documentationPolicyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "documentationWorkflowPolicyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "targetLocale": {
+      "type": "string",
+      "enum": [
+        "de-AT",
+        "en-GB"
+      ]
+    },
+    "requestedAuthorityRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+      },
+      "minItems": 1,
+      "maxItems": 15,
+      "uniqueItems": true
+    },
+    "generationReasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "INITIAL",
+          "AUTHORITY_STATE_CHANGE",
+          "PROFILE_CHANGE",
+          "POLICY_CHANGE",
+          "GENERATOR_CHANGE",
+          "DOCUMENTATION_CORRECTION",
+          "MANUAL_REGENERATION"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 7,
+      "uniqueItems": true
+    },
+    "idempotencyKey": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "requestId",
+    "projectRef",
+    "trigger",
+    "documentationProfileRef",
+    "documentationPolicyRef",
+    "documentationWorkflowPolicyRef",
+    "targetLocale",
+    "requestedAuthorityRefs",
+    "generationReasons",
+    "idempotencyKey"
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:authority-catalog-entry:v1",
+  "title": "Catalog entry accessible to current context",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "authorityRef": {
+      "$ref": "urn:aiw:schema:documentation:authority-ref:v1"
+    },
+    "safeFactKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 0,
+      "maxItems": 200,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "key",
+    "authorityRef",
+    "safeFactKeys"
+  ]
+}

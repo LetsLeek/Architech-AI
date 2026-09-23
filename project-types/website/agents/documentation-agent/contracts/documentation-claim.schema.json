@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-claim:v1",
+  "title": "Canonical claim with resolved immutable refs",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "claimId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "claimType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_FACT",
+        "REQUIREMENT_DESCRIPTION",
+        "DESIGN_DESCRIPTION",
+        "IMPLEMENTATION_DESCRIPTION",
+        "FUNCTIONAL_BEHAVIOR",
+        "INTEGRATION_DESCRIPTION",
+        "QA_STATUS",
+        "KNOWN_LIMITATION",
+        "APPROVAL_STATUS",
+        "DEPLOYMENT_STATUS",
+        "AUTHORITY_AVAILABILITY",
+        "UNKNOWN_REPRESENTATION",
+        "CONFLICT_REPRESENTATION",
+        "TECHNICAL_CONSTRAINT"
+      ]
+    },
+    "derivation": {
+      "type": "string",
+      "enum": [
+        "DIRECT",
+        "SYNTHESIZED"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1800
+    },
+    "authorityRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:authority-ref:v1"
+      },
+      "minItems": 1,
+      "maxItems": 25,
+      "uniqueItems": true
+    },
+    "disclosureKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 1,
+      "maxItems": 15,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "claimId",
+    "claimType",
+    "derivation",
+    "text",
+    "authorityRefs"
+  ]
+}

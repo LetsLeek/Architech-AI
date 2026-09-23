@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-run:v1",
+  "title": "Audit/execution state not Product Authority",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "runId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "requestRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "contextRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "agentContractVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "skillSetVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "workflowPolicyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "runState": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "CONTEXT_BUILDING",
+        "CONTEXT_READY",
+        "GENERATING",
+        "VALIDATING",
+        "CANONICALIZED",
+        "BLOCKED",
+        "GENERATION_FAILED",
+        "VALIDATION_FAILED",
+        "EVALUATION_FAILED",
+        "SYSTEM_FAILED",
+        "CANCELLED"
+      ]
+    },
+    "generationAttemptCount": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "validationAttemptCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canonicalPackageVersionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "runId",
+    "requestRef",
+    "agentContractVersion",
+    "skillSetVersion",
+    "workflowPolicyRef",
+    "runState",
+    "generationAttemptCount",
+    "validationAttemptCount",
+    "startedAt"
+  ]
+}

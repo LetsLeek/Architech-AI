@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:artifact-version-manifest:v1",
+  "title": "Exact source root versions",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "roots": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+      },
+      "minItems": 1,
+      "maxItems": 12,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "roots"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-artifact-version:v1",
+  "title": "Immutable canonical semantic document child",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "artifactId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "packageVersionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_WEBSITE_HANDOVER",
+        "TECHNICAL_HANDOVER_GUIDE"
+      ]
+    },
+    "audience": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER",
+        "DEVELOPER"
+      ]
+    },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "de-AT",
+        "en-GB"
+      ]
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:canonical-section:v1"
+      },
+      "minItems": 1,
+      "maxItems": 20
+    },
+    "authorityRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:authority-ref:v1"
+      },
+      "minItems": 0,
+      "maxItems": 500,
+      "uniqueItems": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "artifactId",
+    "revision",
+    "packageVersionRef",
+    "documentType",
+    "audience",
+    "locale",
+    "sections",
+    "authorityRefs",
+    "createdAt"
+  ]
+}

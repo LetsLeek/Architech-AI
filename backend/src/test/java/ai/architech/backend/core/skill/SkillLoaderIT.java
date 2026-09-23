@@ -128,6 +128,29 @@ class SkillLoaderIT {
 	}
 
 	@Test
+	void resolvesAllNineFrozenDocumentationSkillsEachWithItsOwnOneModule() {
+		List<String> documentationSkillIds = List.of(
+				"authority-preserving-synthesis",
+				"claim-construction-and-traceability",
+				"audience-adaptation",
+				"epistemic-state-representation",
+				"finding-and-limitation-writing",
+				"localization-and-terminology",
+				"semantic-self-review",
+				"customer-handover-composition",
+				"technical-handover-composition");
+
+		for (String skillId : documentationSkillIds) {
+			SkillDefinition definition = loader.resolve(skillId, 1);
+
+			assertThat(definition.id()).as("skill id for '%s'", skillId).isEqualTo(skillId);
+			assertThat(definition.modules()).as("modules for '%s'", skillId).hasSize(1);
+			assertThat(definition.modules().get(0).filename()).isEqualTo("01-" + skillId + ".md");
+			assertThat(definition.modules().get(0).content()).isNotBlank();
+		}
+	}
+
+	@Test
 	void throwsWhenNoSkillMatchesTheRequestedIdAndVersion() {
 		assertThatThrownBy(() -> loader.resolve("extract-business-requirements", 99))
 				.isInstanceOf(SkillDefinitionNotFoundException.class);

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:finding-disclosure-view:v1",
+  "title": "Preclassified Core-owned findings",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "disclosureKey": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+          },
+          "findingAuthorityKey": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "DISCLOSE",
+              "OMIT",
+              "BLOCK_DOCUMENT"
+            ]
+          },
+          "audience": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER",
+              "DEVELOPER"
+            ]
+          },
+          "reasonCode": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "materialImpactFactKeys": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+            },
+            "minItems": 0,
+            "maxItems": 20,
+            "uniqueItems": true
+          },
+          "currentCandidateRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+          }
+        },
+        "required": [
+          "disclosureKey",
+          "findingAuthorityKey",
+          "action",
+          "audience",
+          "reasonCode",
+          "materialImpactFactKeys",
+          "currentCandidateRef"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 150
+    }
+  },
+  "required": [
+    "entries"
+  ]
+}

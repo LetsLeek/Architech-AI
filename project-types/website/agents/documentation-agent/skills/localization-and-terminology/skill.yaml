@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: localization-and-terminology
+name: Localization and Terminology
+version: 1
+
+description: >
+  Generate directly in the bound targetLocale from the same frozen Product Authority,
+  preserving protected terminology, canonical enums and requirement-strength meaning.
