@@ -22,7 +22,33 @@ describe('requestJson', () => {
 
     // AIW-71: requestJson prefixes every path with VITE_API_BASE_URL, empty by default so
     // local dev (Vite's own proxy) sees the exact same request it always has.
-    expect(fetchMock).toHaveBeenCalledWith('/api/projects', undefined)
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/api/projects')
+  })
+
+  it('attaches the shared X-API-Key header to every request (AIW-185)', async () => {
+    const response = new Response(JSON.stringify({}), { status: 200 })
+    const fetchMock = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await requestJson('/api/projects')
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const headers = new Headers(init.headers)
+    expect(headers.get('X-API-Key')).toBe('architech-dev-api-key')
+  })
+
+  it('preserves a caller-supplied header (e.g. Content-Type) alongside the API key', async () => {
+    const response = new Response(JSON.stringify({}), { status: 200 })
+    const fetchMock = vi.fn().mockResolvedValue(response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await requestJson('/api/projects', { headers: { 'Content-Type': 'application/json' } })
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    const headers = new Headers(init.headers)
+    expect(headers.get('Content-Type')).toBe('application/json')
+    expect(headers.get('X-API-Key')).toBe('architech-dev-api-key')
   })
 
   it('throws an ApiError carrying the backend message on a non-2xx response', async () => {

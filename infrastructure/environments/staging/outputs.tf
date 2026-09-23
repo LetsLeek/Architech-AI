@@ -21,3 +21,9 @@ output "frontend_deployment_token" {
   sensitive   = true
   description = "Set as the AZURE_STATIC_WEB_APPS_API_TOKEN_STAGING GitHub Actions secret for the frontend deployment workflow."
 }
+
+output "backend_api_key" {
+  value       = random_password.backend_api_key.result
+  sensitive   = true
+  description = "AIW-185: the real X-API-Key value for this environment - read via `terraform output -raw backend_api_key` by backend-deploy-staging.yml's own post-deployment smoke test step."
+}

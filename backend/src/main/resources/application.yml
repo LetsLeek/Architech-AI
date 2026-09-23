@@ -112,6 +112,12 @@ architech:
       # Lineage) (AIW-181) - Workflow/Core decides this, never the Developer Agent or a single
       # QA execution.
       max-remediation-cycles-per-stage: 2
+  security:
+    # AIW-185: real, non-secret default (same fallback pattern as spring.datasource.password's
+    # own "architech" below) so local dev/tests/CI work with zero setup - every real DEV/STAGING/
+    # PROD value overrides this via Key Vault (infrastructure/environments/*/main.tf), never a
+    # plain env var literal. See ApiKeyAuthenticationFilter for what this actually gates.
+    api-key: ${API_KEY:architech-dev-api-key}
 
 management:
   endpoints:

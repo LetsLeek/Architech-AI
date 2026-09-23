@@ -44,8 +44,18 @@ jobs:
         # terraform output) - baked in at build time since a static SPA has no runtime config
         # mechanism; every other environment sets this to its own backend's real URL the same
         # way when AIW-74/75 add their own deploy workflows.
+        #
+        # VITE_API_KEY (AIW-185): DEV's own X-API-Key, stored as a GitHub Actions secret rather
+        # than read from `terraform output` here - this workflow deliberately holds no Azure
+        # credentials at all (it authenticates to Static Web Apps with that service's own
+        # deployment token, not OIDC), so it has no way to read Key Vault or Terraform state.
+        # Set it once from `terraform -chdir=infrastructure/environments/dev output -raw
+        # backend_api_key`; rotating the key means updating both. Known and accepted: this value
+        # ends up inside the public JS bundle - see frontend/src/api/http.ts for the full scope
+        # note on what that does and does not protect.
         env:
           VITE_API_BASE_URL: https://ca-aiw-backend-dev.happyflower-cd7e5ebd.swedencentral.azurecontainerapps.io
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY_DEV }}
         run: npm run build
 
       - name: Deploy to Azure Static Web Apps

@@ -10,6 +10,11 @@ terraform {
       source  = "hashicorp/azuread"
       version = "~> 3.0"
     }
+    # AIW-185: generates the backend's shared API-key gate value.
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 
   backend "azurerm" {

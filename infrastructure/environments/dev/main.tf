@@ -181,6 +181,25 @@ resource "azurerm_key_vault_secret" "spring_datasource_password" {
   depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
 }
 
+# AIW-185: the shared secret ApiKeyAuthenticationFilter checks on every /api/** request.
+# Alphanumeric only (no special = true) - it only ever needs to be a safe HTTP header value and
+# a safe shell argument in the deploy workflows that read it back via `terraform output`, nothing
+# more, so there's no reason to widen the character set the way the Postgres passwords above
+# deliberately do for their own different constraints.
+resource "random_password" "backend_api_key" {
+  length  = 40
+  special = false
+}
+
+resource "azurerm_key_vault_secret" "backend_api_key" {
+  name            = "backend-api-key"
+  value           = random_password.backend_api_key.result
+  content_type    = "text/plain"
+  key_vault_id    = module.key_vault.id
+  expiration_date = "2027-09-11T00:00:00Z"
+  depends_on      = [azurerm_role_assignment.terraform_admin_kv_secrets_officer]
+}
+
 module "backend" {
   source = "../../modules/container-app"
 
@@ -211,11 +230,14 @@ module "backend" {
     { name = "spring-datasource-url", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_url.versionless_id },
     { name = "spring-datasource-username", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_username.versionless_id },
     { name = "spring-datasource-password", key_vault_secret_id = azurerm_key_vault_secret.spring_datasource_password.versionless_id },
+    { name = "backend-api-key", key_vault_secret_id = azurerm_key_vault_secret.backend_api_key.versionless_id },
   ]
   secret_env = [
     { name = "SPRING_DATASOURCE_URL", secret_name = "spring-datasource-url" },
     { name = "SPRING_DATASOURCE_USERNAME", secret_name = "spring-datasource-username" },
     { name = "SPRING_DATASOURCE_PASSWORD", secret_name = "spring-datasource-password" },
+    # AIW-185: binds to architech.security.api-key (relaxed binding, see application.yml).
+    { name = "API_KEY", secret_name = "backend-api-key" },
   ]
 
   tags = {

@@ -35,6 +35,12 @@ output "prod_app_password" {
   sensitive = true
 }
 
+output "backend_api_key" {
+  value       = random_password.backend_api_key.result
+  sensitive   = true
+  description = "AIW-185: the real X-API-Key value for this environment - read via `terraform output -raw backend_api_key` by backend-deploy-prod.yml's own post-deployment smoke test step."
+}
+
 # backend_fqdn intentionally not exposed yet - the Container App itself is not yet created
 # (AIW-75, pending a real Container Apps Environment quota increase; see
 # docs/operations/prod-environment.md).

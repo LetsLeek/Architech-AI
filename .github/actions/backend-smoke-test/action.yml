@@ -10,6 +10,13 @@ inputs:
   base-url:
     description: Backend base URL, no trailing slash (e.g. https://ca-aiw-backend-dev.<host>)
     required: true
+  api-key:
+    description: >
+      X-API-Key value for this environment (AIW-185) - required for the /api/** smoke test step;
+      /actuator/health stays unauthenticated so this step alone can pass this empty if a caller
+      genuinely only wants the health check.
+    required: false
+    default: ""
   environment-name:
     description: Human-readable environment name for log/error messages (e.g. "DEV")
     required: true
@@ -58,17 +65,18 @@ runs:
       # health indicator), but this step goes one step further and proves the *application's
       # own* routing + repository query path works end-to-end, not just the actuator's own ping.
       # A random UUID against GET /api/projects/{id} is the safest possible real request: no
-      # authentication exists on this API yet (nothing to leak), no state is mutated (GET only),
-      # and the only two valid outcomes are exactly what this checks for - 404 (route + DB query
-      # both work, project genuinely doesn't exist) is success, anything else (5xx, connection
-      # failure, wrong content type) is a real reachability or dependency problem.
+      # state is mutated (GET only), and the only two valid outcomes are exactly what this checks
+      # for - 404 (route + DB query both work, project genuinely doesn't exist) is success,
+      # anything else (401 from a missing/wrong api-key input, 5xx, connection failure, wrong
+      # content type) is a real reachability, auth-wiring, or dependency problem.
       env:
         BASE_URL: ${{ inputs.base-url }}
+        API_KEY: ${{ inputs.api-key }}
         ENVIRONMENT_NAME: ${{ inputs.environment-name }}
       run: |
         probe_id="00000000-0000-0000-0000-000000000000"
         url="${BASE_URL}/api/projects/${probe_id}"
-        status=$(curl -s -o /tmp/smoke.json -w "%{http_code}" --max-time 20 "$url" || echo "000")
+        status=$(curl -s -o /tmp/smoke.json -w "%{http_code}" --max-time 20 -H "X-API-Key: ${API_KEY}" "$url" || echo "000")
         if [ "$status" != "404" ]; then
           echo "::error::${ENVIRONMENT_NAME} smoke test failed - expected HTTP 404 from ${url}, got ${status}"
           cat /tmp/smoke.json 2>/dev/null || true

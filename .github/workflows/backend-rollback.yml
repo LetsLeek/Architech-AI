@@ -81,11 +81,20 @@ jobs:
         # actually completes the rollback (activation alone doesn't route requests to it).
         run: az containerapp ingress traffic set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision-weight "${TARGET_REVISION}=100"
 
-      - name: Resolve backend URL
+      - name: Resolve backend URL and API key
         id: url
+        # AIW-185: read straight from Key Vault rather than `terraform output` - this workflow
+        # deliberately never runs terraform (rollback is an `az revision activate` + traffic
+        # shift, no apply), so it has no state to read an output from. ::add-mask:: keeps the
+        # key out of this run's logs.
+        env:
+          KEY_VAULT_NAME: kv-aiw-staging-swc
         run: |
           fqdn=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.configuration.ingress.fqdn" -o tsv)
           echo "base-url=https://${fqdn}" >> "$GITHUB_OUTPUT"
+          api_key=$(az keyvault secret show --vault-name "$KEY_VAULT_NAME" --name backend-api-key --query value -o tsv)
+          echo "::add-mask::${api_key}"
+          echo "api-key=${api_key}" >> "$GITHUB_OUTPUT"
 
       - name: Verify rollback is healthy
         # Confirms the *application* rolled back successfully - this deliberately says nothing
@@ -96,6 +105,7 @@ jobs:
         uses: ./.github/actions/backend-smoke-test
         with:
           base-url: ${{ steps.url.outputs.base-url }}
+          api-key: ${{ steps.url.outputs.api-key }}
           environment-name: STAGING (post-rollback)
 
       - name: Summary

@@ -28,9 +28,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-class RequestCorrelationFilter extends OncePerRequestFilter {
+public class RequestCorrelationFilter extends OncePerRequestFilter {
 
-	static final String MDC_KEY = "correlationId";
+	// AIW-185: public (not package-private) so ApiKeyAuthenticationFilter (core.security) can
+	// embed the same correlation id in its own 401 responses, rather than duplicating this
+	// literal in a second package.
+	public static final String MDC_KEY = "correlationId";
 	static final String RESPONSE_HEADER = "X-Correlation-Id";
 
 	@Override
