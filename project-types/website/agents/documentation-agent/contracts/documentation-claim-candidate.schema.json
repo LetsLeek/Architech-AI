@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-claim-candidate:v1",
+  "title": "Only agent-owned factual semantic claim",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "claimKey": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "claimType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_FACT",
+        "REQUIREMENT_DESCRIPTION",
+        "DESIGN_DESCRIPTION",
+        "IMPLEMENTATION_DESCRIPTION",
+        "FUNCTIONAL_BEHAVIOR",
+        "INTEGRATION_DESCRIPTION",
+        "QA_STATUS",
+        "KNOWN_LIMITATION",
+        "APPROVAL_STATUS",
+        "DEPLOYMENT_STATUS",
+        "AUTHORITY_AVAILABILITY",
+        "UNKNOWN_REPRESENTATION",
+        "CONFLICT_REPRESENTATION",
+        "TECHNICAL_CONSTRAINT"
+      ]
+    },
+    "derivation": {
+      "type": "string",
+      "enum": [
+        "DIRECT",
+        "SYNTHESIZED"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1800
+    },
+    "authorityKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "disclosureKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 1,
+      "maxItems": 15,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "claimKey",
+    "claimType",
+    "derivation",
+    "text",
+    "authorityKeys"
+  ]
+}

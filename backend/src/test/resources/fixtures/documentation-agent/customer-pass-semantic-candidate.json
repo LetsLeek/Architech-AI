@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "1.0.0",
+  "documents": [
+    {
+      "documentType": "CUSTOMER_WEBSITE_HANDOVER",
+      "sections": [
+        {
+          "sectionType": "WEBSITE_OVERVIEW",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-OVERVIEW",
+                  "claimType": "CUSTOMER_FACT",
+                  "derivation": "DIRECT",
+                  "text": "Die Website gehört zur Beispiel GmbH.",
+                  "authorityKeys": [
+                    "AUTH-CUSTOMER"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "WEBSITE_STRUCTURE",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-STRUCTURE",
+                  "claimType": "DESIGN_DESCRIPTION",
+                  "derivation": "SYNTHESIZED",
+                  "text": "Das ausgewählte Design und die Implementierung enthalten eine Startseite sowie eine Kontaktseite.",
+                  "authorityKeys": [
+                    "AUTH-DESIGN",
+                    "AUTH-IMPL"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "FEATURES",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-FEATURE",
+                  "claimType": "FUNCTIONAL_BEHAVIOR",
+                  "derivation": "SYNTHESIZED",
+                  "text": "Das Kontaktformular ist mit der autorisierten E-Mail-Zustellung verbunden.",
+                  "authorityKeys": [
+                    "AUTH-IMPL",
+                    "AUTH-BINDING",
+                    "AUTH-CONTRACT"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "CONTENT_AND_LANGUAGES",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-LOCALE",
+                  "claimType": "IMPLEMENTATION_DESCRIPTION",
+                  "derivation": "DIRECT",
+                  "text": "Die Website ist in de-AT implementiert.",
+                  "authorityKeys": [
+                    "AUTH-IMPL"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "INTEGRATIONS",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-INTEG",
+                  "claimType": "INTEGRATION_DESCRIPTION",
+                  "derivation": "SYNTHESIZED",
+                  "text": "Für die Kontaktfunktion ist eine autorisierte E-Mail-Zustellungsintegration angebunden.",
+                  "authorityKeys": [
+                    "AUTH-BINDING",
+                    "AUTH-CONTRACT"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "KNOWN_LIMITATIONS",
+          "blocks": []
+        },
+        {
+          "sectionType": "PROJECT_STATUS",
+          "blocks": [
+            {
+              "blockType": "NARRATIVE",
+              "claims": [
+                {
+                  "claimKey": "C-QA",
+                  "claimType": "QA_STATUS",
+                  "derivation": "DIRECT",
+                  "text": "Die gebundene FULL_RELEASE-QA hat PASS ergeben.",
+                  "authorityKeys": [
+                    "AUTH-QA"
+                  ]
+                },
+                {
+                  "claimKey": "C-APPROVAL",
+                  "claimType": "AUTHORITY_AVAILABILITY",
+                  "derivation": "DIRECT",
+                  "text": "Für diesen Dokumentationsstand ist kein ApprovalRecord gebunden.",
+                  "authorityKeys": [
+                    "AUTH-CTX-APPROVAL"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "sectionType": "CHANGE_AND_MAINTENANCE",
+          "blocks": []
+        }
+      ]
+    }
+  ]
+}

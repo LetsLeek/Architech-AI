@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-validation-issue:v1",
+  "title": "Safe typed validation issue",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "issueId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "issueClass": {
+      "type": "string",
+      "enum": [
+        "AUTHORITY_ISSUE",
+        "CANDIDATE_ISSUE",
+        "EVALUATION_ISSUE",
+        "SECURITY_ISSUE",
+        "SYSTEM_ISSUE"
+      ]
+    },
+    "issueCode": {
+      "type": "string",
+      "enum": [
+        "MISSING_REQUIRED_AUTHORITY",
+        "LINEAGE_INCOMPATIBILITY",
+        "PROFILE_PRECONDITION_FAILED",
+        "BLOCKING_AUTHORITY_CONFLICT",
+        "INVALID_APPROVAL_SCOPE",
+        "SCHEMA_VIOLATION",
+        "PROFILE_NONCONFORMANCE",
+        "INVALID_AUTHORITY_KEY",
+        "CLAIM_AUTHORITY_DOMAIN_MISMATCH",
+        "REQUIRED_DISCLOSURE_MISSING",
+        "DISCLOSURE_AUTHORITY_MISMATCH",
+        "UNSUPPORTED_CLAIM",
+        "STATUS_UPGRADE",
+        "LOCALIZATION_DRIFT",
+        "SEMANTIC_VALIDATOR_TIMEOUT",
+        "INVALID_VALIDATOR_OUTPUT",
+        "CONTEXT_REDACTION_FAILURE",
+        "SECRET_VALUE_EXPOSURE",
+        "AUDIENCE_SCOPE_VIOLATION",
+        "REPORT_GENERATOR_FAILURE",
+        "PACKAGE_CONTEXT_MISMATCH",
+        "CANONICALIZATION_CONFLICT",
+        "UNSUPPORTED_TARGET_LOCALE",
+        "REQUIREMENT_STRENGTH_DRIFT",
+        "UNKNOWN_RESOLUTION",
+        "CONFLICT_RESOLUTION",
+        "FINDING_MEANING_DOWNGRADE",
+        "MATERIAL_OMISSION",
+        "BINDING_STATE_DRIFT",
+        "CLAIM_STATE_MISMATCH",
+        "NON_CURRENT_FINDING_DISCLOSURE",
+        "UNSUPPORTED_ADDITION",
+        "CERTAINTY_UPGRADE",
+        "SCOPE_UPGRADE",
+        "MISLEADING_SYNTHESIS",
+        "DUPLICATE_CLAIM_KEY",
+        "DUPLICATE_SECTION",
+        "PACKAGE_REPORT_MISSING",
+        "CONTEXT_STATE_CONTRADICTION",
+        "CURRENT_FINDING_MISMATCH"
+      ]
+    },
+    "jsonPointer": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "candidateClaimKey": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "relatedAuthorityKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "violatedRuleRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^DOC-[A-Z]+-\\d{3}$"
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "safeMessage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "blocking": {
+      "type": "boolean"
+    },
+    "remediationTarget": {
+      "type": "string",
+      "enum": [
+        "AGENT",
+        "VALIDATOR",
+        "CORE",
+        "UPSTREAM_AUTHORITY",
+        "WORKFLOW",
+        "HUMAN_REVIEW"
+      ]
+    }
+  },
+  "required": [
+    "issueId",
+    "issueClass",
+    "issueCode",
+    "safeMessage",
+    "blocking",
+    "remediationTarget"
+  ]
+}

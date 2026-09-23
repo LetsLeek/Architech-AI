@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: epistemic-state-representation
+name: Epistemic State Representation
+version: 1
+
+description: >
+  Represent unknown, missing-authority and conflicting states using Core's own
+  classification, without reclassifying or narrowing/widening their meaning.

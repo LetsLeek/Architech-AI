@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:semantic-document-candidate:v1",
+  "title": "One model-authored semantic document",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "documentType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_WEBSITE_HANDOVER",
+        "TECHNICAL_HANDOVER_GUIDE"
+      ]
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:documentation-section-candidate:v1"
+      },
+      "minItems": 1,
+      "maxItems": 20
+    }
+  },
+  "required": [
+    "documentType",
+    "sections"
+  ]
+}

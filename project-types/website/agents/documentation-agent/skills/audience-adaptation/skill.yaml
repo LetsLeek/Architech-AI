@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: audience-adaptation
+name: Audience Adaptation
+version: 1
+
+description: >
+  Change explanation and level of jargon for CUSTOMER or DEVELOPER audience without
+  changing the actual state described.

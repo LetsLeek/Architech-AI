@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:semantic-block-candidate:v1",
+  "title": "Model-owned narrative/list blocks only",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "NARRATIVE"
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "$ref": "urn:aiw:schema:documentation:documentation-claim-candidate:v1"
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "blockType",
+        "claims"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "blockType": {
+          "const": "LIST"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "claims": {
+                "type": "array",
+                "items": {
+                  "$ref": "urn:aiw:schema:documentation:documentation-claim-candidate:v1"
+                },
+                "minItems": 1,
+                "maxItems": 6
+              }
+            },
+            "required": [
+              "claims"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 30
+        }
+      },
+      "required": [
+        "blockType",
+        "items"
+      ]
+    }
+  ]
+}

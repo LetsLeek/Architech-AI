@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:authority-ref:v1",
+  "title": "Canonical structured authority provenance",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "authorityDomain": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_FACT",
+        "REQUIREMENT",
+        "SOURCE_DESIGN",
+        "IMPLEMENTATION",
+        "FUNCTIONAL_BINDING",
+        "INTEGRATION_AUTHORIZATION",
+        "TECHNICAL_VERIFICATION",
+        "QA_EVALUATION",
+        "QA_FINDING",
+        "SELECTION",
+        "APPROVAL",
+        "DEPLOYMENT",
+        "TECHNICAL_CONSTRAINT",
+        "CONTEXT_STATE"
+      ]
+    },
+    "artifactType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_PROFILE",
+        "WEBSITE_REQUIREMENTS",
+        "SELECTED_SOURCE_DESIGN",
+        "WEBSITE_IMPLEMENTATION_CANDIDATE",
+        "QA_RESULT",
+        "SELECTION_DECISION",
+        "APPROVAL_RECORD",
+        "DEPLOYMENT_RECORD",
+        "INTEGRATION_CONTRACT",
+        "DOCUMENTATION_CONTEXT",
+        "DOCUMENTATION_PACKAGE",
+        "DOCUMENTATION_ARTIFACT",
+        "DETERMINISTIC_REPORT"
+      ]
+    },
+    "artifactVersionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "OBJECT_ID",
+            "FIELD_PATH",
+            "ARTIFACT_ROOT",
+            "CONTEXT_STATE"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      },
+      "required": [
+        "kind",
+        "value"
+      ]
+    }
+  },
+  "required": [
+    "authorityDomain",
+    "artifactType",
+    "artifactVersionRef",
+    "locator"
+  ]
+}

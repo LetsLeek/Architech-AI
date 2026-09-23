@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:functional-binding-report:v1",
+  "title": "Candidate FunctionalBinding exact safe projection",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "candidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "bindings": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "functionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+              },
+              "bindingState": {
+                "type": "string",
+                "enum": [
+                  "IMPLEMENTED_LOCAL",
+                  "IMPLEMENTED_BOUND",
+                  "UNBOUND"
+                ]
+              },
+              "integrationContractRef": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+              },
+              "safeDescription": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 400
+              }
+            },
+            "required": [
+              "functionId",
+              "bindingState"
+            ]
+          },
+          {
+            "if": {
+              "properties": {
+                "bindingState": {
+                  "const": "IMPLEMENTED_BOUND"
+                }
+              },
+              "required": [
+                "bindingState"
+              ]
+            },
+            "then": {
+              "required": [
+                "integrationContractRef"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "integrationContractRef"
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 200
+    }
+  },
+  "required": [
+    "candidateRef",
+    "bindings"
+  ]
+}

@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: authority-preserving-synthesis
+name: Authority-preserving Synthesis
+version: 1
+
+description: >
+  Combine one or more safe, relevant authority facts into useful text without creating new
+  facts, wider guarantees, stronger status or imagined causation.

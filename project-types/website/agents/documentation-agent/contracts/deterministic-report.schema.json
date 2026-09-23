@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:deterministic-report:v1",
+  "title": "Typed Core-owned deterministic report",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "reportId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "reportType": {
+      "type": "string",
+      "enum": [
+        "ARTIFACT_VERSION_MANIFEST",
+        "IMPLEMENTATION_MANIFEST",
+        "FUNCTIONAL_BINDING_REPORT",
+        "INTEGRATION_REFERENCE_REPORT",
+        "QA_FINDING_REGISTER"
+      ]
+    },
+    "contextRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "generatorVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "deliveryDisposition": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_VISIBLE",
+        "DEVELOPER_VISIBLE",
+        "INTERNAL_SUPPORT"
+      ]
+    },
+    "authorityRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:authority-ref:v1"
+      },
+      "minItems": 0,
+      "maxItems": 300
+    },
+    "payload": {
+      "type": "object"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "reportType",
+    "contextRef",
+    "generatorVersion",
+    "deliveryDisposition",
+    "authorityRefs",
+    "payload",
+    "createdAt"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "reportType": {
+            "const": "ARTIFACT_VERSION_MANIFEST"
+          }
+        },
+        "required": [
+          "reportType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "urn:aiw:schema:documentation:artifact-version-manifest:v1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reportType": {
+            "const": "IMPLEMENTATION_MANIFEST"
+          }
+        },
+        "required": [
+          "reportType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "urn:aiw:schema:documentation:implementation-manifest:v1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reportType": {
+            "const": "FUNCTIONAL_BINDING_REPORT"
+          }
+        },
+        "required": [
+          "reportType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "urn:aiw:schema:documentation:functional-binding-report:v1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reportType": {
+            "const": "INTEGRATION_REFERENCE_REPORT"
+          }
+        },
+        "required": [
+          "reportType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "urn:aiw:schema:documentation:integration-reference-report:v1"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reportType": {
+            "const": "QA_FINDING_REGISTER"
+          }
+        },
+        "required": [
+          "reportType"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "urn:aiw:schema:documentation:qa-finding-register:v1"
+          }
+        }
+      }
+    }
+  ]
+}

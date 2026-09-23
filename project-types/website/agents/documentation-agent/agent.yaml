@@ -1,0 +1,44 @@
+schemaVersion: 1
+
+id: website-documentation-agent
+name: Website Documentation Agent
+version: 1
+
+description: >
+  Generates authority-preserving, traceable, audience-specific website project documentation
+  from a frozen, model-visible DocumentationContext. Produces bounded CUSTOMER_HANDOVER or
+  TECHNICAL_HANDOVER semantic documentation candidates that faithfully carry forward Product
+  Authority, functional bindings, QA gate/finding state and known unknowns - never inventing
+  facts, never upgrading certainty, and never repairing or reinterpreting upstream authority.
+  Core owns canonicalization, deterministic report insertion and final package validation.
+
+modelProfile: documentation-reasoning
+
+limits:
+  maxOutputTokens: 16000
+
+skills:
+  - authority-preserving-synthesis
+  - claim-construction-and-traceability
+  - audience-adaptation
+  - epistemic-state-representation
+  - finding-and-limitation-writing
+  - localization-and-terminology
+  - semantic-self-review
+  - customer-handover-composition
+  - technical-handover-composition
+
+rules:
+  - documentation-integrity
+
+inputs:
+  artifacts:
+    - type: documentation-context
+      schema: ./contracts/documentation-context.schema.json
+      required: true
+
+outputs:
+  artifacts:
+    - type: semantic-documentation-candidate
+      schema: ./contracts/semantic-documentation-candidate.schema.json
+      required: true
