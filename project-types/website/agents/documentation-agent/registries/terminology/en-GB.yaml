@@ -1,0 +1,35 @@
+locale: en-GB
+protectedEnums:
+- FULL_RELEASE
+- PASS
+- HOLD
+- BLOCK
+- ALLOW
+- ESCALATE
+- IMPLEMENTED_LOCAL
+- IMPLEMENTED_BOUND
+- UNBOUND
+- UNKNOWN
+sectionTitles:
+  WEBSITE_OVERVIEW: Website overview
+  WEBSITE_STRUCTURE: Structure and pages
+  FEATURES: Features
+  CONTENT_AND_LANGUAGES: Content and languages
+  INTEGRATIONS: Integrations
+  KNOWN_LIMITATIONS: Known limitations
+  PROJECT_STATUS: Current project status
+  CHANGE_AND_MAINTENANCE: Changes and maintenance
+  IMPLEMENTATION_OVERVIEW: Implementation overview
+  RUNTIME_AND_ARCHITECTURE: Runtime and architecture
+  ROUTING: Routing
+  FUNCTIONAL_BEHAVIOR: Functional behaviour
+  TECHNICAL_CONSTRAINTS: Technical constraints
+  QA_AND_OUTSTANDING_ISSUES: QA and outstanding issues
+  DEPLOYMENT_INFORMATION: Deployment information
+  MAINTENANCE_NOTES: Maintenance notes
+  REFERENCES: References
+requirements:
+  MUST: must / required
+  SHOULD: should / recommended
+  COULD: could / optional
+legalNames: retain exact authorized form

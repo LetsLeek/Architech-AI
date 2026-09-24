@@ -1,0 +1,106 @@
+profileId: TECHNICAL_HANDOVER
+version: 1.0.0
+active: true
+primaryAudience: DEVELOPER
+operation: GENERATE_DOCUMENTATION
+requiredRoots:
+- WEBSITE_REQUIREMENTS
+- SELECTED_SOURCE_DESIGN
+- WEBSITE_IMPLEMENTATION_CANDIDATE
+- QA_RESULT
+optionalRoots:
+- CUSTOMER_PROFILE
+- SELECTION_DECISION
+- APPROVAL_RECORD
+- DEPLOYMENT_RECORD
+qaPreconditions:
+  qaProfile: FULL_RELEASE
+  allowedGates:
+  - PASS
+  - HOLD
+candidateSafeProjectionRequired:
+- RUNTIME_PROFILE
+- ROUTE_MANIFEST
+- FUNCTIONAL_BINDINGS
+- INTEGRATION_CONTRACTS_WHERE_BOUND
+- IMMUTABLE_REPOSITORY_STATE
+- TECHNICAL_VERIFICATION_METADATA
+semanticDocuments:
+- documentType: TECHNICAL_HANDOVER_GUIDE
+  required: true
+  sections:
+  - sectionType: IMPLEMENTATION_OVERVIEW
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: RUNTIME_AND_ARCHITECTURE
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: ROUTING
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: FUNCTIONAL_BEHAVIOR
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: INTEGRATIONS
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: TECHNICAL_CONSTRAINTS
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: QA_AND_OUTSTANDING_ISSUES
+    required: true
+    allowEmptyAgentBlocks: false
+  - sectionType: DEPLOYMENT_INFORMATION
+    required: true
+    allowEmptyAgentBlocks: true
+  - sectionType: MAINTENANCE_NOTES
+    required: true
+    allowEmptyAgentBlocks: true
+  - sectionType: REFERENCES
+    required: true
+    allowEmptyAgentBlocks: true
+deterministicReports:
+- reportType: ARTIFACT_VERSION_MANIFEST
+  required: true
+  deliveryDisposition: DEVELOPER_VISIBLE
+- reportType: IMPLEMENTATION_MANIFEST
+  required: true
+  deliveryDisposition: DEVELOPER_VISIBLE
+- reportType: FUNCTIONAL_BINDING_REPORT
+  required: true
+  deliveryDisposition: DEVELOPER_VISIBLE
+- reportType: INTEGRATION_REFERENCE_REPORT
+  required: true
+  deliveryDisposition: DEVELOPER_VISIBLE
+- reportType: QA_FINDING_REGISTER
+  required: true
+  deliveryDisposition: DEVELOPER_VISIBLE
+allowedClaimTypes:
+- CUSTOMER_FACT
+- REQUIREMENT_DESCRIPTION
+- DESIGN_DESCRIPTION
+- IMPLEMENTATION_DESCRIPTION
+- FUNCTIONAL_BEHAVIOR
+- INTEGRATION_DESCRIPTION
+- QA_STATUS
+- KNOWN_LIMITATION
+- APPROVAL_STATUS
+- DEPLOYMENT_STATUS
+- AUTHORITY_AVAILABILITY
+- UNKNOWN_REPRESENTATION
+- CONFLICT_REPRESENTATION
+- TECHNICAL_CONSTRAINT
+defaultSkillSet: DOCUMENTATION_SKILL_SET@1.0.0
+compositionSkill: technical-handover-composition
+semanticValidationRequired: true
+supportedLocales:
+- de-AT
+- en-GB
+findingPolicyRef: DOCUMENTATION_POLICY@1.0.0
+composerDeterministicBlocks:
+  DEPLOYMENT_INFORMATION:
+  - SCOPED_MISSING_DEPLOYMENT_IF_APPLICABLE
+  MAINTENANCE_NOTES:
+  - SCOPED_SECTION_UNAVAILABLE_IF_APPLICABLE
+  REFERENCES:
+  - DETERMINISTIC_REPORT_REFS

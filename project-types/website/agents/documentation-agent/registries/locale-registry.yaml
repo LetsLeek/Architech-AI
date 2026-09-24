@@ -1,0 +1,5 @@
+registryVersion: 1.0.0
+activeLocales:
+- de-AT
+- en-GB
+note: No automatic locale fallback. Additional locales require terminology registration and model contract fixtures.
