@@ -75,10 +75,15 @@ class DocumentationAuthorityAdapterIT {
 		DocumentationAuthoritySnapshot snapshot = adapter.buildAuthoritySnapshot(projectId, candidate, qaResult);
 
 		assertThat(snapshot.customerProfileRef()).isPresent();
-		assertThat(snapshot.websiteRequirementsRef()).isNotBlank();
-		assertThat(snapshot.selectedSourceDesignRef()).isEqualTo(candidate.getSourceDesignRef());
-		assertThat(snapshot.implementationCandidateRef()).isEqualTo(candidate.getId().toString());
-		assertThat(snapshot.qaResultRef()).isEqualTo(qaResult.getId().toString());
+		assertThat(snapshot.customerProfileRef().get().artifactType()).isEqualTo("CUSTOMER_PROFILE");
+		assertThat(snapshot.websiteRequirementsRef().artifactType()).isEqualTo("WEBSITE_REQUIREMENTS");
+		assertThat(snapshot.websiteRequirementsRef().artifactVersionRef()).isNotBlank();
+		assertThat(snapshot.selectedSourceDesignRef().artifactType()).isEqualTo("SELECTED_SOURCE_DESIGN");
+		assertThat(snapshot.selectedSourceDesignRef().artifactVersionRef()).isEqualTo(candidate.getSourceDesignRef());
+		assertThat(snapshot.implementationCandidateRef().artifactType()).isEqualTo("WEBSITE_IMPLEMENTATION_CANDIDATE");
+		assertThat(snapshot.implementationCandidateRef().artifactVersionRef()).isEqualTo(candidate.getId().toString());
+		assertThat(snapshot.qaResultRef().artifactType()).isEqualTo("QA_RESULT");
+		assertThat(snapshot.qaResultRef().artifactVersionRef()).isEqualTo(qaResult.getId().toString());
 		assertThat(snapshot.selectionDecisionRef()).isEmpty();
 		assertThat(snapshot.approvalRecordRef()).isEmpty();
 		assertThat(snapshot.deploymentRecordRef()).isEmpty();
