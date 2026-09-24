@@ -1,0 +1,340 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# AIW-99: a new push to the same PR/branch makes any run already in flight for it redundant -
+# cancelling it frees the runner immediately instead of letting it finish uselessly.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    # AIW-99: observed ~75s at time of writing - generous multiple so real CI variance (cold
+    # runner, dependency-download hiccups) doesn't cause a flaky timeout, while still failing
+    # clearly well before GitHub's 360-minute default would let a genuinely hung job sit there.
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Install Playwright browser (Chromium)
+        # AIW-143's gates 7-12 drive a real headless Chromium directly from the backend JVM
+        # (com.microsoft.playwright:playwright) - the browser binary is a separate download this
+        # runner doesn't have by default. --with-deps also installs the OS-level libraries
+        # Chromium needs on a bare ubuntu-latest runner (sudo apt, handled internally by the
+        # installer). Uses the exec-maven-plugin goal directly (no plugin declaration needed in
+        # pom.xml) purely to get a resolved classpath onto java's -cp for the CLI main class.
+        working-directory: backend
+        run: >
+          ./mvnw --batch-mode --no-transfer-progress
+          org.codehaus.mojo:exec-maven-plugin:3.1.0:java
+          -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps chromium"
+
+      - name: Build, test and check coverage
+        working-directory: backend
+        # `verify` runs unit tests (Surefire) + integration tests against a disposable
+        # Testcontainers Postgres (Failsafe, AIW-91) + jacoco:check (AIW-90) - a test failure
+        # in either phase, or a coverage regression below the locked-in floor, fails the build.
+        # No manually-provisioned Postgres needed here anymore - Testcontainers owns its own.
+        run: ./mvnw --batch-mode --no-transfer-progress verify
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-coverage
+          path: backend/target/site/jacoco/
+          retention-days: 14
+
+      - name: Upload test reports
+        # AIW-100: raw Surefire/Failsafe output (per-test result + full stack trace on
+        # failure) - lets a developer see exactly what failed without re-running locally.
+        # Short retention: only useful for debugging a recent failure, never needed later.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-test-reports
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+          retention-days: 7
+
+      - name: Write coverage summary to job summary
+        # AIW-100: a developer sees line/branch % directly on the run's summary page instead
+        # of having to download and open the HTML coverage artifact just to see the headline
+        # numbers - no source snippets or file-level detail here, just the two aggregate
+        # percentages already reported (nothing more sensitive than what AIW-90 already made
+        # a public-to-the-team build artifact).
+        if: always()
+        working-directory: backend
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            awk -F',' 'NR==1{for(i=1;i<=NF;i++)h[i]=$i} NR>1{for(i=3;i<=NF;i++)s[h[i]]+=$i} END{
+              line_pct = 100*s["LINE_COVERED"]/(s["LINE_COVERED"]+s["LINE_MISSED"]);
+              branch_pct = 100*s["BRANCH_COVERED"]/(s["BRANCH_COVERED"]+s["BRANCH_MISSED"]);
+              printf "## Backend coverage\n\n";
+              printf "| Metric | Covered | Missed | %% |\n|---|---|---|---|\n";
+              printf "| Line | %d | %d | %.1f%% |\n", s["LINE_COVERED"], s["LINE_MISSED"], line_pct;
+              printf "| Branch | %d | %d | %.1f%% |\n", s["BRANCH_COVERED"], s["BRANCH_MISSED"], branch_pct;
+            }' target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  docker-build:
+    name: Backend Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # AIW-101: job-level permissions replace the workflow-level default for this job, not add
+    # to it - contents: read is restated alongside the two new scopes attestations need.
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+
+    env:
+      TRIVY_VERSION: "0.74.0"
+      TRIVY_SHA256: "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Build always runs (PR and push alike) - proves the image is reproducible in CI (AIW-68
+      # AC) and lets every scan/attestation step below run on every PR, not just after merge.
+      # Pushing to the real registry (below, AIW-70) only happens on push to develop/main -
+      # never from a PR, so nothing PR-triggered can publish into the shared registry.
+      - name: Build image
+        working-directory: backend
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t architech-backend:${{ github.sha }} .
+
+      - name: Install Trivy
+        # AIW-96: scans this exact just-built image (by tag, before anything could push or
+        # retag it) - same pinned, checksum-verified install pattern as AIW-94's filesystem
+        # scan; Trivy's vulnerability DB is downloaded fresh at scan time either way.
+        run: |
+          curl -sfL -o trivy.tar.gz "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum -c -
+          tar xzf trivy.tar.gz trivy
+          sudo mv trivy /usr/local/bin/
+          rm trivy.tar.gz
+
+      - name: Full image scan (report, never blocks)
+        run: trivy image --scanners vuln --format sarif --output trivy-image.sarif architech-backend:${{ github.sha }}
+
+      - name: Upload SARIF report
+        # AIW-100: 30 days, not the 14-day default - small text file with real audit value.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trivy-image-sarif
+          path: trivy-image.sarif
+          retention-days: 30
+
+      - name: Write findings to job summary
+        if: always()
+        run: |
+          total=$(jq '[.runs[0].results[]] | length' trivy-image.sarif)
+          {
+            echo "## Backend Docker image findings (Trivy)"
+            echo ""
+            echo "Total findings (any severity): **${total}**"
+            echo ""
+            if [ "$total" -gt 0 ]; then
+              jq -r '.runs[0].results[] | "<details><summary>\(.ruleId) (\(.level // "note")) - \(.locations[0].physicalLocation.artifactLocation.uri)</summary>\n\n\(.message.text)\n\n</details>\n"' trivy-image.sarif | head -c 60000
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Gate on fixable HIGH/CRITICAL findings
+        # --ignore-unfixed: a HIGH/CRITICAL finding with no available fix isn't something this
+        # PR (or anyone) can act on today - it stays visible in the SARIF report above and gets
+        # triaged, but doesn't block, per AIW-96's own AC ("vulnerabilities... with an available
+        # fix block release"). Anything this filter lets through and still blocks IS actionable
+        # right now - bump the base image / apk package, the same way AIW-96 itself fixed its
+        # own baseline findings via the Dockerfile's `apk upgrade` step.
+        run: trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 architech-backend:${{ github.sha }}
+
+      - name: Azure login (OIDC, no client secret)
+        # AIW-70: only reached on push to develop/main (the `if:` below) - never on a PR, so a
+        # PR from anyone, trusted or not, can never publish into the shared registry. Same OIDC
+        # identity infrastructure/terraform-ci.yml uses, now also granted AcrPush (scoped to
+        # just this one registry) in infrastructure/environments/shared/main.tf.
+        if: github.event_name == 'push'
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push to ACR (git-SHA tag only, never latest)
+        # AIW-70 AC: "immutable/versioned tags including Git commit SHA; deployments do not
+        # rely on latest" - only the SHA tag is ever pushed, so there is no `latest` tag for a
+        # future deployment step to accidentally reach for instead of pinning explicitly.
+        if: github.event_name == 'push'
+        env:
+          ACR_LOGIN_SERVER: acraiwshared.azurecr.io
+        run: |
+          az acr login --name acraiwshared
+          docker tag architech-backend:${{ github.sha }} "$ACR_LOGIN_SERVER/architech-backend:${{ github.sha }}"
+          docker push "$ACR_LOGIN_SERVER/architech-backend:${{ github.sha }}"
+
+      - name: Compute image digest
+        # AIW-101: uses the image's own content-addressed local config ID, not a registry
+        # RepoDigest from the push above - kept consistent between PR runs (which never push,
+        # AIW-70's own design) and push runs, so SBOM/attestation below are computed the same
+        # way regardless of which triggered this job.
+        id: image
+        run: echo "digest=$(docker inspect --format='{{.Id}}' architech-backend:${{ github.sha }})" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SBOM (CycloneDX)
+        # AIW-101: reuses the Trivy binary already installed above - one maintained tool for
+        # both vulnerability scanning (AIW-96) and SBOM generation, not two separate ones.
+        run: trivy image --format cyclonedx --output sbom.cdx.json architech-backend:${{ github.sha }}
+
+      - name: Write release metadata
+        # AIW-101 AC: "release metadata identifies repository, commit SHA, workflow and built
+        # artifact digest" - kept as a plain retained file independent of whether the
+        # attestation steps below succeed, so this requirement is met either way.
+        run: |
+          cat > provenance.json <<JSON
+          {
+            "repository": "${{ github.repository }}",
+            "commit": "${{ github.sha }}",
+            "workflow": "${{ github.workflow }}",
+            "runId": "${{ github.run_id }}",
+            "runUrl": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+            "artifactName": "architech-backend",
+            "imageDigest": "${{ steps.image.outputs.digest }}",
+            "builtAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          JSON
+
+      - name: Upload SBOM and release metadata
+        # 30 days, matching the other small, audit-relevant text artifacts (AIW-100's
+        # retention-by-type table) - not the 14-day default.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-sbom-provenance
+          path: |
+            sbom.cdx.json
+            provenance.json
+          retention-days: 30
+
+      - name: Attest build provenance
+        # AIW-101: GitHub's native build-provenance attestations aren't part of GitHub
+        # Advanced Security (unlike CodeQL/dependency review/secret scanning - AIW-93/94/95)
+        # and don't require a registry push; they need only `attestations: write` + `id-token:
+        # write` on this job and a subject digest, both already true here. continue-on-error:
+        # true so a plan limitation degrades to "not attested" rather than blocking merge -
+        # provenance.json above already satisfies the AC's metadata requirement independent of
+        # whether this succeeds.
+        id: attest_provenance
+        continue-on-error: true
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: architech-backend
+          subject-digest: ${{ steps.image.outputs.digest }}
+
+      - name: Attest SBOM
+        # actions/attest-sbom is deprecated in favor of the generic actions/attest (same
+        # inputs work unchanged) - discovered via this step's own deprecation warning on
+        # AIW-101's PR, switched before merge rather than leaving a known-deprecated action in.
+        id: attest_sbom
+        continue-on-error: true
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: architech-backend
+          subject-digest: ${{ steps.image.outputs.digest }}
+          sbom-path: sbom.cdx.json
+
+  deploy-dev:
+    name: Deploy to DEV
+    needs: docker-build
+    # Only after the image above actually reached the registry - never on a PR (docker-build's
+    # own push step has the same gate, so `needs` alone isn't enough to guarantee the tag
+    # exists).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TFSTATE_RESOURCE_GROUP: rg-aiw-tfstate-swc
+      TFSTATE_STORAGE_ACCOUNT: staiwtfstateswc
+      TFSTATE_CONTAINER: tfstate
+      # Real, previously-diagnosed fix (see docs/operations/dev-environment.md's own deployment
+      # history): without this, the azurerm backend/provider probes the Azure Instance Metadata
+      # Service for a managed identity on any non-Azure host - including this GitHub-hosted
+      # runner - and can hang for minutes with zero output before timing out.
+      ARM_USE_MSI: "false"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_wrapper: false
+
+      - name: Azure login (OIDC, no client secret)
+        # AIW-81: the one workflow in this project whose OIDC identity is granted real write
+        # access (Contributor, scoped only to rg-aiw-dev-swc - see
+        # infrastructure/bootstrap/access.tf) rather than Reader.
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: terraform init
+        working-directory: infrastructure/environments/dev
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ env.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ env.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}"
+          -backend-config="key=dev.tfstate"
+
+      - name: terraform apply
+        # The versioned, just-pushed image tag (AIW-70's own "never latest" policy) - DEV
+        # always runs the exact commit that triggered this workflow.
+        working-directory: infrastructure/environments/dev
+        run: terraform apply -input=false -auto-approve -var="backend_image_tag=${{ github.sha }}"
+
+      - name: Resolve backend URL and API key
+        id: url
+        working-directory: infrastructure/environments/dev
+        # AIW-185: the api-key output is marked sensitive in outputs.tf, so GitHub Actions masks
+        # it in logs automatically - ::add-mask:: makes that explicit rather than relying on the
+        # step output being recognised, since it flows into a step output here.
+        run: |
+          echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+          api_key=$(terraform output -raw backend_api_key)
+          echo "::add-mask::${api_key}"
+          echo "api-key=${api_key}" >> "$GITHUB_OUTPUT"
+
+      - name: Post-deployment health check and smoke test
+        # AIW-81/AIW-85 AC: "fails the workflow when DEV is unhealthy" - retries allow for the
+        # real, observed cold-start delay (min_replicas=0) rather than failing on the first
+        # request. Shared composite action (AIW-85) so DEV/STAGING/PROD run the identical check.
+        uses: ./.github/actions/backend-smoke-test
+        with:
+          base-url: ${{ steps.url.outputs.base-url }}
+          api-key: ${{ steps.url.outputs.api-key }}
+          environment-name: DEV

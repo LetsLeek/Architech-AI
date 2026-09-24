@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:safe-value:v1",
+  "title": "Pre-redacted bounded field-level safe values",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valueType": {
+          "const": "STRING"
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 4000
+        }
+      },
+      "required": [
+        "valueType",
+        "value"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valueType": {
+          "const": "NUMBER"
+        },
+        "value": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "valueType",
+        "value"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valueType": {
+          "const": "BOOLEAN"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "valueType",
+        "value"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valueType": {
+          "const": "STRING_LIST"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "minItems": 0,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "valueType",
+        "value"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "valueType": {
+          "const": "FIELD_LIST"
+        },
+        "value": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "fieldKey": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "fieldKey",
+              "value"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 60
+        }
+      },
+      "required": [
+        "valueType",
+        "value"
+      ]
+    }
+  ]
+}

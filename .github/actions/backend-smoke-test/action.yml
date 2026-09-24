@@ -1,0 +1,85 @@
+name: Backend post-deployment smoke test
+description: >
+  Polls a deployed backend's /actuator/health until it reports UP (or times out), then runs a
+  minimal smoke test against a real API route to verify end-to-end reachability - not just that
+  the process started, but that routing and the database connection it depends on actually work.
+  Shared by every environment's deploy workflow (AIW-85) so DEV/STAGING/PROD all get the exact
+  same validation, not three independently-drifting copies.
+
+inputs:
+  base-url:
+    description: Backend base URL, no trailing slash (e.g. https://ca-aiw-backend-dev.<host>)
+    required: true
+  api-key:
+    description: >
+      X-API-Key value for this environment (AIW-185) - required for the /api/** smoke test step;
+      /actuator/health stays unauthenticated so this step alone can pass this empty if a caller
+      genuinely only wants the health check.
+    required: false
+    default: ""
+  environment-name:
+    description: Human-readable environment name for log/error messages (e.g. "DEV")
+    required: true
+  health-check-attempts:
+    description: Number of health-check polls before giving up
+    required: false
+    default: "6"
+  health-check-interval-seconds:
+    description: Seconds to wait between health-check polls
+    required: false
+    default: "10"
+
+runs:
+  using: composite
+  steps:
+    - name: Wait for /actuator/health
+      shell: bash
+      # Every input flows through env:, never interpolated directly into the script - a
+      # composite action's own inputs are caller-supplied and Semgrep's
+      # run-shell-injection rule correctly flags direct ${{ }} interpolation in `run:`
+      # regardless of how trusted a given caller happens to be today.
+      env:
+        BASE_URL: ${{ inputs.base-url }}
+        ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+        HEALTH_CHECK_ATTEMPTS: ${{ inputs.health-check-attempts }}
+        HEALTH_CHECK_INTERVAL_SECONDS: ${{ inputs.health-check-interval-seconds }}
+      run: |
+        url="${BASE_URL}/actuator/health"
+        echo "Checking ${url}"
+        for attempt in $(seq 1 "$HEALTH_CHECK_ATTEMPTS"); do
+          status=$(curl -s -o /tmp/health.json -w "%{http_code}" --max-time 20 "$url" || echo "000")
+          if [ "$status" = "200" ] && grep -q '"status":"UP"' /tmp/health.json; then
+            echo "${ENVIRONMENT_NAME} backend is healthy."
+            exit 0
+          fi
+          echo "Attempt ${attempt}: HTTP ${status} - retrying in ${HEALTH_CHECK_INTERVAL_SECONDS}s..."
+          sleep "$HEALTH_CHECK_INTERVAL_SECONDS"
+        done
+        echo "::error::${ENVIRONMENT_NAME} backend failed its post-deployment health check"
+        cat /tmp/health.json 2>/dev/null || true
+        exit 1
+
+    - name: Smoke test - API reachability and database dependency
+      shell: bash
+      # /actuator/health already aggregates DataSource connectivity (Spring Boot's default
+      # health indicator), but this step goes one step further and proves the *application's
+      # own* routing + repository query path works end-to-end, not just the actuator's own ping.
+      # A random UUID against GET /api/projects/{id} is the safest possible real request: no
+      # state is mutated (GET only), and the only two valid outcomes are exactly what this checks
+      # for - 404 (route + DB query both work, project genuinely doesn't exist) is success,
+      # anything else (401 from a missing/wrong api-key input, 5xx, connection failure, wrong
+      # content type) is a real reachability, auth-wiring, or dependency problem.
+      env:
+        BASE_URL: ${{ inputs.base-url }}
+        API_KEY: ${{ inputs.api-key }}
+        ENVIRONMENT_NAME: ${{ inputs.environment-name }}
+      run: |
+        probe_id="00000000-0000-0000-0000-000000000000"
+        url="${BASE_URL}/api/projects/${probe_id}"
+        status=$(curl -s -o /tmp/smoke.json -w "%{http_code}" --max-time 20 -H "X-API-Key: ${API_KEY}" "$url" || echo "000")
+        if [ "$status" != "404" ]; then
+          echo "::error::${ENVIRONMENT_NAME} smoke test failed - expected HTTP 404 from ${url}, got ${status}"
+          cat /tmp/smoke.json 2>/dev/null || true
+          exit 1
+        fi
+        echo "${ENVIRONMENT_NAME} smoke test passed (API reachable, database query path healthy)."

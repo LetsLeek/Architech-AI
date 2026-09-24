@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:context-issue:v1",
+  "title": "Nonblocking classified source issue",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "issueKey": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "issueType": {
+      "type": "string",
+      "enum": [
+        "AUTHORITY_CONFLICT",
+        "CONFORMANCE_MISMATCH",
+        "REPRESENTATION_DIVERGENCE"
+      ]
+    },
+    "affectedFactKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 0,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "authorityKeys": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+      },
+      "minItems": 1,
+      "maxItems": 15,
+      "uniqueItems": true
+    },
+    "policyAction": {
+      "type": "string",
+      "enum": [
+        "DISCLOSE",
+        "BLOCK_SECTION",
+        "OMIT_IF_IRRELEVANT"
+      ]
+    }
+  },
+  "required": [
+    "issueKey",
+    "issueType",
+    "affectedFactKeys",
+    "authorityKeys",
+    "policyAction"
+  ]
+}

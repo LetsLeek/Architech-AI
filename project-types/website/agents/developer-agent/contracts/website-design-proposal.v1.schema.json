@@ -1,0 +1,6 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-design-proposal:v1",
+  "$comment": "Composes (does not copy) the single-proposal shape already defined by the Designer Agent V1 schema. AIW-133 deliberately avoids giving '$defs/proposal' its own nested $id inside design-proposal-set.schema.json, because a nested $id there would change the base URI used to resolve that subschema's own internal '#/$defs/...' refs (e.g. localRef, canonicalRefArray) and could silently break the Designer Agent's existing (M2) validation pipeline, which validates the whole design-proposal-set document as one self-contained unit. This thin wrapper is the safe way to expose exactly the same fragment under its own frozen URN.",
+  "$ref": "urn:aiw:schema:website-design-proposal-set:v1#/$defs/proposal"
+}

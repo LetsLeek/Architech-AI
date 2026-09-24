@@ -1,0 +1,294 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-context:v1",
+  "title": "Frozen model-visible safe DocumentationContext",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "contextId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "contextVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "projectRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "profileRef": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_HANDOVER@1.0.0",
+        "TECHNICAL_HANDOVER@1.0.0"
+      ]
+    },
+    "policyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "primaryAudience": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER",
+        "DEVELOPER"
+      ]
+    },
+    "targetLocale": {
+      "type": "string",
+      "enum": [
+        "de-AT",
+        "en-GB"
+      ]
+    },
+    "authoritySnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "customerProfileRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "websiteRequirementsRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "selectedSourceDesignRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "implementationCandidateRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "qaResultRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "selectionDecisionRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "approvalRecordRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        },
+        "deploymentRecordRef": {
+          "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+        }
+      },
+      "required": [
+        "websiteRequirementsRef",
+        "selectedSourceDesignRef",
+        "implementationCandidateRef",
+        "qaResultRef"
+      ]
+    },
+    "qaState": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "qaResultRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+        },
+        "candidateRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+        },
+        "qaProfile": {
+          "const": "FULL_RELEASE"
+        },
+        "gate": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "HOLD"
+          ]
+        }
+      },
+      "required": [
+        "qaResultRef",
+        "candidateRef",
+        "qaProfile",
+        "gate"
+      ]
+    },
+    "profileExecutionContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentType": {
+          "type": "string",
+          "enum": [
+            "CUSTOMER_WEBSITE_HANDOVER",
+            "TECHNICAL_HANDOVER_GUIDE"
+          ]
+        },
+        "sectionTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "WEBSITE_OVERVIEW",
+              "WEBSITE_STRUCTURE",
+              "FEATURES",
+              "CONTENT_AND_LANGUAGES",
+              "INTEGRATIONS",
+              "KNOWN_LIMITATIONS",
+              "PROJECT_STATUS",
+              "CHANGE_AND_MAINTENANCE",
+              "RUNTIME_AND_ARCHITECTURE",
+              "DEPLOYMENT_INFORMATION",
+              "REFERENCES",
+              "FUNCTIONAL_BEHAVIOR",
+              "QA_AND_OUTSTANDING_ISSUES",
+              "IMPLEMENTATION_OVERVIEW",
+              "MAINTENANCE_NOTES",
+              "TECHNICAL_CONSTRAINTS",
+              "ROUTING"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true
+        },
+        "requiredReportTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ARTIFACT_VERSION_MANIFEST",
+              "IMPLEMENTATION_MANIFEST",
+              "FUNCTIONAL_BINDING_REPORT",
+              "INTEGRATION_REFERENCE_REPORT",
+              "QA_FINDING_REGISTER"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 10,
+          "uniqueItems": true
+        },
+        "allowedClaimTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER_FACT",
+              "REQUIREMENT_DESCRIPTION",
+              "DESIGN_DESCRIPTION",
+              "IMPLEMENTATION_DESCRIPTION",
+              "FUNCTIONAL_BEHAVIOR",
+              "INTEGRATION_DESCRIPTION",
+              "QA_STATUS",
+              "KNOWN_LIMITATION",
+              "APPROVAL_STATUS",
+              "DEPLOYMENT_STATUS",
+              "AUTHORITY_AVAILABILITY",
+              "UNKNOWN_REPRESENTATION",
+              "CONFLICT_REPRESENTATION",
+              "TECHNICAL_CONSTRAINT"
+            ]
+          },
+          "minItems": 1,
+          "maxItems": 30,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "documentType",
+        "sectionTypes",
+        "requiredReportTypes",
+        "allowedClaimTypes"
+      ]
+    },
+    "authorityCatalog": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:authority-catalog-entry:v1"
+      },
+      "minItems": 1,
+      "maxItems": 1200
+    },
+    "resolvedFacts": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:safe-fact:v1"
+      },
+      "minItems": 0,
+      "maxItems": 1200
+    },
+    "contextStates": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:context-state:v1"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "findingDisclosureView": {
+      "$ref": "urn:aiw:schema:documentation:finding-disclosure-view:v1"
+    },
+    "contextIssues": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:context-issue:v1"
+      },
+      "minItems": 0,
+      "maxItems": 100
+    },
+    "securityProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "redactionApplied": {
+          "const": true
+        },
+        "audienceMinimizationApplied": {
+          "const": true
+        },
+        "restrictedManifestRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+        }
+      },
+      "required": [
+        "redactionApplied",
+        "audienceMinimizationApplied"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "contextId",
+    "contextVersion",
+    "projectRef",
+    "profileRef",
+    "policyRef",
+    "primaryAudience",
+    "targetLocale",
+    "authoritySnapshot",
+    "qaState",
+    "profileExecutionContract",
+    "authorityCatalog",
+    "resolvedFacts",
+    "contextStates",
+    "findingDisclosureView",
+    "contextIssues",
+    "securityProjection",
+    "createdAt"
+  ]
+}

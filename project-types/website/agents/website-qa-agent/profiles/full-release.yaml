@@ -1,0 +1,135 @@
+id: website-qa-full-release
+version: 1.0.0
+profileType: FULL_RELEASE
+projectType: WEBSITE
+
+purpose: >
+  Determine whether the exact selected or otherwise authorized release-path Candidate
+  satisfies complete applicable Website QA V1 policy sufficiently to proceed to
+  Final Human / Customer Approval.
+
+target:
+  artifactType: WebsiteImplementationCandidate
+  immutable: true
+  technicalVerificationPassRequired: true
+  candidateBoundExecutionSurfaceRequired: true
+
+testContexts:
+  viewports:
+    - { id: FULL_WIDE, width: 1440, height: 900 }
+    - { id: FULL_MEDIUM, width: 768, height: 1024 }
+    - { id: FULL_NARROW, width: 390, height: 844 }
+  localePolicy:
+    defaultAuthoritativeLocaleRequired: true
+    everyRequiredLocaleMustBeEvaluated: true
+
+preconditions:
+  requiredChecks:
+    - CANDIDATE_VERIFICATION_PROVENANCE
+    - CANDIDATE_SOURCE_IDENTITY
+    - EXECUTION_SURFACE_CANDIDATE_BINDING
+    - AUTHORITY_REFERENCE_INTEGRITY
+
+domains:
+  REQUIREMENT_FULFILLMENT:
+    applicability: REQUIRED
+    semanticReviews: [requirement-fulfillment-review]
+    coverageRequirement: COMPLETE
+    requirementByRequirementAssessmentRequired: true
+  CUSTOMER_FACT_CORRECTNESS:
+    applicability: REQUIRED
+    requiredChecks: [EXACT_CUSTOMER_FACT_MATCH]
+    semanticReviews: [customer-fact-review]
+    coverageRequirement: COMPLETE
+  DESIGN_FIDELITY:
+    applicability: REQUIRED
+    semanticReviews: [design-fidelity-review]
+    coverageRequirement: COMPLETE
+  CONTENT_QUALITY:
+    applicability: REQUIRED
+    requiredChecks: [REQUIRED_TEXT_PRESENCE, PLACEHOLDER_PATTERN_SCAN]
+    semanticReviews: [content-quality-review]
+    coverageRequirement: COMPLETE
+  FUNCTIONAL_BEHAVIOR:
+    applicability: REQUIRED
+    requiredChecks: [FUNCTIONAL_BINDING_REFERENCE_INTEGRITY, PRIMARY_LOCAL_INTERACTION_SMOKE]
+    semanticReviews: [functional-behavior-review]
+    coverageRequirement: COMPLETE
+  NAVIGATION:
+    applicability: REQUIRED
+    requiredChecks: [PRIMARY_NAVIGATION_TARGETS, PRIMARY_NAVIGATION_INTERACTION, INTERNAL_LINK_INTEGRITY]
+    semanticReviews: [navigation-flow-review]
+    coverageRequirement: COMPLETE
+  RESPONSIVE_QUALITY:
+    applicability: REQUIRED
+    requiredChecks: [HORIZONTAL_OVERFLOW_SCAN, CRITICAL_ELEMENT_VIEWPORT_VISIBILITY, RESPONSIVE_PRIMARY_NAVIGATION_SMOKE]
+    semanticReviews: [responsive-quality-review]
+    coverageRequirement: COMPLETE
+  VISUAL_INTEGRITY:
+    applicability: REQUIRED
+    semanticReviews: [visual-defect-review]
+    coverageRequirement: COMPLETE
+  ACCESSIBILITY_BASELINE:
+    applicability: REQUIRED
+    requiredChecks: [A11Y_AUTOMATED_BASELINE, KEYBOARD_PRIMARY_NAVIGATION_SMOKE]
+    evidenceChecks: [A11Y_ACCESSIBILITY_TREE_CAPTURE]
+    semanticReviews: [accessibility-semantic-review]
+    coverageRequirement: COMPLETE
+  ASSET_INTEGRITY:
+    applicability: REQUIRED
+    requiredChecks: [BROKEN_ASSET_SCAN, REQUIRED_ASSET_PRESENCE]
+    coverageRequirement: COMPLETE
+  RUNTIME_BROWSER:
+    applicability: REQUIRED
+    requiredChecks: [CANONICAL_ROUTE_REACHABILITY, CLIENT_STARTUP_SANITY, FATAL_BROWSER_ERROR_SCAN, REQUIRED_RESOURCE_LOAD, EXTERNAL_RUNTIME_NETWORK_POLICY]
+    coverageRequirement: COMPLETE
+  INTEGRATION_BEHAVIOR:
+    applicability: CONDITIONAL
+    when: AUTHORIZED_BOUND_CAPABILITY_APPLICABLE
+    requiredChecks: [INTEGRATION_CONTRACT_REFERENCE_INTEGRITY]
+    semanticReviews: [integration-behavior-review]
+    coverageRequirement: COMPLETE_WHEN_APPLICABLE
+  LOCALIZATION:
+    applicability: CONDITIONAL
+    when: MULTIPLE_REQUIRED_CUSTOMER_VISIBLE_LOCALES
+    requiredChecks: [REQUIRED_LOCALE_ENTRYPOINTS, LANGUAGE_SWITCH_SMOKE, MAJOR_UNTRANSLATED_TEXT_SCAN]
+    semanticReviews: [localization-review]
+    coverageRequirement: COMPLETE_WHEN_APPLICABLE
+  SEO_METADATA_BASELINE:
+    applicability: REQUIRED
+    requiredChecks: [DOCUMENT_TITLE_PRESENT, DOCUMENT_LANGUAGE_PRESENT, INDEXABILITY_ENVIRONMENT_POLICY]
+    coverageRequirement: COMPLETE
+  PERFORMANCE_BASELINE:
+    applicability: REQUIRED
+    requiredChecks: [INITIAL_RENDER_COMPLETION, PERFORMANCE_RESOURCE_BASELINE, PERFORMANCE_TIMING_BASELINE]
+    coverageRequirement: COMPLETE
+    thresholdPolicyRef: website-performance-baseline@1.0.0
+
+findingDispositionPolicy:
+  explicitCodeRules:
+    CONTENT_PLACEHOLDER_LEAK: BLOCK
+    SEO_REQUIRED_TITLE_MISSING: BLOCK
+    SEO_REQUIRED_LANG_MISSING: BLOCK
+    SEO_INDEXABILITY_POLICY_MISMATCH: BLOCK
+  severityDefaults:
+    CRITICAL: BLOCK
+    MAJOR: BLOCK
+    MINOR: ALLOW
+
+requirementPolicy:
+  materiallyUnfulfilledMust: BLOCK
+  absentCouldWithoutDefectiveImplementationCreateFinding: false
+
+authorityIssuePolicy:
+  gateRelevantIssueDisposition: ESCALATE
+
+evaluationIssuePolicy:
+  requiredEvaluationDisposition: ESCALATE
+
+gatePolicy:
+  passRequiresEvaluationState: COMPLETE
+  unresolvedBlockPreventsPass: true
+  unresolvedEscalatePreventsPass: true
+
+nextAllowedStageOnPass:
+  - FINAL_HUMAN_CUSTOMER_APPROVAL

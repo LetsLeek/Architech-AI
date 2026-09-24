@@ -1,0 +1,44 @@
+schemaVersion: 1
+
+id: backend-error-handling
+name: Backend Error Handling
+version: 1
+
+description: >
+  Teaches the developer agent how to implement a new backend failure case
+  consistently with the platform's structured error-handling architecture
+  (AIW-59) - inspect before choosing a pattern, reuse ErrorCode/
+  ApplicationException over a new exception type, never expose internals,
+  and add tests for the new error path.
+
+inputs:
+  - name: errorScenario
+    type: string
+    description: The new failure case in plain language - what went wrong and where in the request lifecycle.
+    required: true
+  - name: codeContext
+    type: object
+    description: >
+      Already-known facts about the current error-handling module state -
+      a hint to verify against the real files, never trusted outright.
+    required: false
+
+outputs:
+  - name: errorHandlingPlan
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - the classified pattern, the ErrorCode decision, the safe
+      message, the call site, and which tests to add or adjust.
+
+preconditions:
+  - The backend module's core/error/ package (ApplicationException, ErrorCode, GlobalExceptionHandler, ErrorResponse, RequestCorrelationFilter) already exists.
+
+stopConditions:
+  - The failure doesn't fit any of the four established patterns and no existing ErrorCode reasonably covers it.
+  - The change seems to require modifying shared error-handling infrastructure itself rather than adding a call site.
+  - Step 1's inspection of the real current core/error/ files was not actually performed.
+
+allowedActionCategories:
+  - read-only
+  - local-write

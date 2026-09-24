@@ -1,0 +1,128 @@
+name: Deploy backend to STAGING
+
+# AIW-82: manual (workflow_dispatch) only, deliberately - unlike DEV's auto-deploy-on-push
+# (AIW-81), STAGING promotion is a human-initiated release step. No source rebuild happens here:
+# the image tag is an input, promoted as-is from whatever DEV already built and pushed
+# (backend-ci.yml's docker-build job) - "backend-ci.yml#docker-build" pushed it once, this
+# workflow only ever re-deploys that exact same image.
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: >
+          Git commit SHA of the already-built architech-backend image (in ACR) to promote to
+          STAGING - e.g. the SHA already running in DEV. Never a branch name or "latest".
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # Serializes STAGING promotions - a second dispatch while one is in flight waits rather than
+  # racing a concurrent terraform apply against the same state file.
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  TFSTATE_RESOURCE_GROUP: rg-aiw-tfstate-swc
+  TFSTATE_STORAGE_ACCOUNT: staiwtfstateswc
+  TFSTATE_CONTAINER: tfstate
+  # Real, previously-diagnosed fix (dev-environment.md's own deployment history): without this,
+  # the azurerm backend/provider probes the Azure Instance Metadata Service for a managed
+  # identity on any non-Azure host, and can hang for minutes with zero output before timing out.
+  ARM_USE_MSI: "false"
+
+jobs:
+  deploy:
+    name: Promote to STAGING
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A native GitHub Deployment gets recorded against this environment automatically - AIW-82's
+    # own "promotion path and release identifier are traceable" AC, with zero extra plumbing:
+    # every promotion (who, when, which run, success/failure) is visible in the repo's own
+    # Deployments view, not just in this workflow's logs.
+    environment:
+      name: staging
+      url: ${{ steps.url.outputs.base-url }}
+
+    env:
+      # Routed through env: rather than interpolated directly into each run: block below -
+      # inputs.* is caller-supplied, and Semgrep's run-shell-injection rule correctly flags
+      # direct ${{ }} interpolation in `run:` regardless of how trusted a caller is today.
+      IMAGE_TAG: ${{ inputs.image_tag }}
+
+    steps:
+      - name: Validate image tag looks like a commit SHA
+        # Cheap guard against a typo'd branch name or "latest" reaching terraform apply - AIW-82
+        # AC ("no source rebuild") depends on this actually being an immutable, already-built tag.
+        run: |
+          if ! [[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::image_tag must be a full 40-character Git commit SHA, got: $IMAGE_TAG"
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Azure login (OIDC, no client secret)
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform init
+        working-directory: infrastructure/environments/staging
+        run: >
+          terraform init -input=false
+          -backend-config="resource_group_name=${{ env.TFSTATE_RESOURCE_GROUP }}"
+          -backend-config="storage_account_name=${{ env.TFSTATE_STORAGE_ACCOUNT }}"
+          -backend-config="container_name=${{ env.TFSTATE_CONTAINER }}"
+          -backend-config="key=staging.tfstate"
+
+      - name: terraform apply
+        # Promotes the exact given image tag - no docker build/push step exists in this
+        # workflow at all, satisfying "no source rebuild occurs during promotion" by
+        # construction, not by convention.
+        working-directory: infrastructure/environments/staging
+        run: terraform apply -input=false -auto-approve -var="backend_image_tag=$IMAGE_TAG"
+
+      - name: Resolve backend URL and API key
+        id: url
+        working-directory: infrastructure/environments/staging
+        # AIW-185: ::add-mask:: so the key never appears in this run's logs, even though it
+        # flows through a step output here.
+        run: |
+          echo "base-url=https://$(terraform output -raw backend_fqdn)" >> "$GITHUB_OUTPUT"
+          api_key=$(terraform output -raw backend_api_key)
+          echo "::add-mask::${api_key}"
+          echo "api-key=${api_key}" >> "$GITHUB_OUTPUT"
+
+      - name: Post-deployment health check and smoke test
+        # AIW-85's shared check - a failure here fails this workflow (AIW-82 AC: "failed
+        # validation blocks promotion toward production"), and per AIW-83, PROD promotion will
+        # itself require this exact run to have succeeded for the given image_tag before it can
+        # proceed - STAGING failing here is what actually blocks a subsequent PROD promotion,
+        # not a separate check.
+        uses: ./.github/actions/backend-smoke-test
+        with:
+          base-url: ${{ steps.url.outputs.base-url }}
+          api-key: ${{ steps.url.outputs.api-key }}
+          environment-name: STAGING
+
+      - name: Summary
+        env:
+          BASE_URL: ${{ steps.url.outputs.base-url }}
+        run: |
+          {
+            echo "## STAGING promotion"
+            echo ""
+            echo "- **Image tag**: \`$IMAGE_TAG\`"
+            echo "- **URL**: $BASE_URL"
+            echo "- **Migrations**: applied automatically at application startup against the \`aiw_staging\` database only - see docs/operations/database-migrations.md"
+          } >> "$GITHUB_STEP_SUMMARY"

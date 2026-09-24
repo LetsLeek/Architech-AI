@@ -1,0 +1,60 @@
+schemaVersion: 1
+
+id: ticket-execution-workflow
+name: Ticket Execution Workflow
+version: 1
+
+description: >
+  Orchestrates the full developer-agent ticket lifecycle by composing the
+  ten skills built under AIW-103 in deterministic order - Jira intake,
+  repository investigation, planning, branching, implementation,
+  verification, acceptance-criteria checking, human review, approved
+  publication, and post-implementation Jira update - halting whenever any
+  composed phase's own stop condition fires.
+
+inputs:
+  - name: issueKey
+    type: string
+    description: A Jira issue key, e.g. "AIW-113" - required to start a fresh run.
+    required: false
+  - name: resumeState
+    type: object
+    description: >
+      Accumulated phase outputs from a previously halted run
+      (implementationContext, repositoryContext, plan, branchResult,
+      verificationReport, acceptanceCriteriaReport, reviewResult) plus
+      haltedAtPhase - required to resume without re-running completed
+      phases.
+    required: false
+  - name: humanResponse
+    type: object
+    description: >
+      The human's actual reply to the phase 8 review checkpoint -
+      approval naming the exact reviewed change set, a rejection/rework
+      request, or absent when the reply was genuinely ambiguous.
+    required: false
+
+outputs:
+  - name: workflowExecutionState
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - every phase's status and real output object, plus
+      which phase (if any) the run is currently halted at and why.
+
+preconditions:
+  - All ten composed skills (jira-ticket-intake, repository-investigation, implementation-planning, safe-git-branch, implementation-verification, acceptance-criteria-verification, human-review-publish, post-implementation-jira-update, plus applicable coding-convention skills such as backend-error-handling) exist and conform to docs/developer-agent/CONTRACT.md.
+  - Jira MCP tools, git, and this repository's toolchain are available for whichever phases the ticket actually reaches.
+
+stopConditions:
+  - A human's reply to the phase 8 review checkpoint is genuinely ambiguous - stay halted, ask, never guess.
+  - The reviewed code changes materially between phase 8 and a later humanResponse - the original review no longer applies.
+  - Any composed skill is missing, non-conformant, or its declared inputs/outputs no longer match this workflow's assumptions.
+  - Any individual phase's own stopConditions fire (see SKILL.md's phase table) - later phases never run.
+
+allowedActionCategories:
+  - read-only
+  - local-write
+  - local-git
+  - external-read
+  - external-visible

@@ -1,0 +1,58 @@
+schemaVersion: 1
+
+id: human-review-publish
+name: Human Review and Publish
+version: 1
+
+description: >
+  The explicit checkpoint between local implementation and externally
+  visible Git publication - always presents a review summary and stops
+  for specific, current approval before commit/push/PR, never assumes
+  approval, never proceeds on stale approval after material changes.
+
+inputs:
+  - name: implementationContext
+    type: object
+    description: jira-ticket-intake's output.
+    required: true
+  - name: verificationReport
+    type: object
+    description: implementation-verification's output for the same ticket.
+    required: true
+  - name: acceptanceCriteriaReport
+    type: object
+    description: acceptance-criteria-verification's output for the same ticket.
+    required: true
+  - name: approval
+    type: object
+    description: >
+      Absent on the first invocation (produces the review summary and
+      stops). Present only on a later, separate invocation, and must
+      name the specific reviewed change set it approves (e.g. a commit
+      SHA or an explicit "push"/"merge" confirmation tied to what was
+      just presented) - never inferred from an earlier, different
+      approval.
+    required: false
+
+outputs:
+  - name: reviewResult
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - phase "review" (summary presented, waiting) or
+      "published" (commit/push/PR performed, only after matching
+      approval was given for this exact change set).
+
+preconditions:
+  - acceptanceCriteriaReport.overallStatus is "complete" - this skill will not present a change set as ready for approval when its own acceptance-criteria check says it isn't.
+  - safe-git-branch has already prepared the branch this work is on.
+
+stopConditions:
+  - acceptanceCriteriaReport.overallStatus is not "complete" - route back to implementation instead of presenting a review checkpoint.
+  - No approval has been given yet for this specific change set - this is the skill's own normal, expected stopping point, every time, not an error state.
+  - The code changed materially after a prior approval was given - the prior approval does not carry forward; re-verification and a new review checkpoint are required.
+  - Approval is requested for a force-push or any destructive git action - out of scope for this skill regardless of context.
+
+allowedActionCategories:
+  - local-git
+  - external-visible

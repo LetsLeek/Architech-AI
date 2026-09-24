@@ -1,0 +1,14 @@
+schemaVersion: 1
+
+id: documentation-integrity
+name: Documentation Integrity
+version: 1
+
+description: >
+  Defines the normative constraints the Website Documentation Agent V1 must follow across
+  twelve domains - domain-specific authority, safe immutable context, profiles and bounded
+  audiences, unknowns/conflicts/material findings, claim-level traceability, the
+  semantic/deterministic boundary, security and sandbox, meaning-preserving localization,
+  layered validation, immutability and revision semantics, workflow triggers and bounded
+  retries, and contract fixture discipline. Skills describe method; this rule defines what
+  Documentation must and must not do.

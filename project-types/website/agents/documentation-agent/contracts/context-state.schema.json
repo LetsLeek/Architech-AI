@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:context-state:v1",
+  "title": "Scoped context availability/completeness proof",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "stateKey": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "authorityKey": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "MISSING_AUTHORITY",
+        "NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED",
+        "SECTION_AUTHORITY_UNAVAILABLE"
+      ]
+    },
+    "affectedAuthorityDomain": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_FACT",
+        "REQUIREMENT",
+        "SOURCE_DESIGN",
+        "IMPLEMENTATION",
+        "FUNCTIONAL_BINDING",
+        "INTEGRATION_AUTHORIZATION",
+        "TECHNICAL_VERIFICATION",
+        "QA_EVALUATION",
+        "QA_FINDING",
+        "SELECTION",
+        "APPROVAL",
+        "DEPLOYMENT",
+        "TECHNICAL_CONSTRAINT",
+        "CONTEXT_STATE"
+      ]
+    },
+    "scopeRefs": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:artifact-ref:v1"
+      },
+      "minItems": 1,
+      "maxItems": 10
+    },
+    "disclosurePolicyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "sectionType": {
+      "type": "string",
+      "enum": [
+        "WEBSITE_OVERVIEW",
+        "WEBSITE_STRUCTURE",
+        "FEATURES",
+        "CONTENT_AND_LANGUAGES",
+        "INTEGRATIONS",
+        "KNOWN_LIMITATIONS",
+        "PROJECT_STATUS",
+        "CHANGE_AND_MAINTENANCE",
+        "IMPLEMENTATION_OVERVIEW",
+        "RUNTIME_AND_ARCHITECTURE",
+        "ROUTING",
+        "FUNCTIONAL_BEHAVIOR",
+        "TECHNICAL_CONSTRAINTS",
+        "QA_AND_OUTSTANDING_ISSUES",
+        "DEPLOYMENT_INFORMATION",
+        "MAINTENANCE_NOTES",
+        "REFERENCES"
+      ]
+    }
+  },
+  "required": [
+    "stateKey",
+    "authorityKey",
+    "kind",
+    "affectedAuthorityDomain",
+    "scopeRefs"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "SECTION_AUTHORITY_UNAVAILABLE"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "sectionType"
+        ]
+      }
+    }
+  ]
+}

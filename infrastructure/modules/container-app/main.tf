@@ -1,0 +1,84 @@
+# Scaffolded by AIW-69 (foundation), filled in for real use by AIW-71 (DEV) - AIW-74/AIW-75
+# instantiate this again for STAGING/PROD. Environment-specific *secret* config (API keys, DB
+# connection strings) is injected as Container App secret references sourced from that
+# environment's own Key Vault (AIW-73) - var.key_vault_secrets/var.secret_env below; var.env
+# stays non-secret-only, per AIW-71's own original design.
+resource "azurerm_container_app" "this" {
+  name                         = var.name
+  resource_group_name          = var.resource_group_name
+  container_app_environment_id = var.container_app_environment_id
+  revision_mode                = "Single"
+
+  # Explicit, matching the container-app-environment module's own required "Consumption"
+  # workload profile (same real-drift discovery: Azure assigns this on the Container App itself
+  # too, and an undeclared value shows up as Terraform proposing to remove it).
+  workload_profile_name = "Consumption"
+
+  # User-assigned managed identity, not a system-assigned one - lets the same identity be
+  # created ahead of time (by the caller) and referenced both here and in the ACR AcrPull role
+  # assignment, without a create-order dependency between "the identity exists" and "the
+  # Container App that needs it exists."
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [var.user_assigned_identity_id]
+  }
+
+  # Pulls via the managed identity above, never a registry username/password - matches AIW-70's
+  # own "least-privilege Azure identities rather than shared admin credentials" decision.
+  registry {
+    server   = var.registry_server
+    identity = var.user_assigned_identity_id
+  }
+
+  # AIW-73: each entry becomes a Key-Vault-backed Container App secret, resolved via the same
+  # managed identity above (granted "Key Vault Secrets User" on that vault by the caller) - the
+  # secret's real value never appears in this Container App's own config/revision, only a
+  # reference to where Key Vault holds it.
+  dynamic "secret" {
+    for_each = var.key_vault_secrets
+    content {
+      name                = secret.value.name
+      key_vault_secret_id = secret.value.key_vault_secret_id
+      identity            = var.user_assigned_identity_id
+    }
+  }
+
+  template {
+    min_replicas = var.min_replicas
+    max_replicas = var.max_replicas
+
+    container {
+      name   = "backend"
+      image  = var.image
+      cpu    = var.cpu
+      memory = var.memory
+
+      dynamic "env" {
+        for_each = var.env
+        content {
+          name  = env.value.name
+          value = env.value.value
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.secret_env
+        content {
+          name        = env.value.name
+          secret_name = env.value.secret_name
+        }
+      }
+    }
+  }
+
+  ingress {
+    external_enabled = true
+    target_port      = var.target_port
+    traffic_weight {
+      percentage      = 100
+      latest_revision = true
+    }
+  }
+
+  tags = var.tags
+}

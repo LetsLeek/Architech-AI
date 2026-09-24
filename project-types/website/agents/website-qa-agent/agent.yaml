@@ -1,0 +1,53 @@
+schemaVersion: 1
+
+id: website-qa-agent
+name: Website QA Agent
+version: 1
+
+description: >
+  Evaluates one immutable, technically verified WebsiteImplementationCandidate against
+  authoritative Customer Profile, Website Requirements, exact Source Design, Runtime and
+  Integration authority, and a versioned QA Profile (COMPARISON_READINESS or FULL_RELEASE).
+  Detects and reports structured CandidateFinding / AuthorityIssue / EvaluationIssue records.
+  Never repairs source, changes Product Authority, selects or ranks a variant, grants
+  Customer Approval, declares production readiness, authorizes deployment, or determines the
+  authoritative QA gate outcome - that is Core-owned deterministic policy (PASS | HOLD). This
+  product-facing agent is unrelated to the internal engineering-agent workflow in AIW-103.
+
+modelProfile: qa-reasoning
+
+limits:
+  maxOutputTokens: 16000
+
+skills:
+  - website-qa-review
+  - evidence-assessment
+  - finding-construction
+  - requirement-fulfillment-review
+  - customer-fact-review
+  - design-fidelity-review
+  - content-quality-review
+  - functional-behavior-review
+  - navigation-flow-review
+  - responsive-quality-review
+  - visual-defect-review
+  - accessibility-semantic-review
+  - integration-behavior-review
+  - localization-review
+  - finding-deduplication
+  - remediation-reassessment
+
+rules:
+  - website-qa-integrity
+
+inputs:
+  artifacts:
+    - type: qa-execution-input
+      schema: ./contracts/qa-execution-input.schema.json
+      required: true
+
+outputs:
+  artifacts:
+    - type: semantic-qa-review-output
+      schema: ./contracts/semantic-qa-review-output.schema.json
+      required: true

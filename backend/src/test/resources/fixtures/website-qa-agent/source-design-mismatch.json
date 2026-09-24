@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "qaExecutionRef": "qa-exec-101",
+  "target": {
+    "candidateRef": "candidate-42"
+  },
+  "productAuthority": {
+    "customerProfileRef": "customer-profile-7",
+    "websiteRequirementsRef": "requirements-11",
+    "sourceDesignRef": "design-a-1",
+    "runtimeProfileRef": "runtime-react-vite-1",
+    "integrationContractRefs": []
+  },
+  "qaAuthority": {
+    "qaProfileRef": "website-qa-full-release@1.0.0",
+    "ruleSetRef": "website-qa-rules@1.0.0",
+    "skillSetRef": "website-qa-skills@1.0.0",
+    "validatorSetRef": "website-qa-validator-set@1.0.0",
+    "findingTaxonomyRef": "website-qa-finding-taxonomy@1.0.0",
+    "checkRegistryRef": "website-qa-check-registry@1.0.0"
+  },
+  "executionContext": {
+    "executionSurfaceRef": "preview-42",
+    "toolCapabilityProfileRef": "website-qa-tools@1.0.0",
+    "browserContextRef": "browser-context-9"
+  },
+  "provenance": {
+    "inputSnapshotRef": "qa-input-snapshot-101",
+    "qaAgentVersion": "1.0.0"
+  }
+}

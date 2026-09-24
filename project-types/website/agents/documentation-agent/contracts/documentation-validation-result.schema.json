@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-validation-result:v1",
+  "title": "Immutable candidate-bound evaluation bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "validationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "packageCandidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "contextRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "validatorSuiteVersion": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "overallResult": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_EVALUABLE"
+      ]
+    },
+    "checkResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "checkId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_EVALUABLE"
+            ]
+          },
+          "evaluatedCandidateRef": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+          }
+        },
+        "required": [
+          "checkId",
+          "result",
+          "evaluatedCandidateRef"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 100
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:documentation-validation-issue:v1"
+      },
+      "minItems": 0,
+      "maxItems": 300
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "validationId",
+    "packageCandidateRef",
+    "contextRef",
+    "validatorSuiteVersion",
+    "overallResult",
+    "checkResults",
+    "issues",
+    "createdAt"
+  ]
+}

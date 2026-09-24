@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:safe-fact:v1",
+  "title": "Safe deterministic fact projection",
+  "allOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "factKey": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+        },
+        "authorityKey": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]{1,79}$"
+        },
+        "factDomain": {
+          "type": "string",
+          "enum": [
+            "CUSTOMER_FACT",
+            "REQUIREMENT",
+            "SOURCE_DESIGN",
+            "IMPLEMENTATION",
+            "FUNCTIONAL_BINDING",
+            "INTEGRATION_AUTHORIZATION",
+            "TECHNICAL_VERIFICATION",
+            "QA_EVALUATION",
+            "QA_FINDING",
+            "SELECTION",
+            "APPROVAL",
+            "DEPLOYMENT",
+            "TECHNICAL_CONSTRAINT",
+            "CONTEXT_STATE"
+          ]
+        },
+        "factType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "KNOWN",
+            "UNKNOWN",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "PUBLIC_DOCUMENTABLE",
+            "SENSITIVE_DOCUMENTABLE",
+            "REFERENCE_ONLY"
+          ]
+        },
+        "value": {
+          "$ref": "urn:aiw:schema:documentation:safe-value:v1"
+        }
+      },
+      "required": [
+        "factKey",
+        "authorityKey",
+        "factDomain",
+        "factType",
+        "state",
+        "classification"
+      ]
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "KNOWN"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "value"
+        ]
+      },
+      "else": {
+        "not": {
+          "required": [
+            "value"
+          ]
+        }
+      }
+    }
+  ]
+}

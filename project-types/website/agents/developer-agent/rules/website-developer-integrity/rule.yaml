@@ -1,0 +1,12 @@
+schemaVersion: 1
+
+id: website-developer-integrity
+name: Website Developer Integrity
+version: 1
+
+description: >
+  Defines the normative constraints the Website Developer Agent V1 must follow across eight
+  domains - authority and upstream preservation, design fidelity, functional and integration
+  boundaries, workspace and tools, dependencies, verification and fixing, traceability and
+  output integrity, and untrusted content and secrets. Skills describe method; this rule
+  defines what the Developer must and must not do.

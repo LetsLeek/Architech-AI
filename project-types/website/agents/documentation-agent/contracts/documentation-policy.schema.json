@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-policy:v1",
+  "title": "Global versioned DocumentationPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "policyId": {
+      "const": "DOCUMENTATION_POLICY"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "forbidSecretValues": {
+          "type": "boolean"
+        },
+        "fieldLevelMinimization": {
+          "type": "boolean"
+        },
+        "preModelSecurityRequired": {
+          "type": "boolean"
+        },
+        "postGenerationSecurityBeforeSemanticModel": {
+          "type": "boolean"
+        },
+        "failClosed": {
+          "type": "boolean"
+        },
+        "audienceClassificationIndependent": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "forbidSecretValues",
+        "fieldLevelMinimization",
+        "preModelSecurityRequired",
+        "postGenerationSecurityBeforeSemanticModel",
+        "failClosed",
+        "audienceClassificationIndependent"
+      ]
+    },
+    "epistemic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "unknown": {
+          "const": "DISCLOSE_WHEN_MATERIAL"
+        },
+        "missingOptionalAuthority": {
+          "const": "DISCLOSE_IF_PROFILE_SECTION_REQUIRES"
+        },
+        "authorityConflict": {
+          "const": "DISCLOSE_OR_BLOCK_BY_MATERIALITY"
+        },
+        "lineageIncompatibility": {
+          "const": "BLOCK_PRE_GENERATION"
+        },
+        "noInference": {
+          "const": true
+        }
+      },
+      "required": [
+        "unknown",
+        "missingOptionalAuthority",
+        "authorityConflict",
+        "lineageIncompatibility",
+        "noInference"
+      ]
+    },
+    "findingDisclosure": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "onlyCurrentCandidateFindings": {
+          "const": true
+        },
+        "qaGateDoesNotEraseFindings": {
+          "const": true
+        },
+        "customer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "qaRequiredProfile": {
+              "const": "FULL_RELEASE"
+            },
+            "qaRequiredGate": {
+              "const": "PASS"
+            },
+            "materialCustomerImpact": {
+              "const": "DISCLOSE"
+            },
+            "blockingOrUnresolvedEscalation": {
+              "const": "BLOCK_DOCUMENT"
+            },
+            "resolvedHistorical": {
+              "const": "OMIT"
+            },
+            "notEvaluableMaterial": {
+              "const": "BLOCK_DOCUMENT"
+            },
+            "technicalOnlyNonmaterial": {
+              "const": "OMIT_IF_POLICY_MATCHES"
+            },
+            "unmappedMaterialFallback": {
+              "const": "BLOCK_DOCUMENT"
+            }
+          },
+          "required": [
+            "qaRequiredProfile",
+            "qaRequiredGate",
+            "materialCustomerImpact",
+            "blockingOrUnresolvedEscalation",
+            "resolvedHistorical",
+            "notEvaluableMaterial",
+            "technicalOnlyNonmaterial",
+            "unmappedMaterialFallback"
+          ]
+        },
+        "developer": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "qaRequiredProfile": {
+              "const": "FULL_RELEASE"
+            },
+            "qaAllowedGates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "HOLD"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 2,
+              "uniqueItems": true
+            },
+            "allTechnicallyRelevantCurrent": {
+              "const": "DISCLOSE"
+            },
+            "materialSecurityDetail": {
+              "const": "DISCLOSE_REDACTED_IMPACT_ONLY"
+            },
+            "resolvedHistorical": {
+              "const": "OMIT"
+            },
+            "unmappedCurrentFallback": {
+              "const": "DISCLOSE"
+            }
+          },
+          "required": [
+            "qaRequiredProfile",
+            "qaAllowedGates",
+            "allTechnicallyRelevantCurrent",
+            "materialSecurityDetail",
+            "resolvedHistorical",
+            "unmappedCurrentFallback"
+          ]
+        }
+      },
+      "required": [
+        "onlyCurrentCandidateFindings",
+        "qaGateDoesNotEraseFindings",
+        "customer",
+        "developer"
+      ]
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "semanticFactualConsistencyRequired": {
+          "const": true
+        },
+        "unsupportedClaimBlocks": {
+          "const": true
+        },
+        "notEvaluableBlocks": {
+          "const": true
+        },
+        "requiredDisclosureSemanticFidelity": {
+          "const": true
+        },
+        "includeBoundedCounterfacts": {
+          "const": true
+        }
+      },
+      "required": [
+        "semanticFactualConsistencyRequired",
+        "unsupportedClaimBlocks",
+        "notEvaluableBlocks",
+        "requiredDisclosureSemanticFidelity",
+        "includeBoundedCounterfacts"
+      ]
+    },
+    "profileSpecificOverrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowWeakeningGlobalAuthority": {
+          "const": false
+        },
+        "allowSecrets": {
+          "const": false
+        },
+        "allowBypassSemanticValidation": {
+          "const": false
+        }
+      },
+      "required": [
+        "allowWeakeningGlobalAuthority",
+        "allowSecrets",
+        "allowBypassSemanticValidation"
+      ]
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 600
+    }
+  },
+  "required": [
+    "policyId",
+    "version",
+    "security",
+    "epistemic",
+    "findingDisclosure",
+    "validation",
+    "profileSpecificOverrides"
+  ]
+}

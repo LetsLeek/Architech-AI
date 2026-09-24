@@ -1,0 +1,34 @@
+# AIW-158: SecretScanGateTests deliberately contains one fake, made-up secret-shaped fixture
+# (a syntactically valid but entirely fictional AWS-style access key ID) to test
+# ai.architech.backend.core.verification.SecretScanGate's own detection logic. Verified
+# individually (not assumed by filename/pattern) against the exact gitleaks JSON report before
+# being added here - every one of these fingerprints is that same fake fixture value, in this
+# one test file, nowhere else. The literal value is deliberately not repeated in this comment,
+# so this ignore file itself never becomes a new finding.
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:60
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:109
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:116
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:117
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:126
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:127
+backend/src/test/java/ai/architech/backend/core/verification/SecretScanGateTests.java:aws-access-token:139
+
+# AIW-148: ToolExecutionTests deliberately contains the same fake, made-up AWS-style access key
+# fixture (not a real secret - authored for this test) to prove ToolExecutionDiagnostics redacts
+# secret-shaped content out of persisted diagnostic summaries. Verified individually against the
+# exact gitleaks JSON report before being added here.
+backend/src/test/java/ai/architech/backend/core/toolexecution/ToolExecutionTests.java:aws-access-token:90
+backend/src/test/java/ai/architech/backend/core/toolexecution/ToolExecutionTests.java:aws-access-token:94
+
+# AIW-143: AuthoritativeRunnerVerifierIT deliberately plants the same fake, made-up AWS-style
+# access key fixture into a real temp-directory scaffold copy at test runtime (never committed
+# to this repository as generated content) to prove the secret-credential-scan gate really finds
+# it. Verified individually against the exact gitleaks JSON report before being added here.
+backend/src/test/java/ai/architech/backend/core/verification/AuthoritativeRunnerVerifierIT.java:aws-access-token:94
+
+# AIW-170: EvidenceRecordTests deliberately contains the same fake, made-up AWS-style access key
+# fixture (not a real secret - authored for this test) to prove EvidenceRecord redacts
+# secret-shaped content out of persisted Evidence content. Verified individually against the
+# exact gitleaks JSON report before being added here.
+backend/src/test/java/ai/architech/backend/core/qa/EvidenceRecordTests.java:aws-access-token:102
+backend/src/test/java/ai/architech/backend/core/qa/EvidenceRecordTests.java:aws-access-token:106

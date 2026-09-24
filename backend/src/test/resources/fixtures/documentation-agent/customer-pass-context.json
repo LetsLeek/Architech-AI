@@ -1,0 +1,434 @@
+{
+  "schemaVersion": "1.0.0",
+  "contextId": "DC-CUST-1",
+  "contextVersion": 1,
+  "projectRef": "P-EXAMPLE",
+  "profileRef": "CUSTOMER_HANDOVER@1.0.0",
+  "policyRef": "DOCUMENTATION_POLICY@1.0.0",
+  "primaryAudience": "CUSTOMER",
+  "targetLocale": "de-AT",
+  "authoritySnapshot": {
+    "customerProfileRef": {
+      "artifactType": "CUSTOMER_PROFILE",
+      "artifactVersionRef": "CP-3"
+    },
+    "websiteRequirementsRef": {
+      "artifactType": "WEBSITE_REQUIREMENTS",
+      "artifactVersionRef": "WR-7"
+    },
+    "selectedSourceDesignRef": {
+      "artifactType": "SELECTED_SOURCE_DESIGN",
+      "artifactVersionRef": "SD-2"
+    },
+    "implementationCandidateRef": {
+      "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+      "artifactVersionRef": "C4"
+    },
+    "qaResultRef": {
+      "artifactType": "QA_RESULT",
+      "artifactVersionRef": "Q8"
+    }
+  },
+  "qaState": {
+    "qaResultRef": "Q8",
+    "candidateRef": "C4",
+    "qaProfile": "FULL_RELEASE",
+    "gate": "PASS"
+  },
+  "profileExecutionContract": {
+    "documentType": "CUSTOMER_WEBSITE_HANDOVER",
+    "sectionTypes": [
+      "WEBSITE_OVERVIEW",
+      "WEBSITE_STRUCTURE",
+      "FEATURES",
+      "CONTENT_AND_LANGUAGES",
+      "INTEGRATIONS",
+      "KNOWN_LIMITATIONS",
+      "PROJECT_STATUS",
+      "CHANGE_AND_MAINTENANCE"
+    ],
+    "requiredReportTypes": [],
+    "allowedClaimTypes": [
+      "CUSTOMER_FACT",
+      "REQUIREMENT_DESCRIPTION",
+      "DESIGN_DESCRIPTION",
+      "IMPLEMENTATION_DESCRIPTION",
+      "FUNCTIONAL_BEHAVIOR",
+      "INTEGRATION_DESCRIPTION",
+      "QA_STATUS",
+      "KNOWN_LIMITATION",
+      "APPROVAL_STATUS",
+      "DEPLOYMENT_STATUS",
+      "AUTHORITY_AVAILABILITY",
+      "UNKNOWN_REPRESENTATION",
+      "CONFLICT_REPRESENTATION",
+      "TECHNICAL_CONSTRAINT"
+    ]
+  },
+  "authorityCatalog": [
+    {
+      "key": "AUTH-CUSTOMER",
+      "authorityRef": {
+        "authorityDomain": "CUSTOMER_FACT",
+        "artifactType": "CUSTOMER_PROFILE",
+        "artifactVersionRef": "CP-3",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "companyName"
+        }
+      },
+      "safeFactKeys": [
+        "F-CUSTOMER"
+      ]
+    },
+    {
+      "key": "AUTH-REQ",
+      "authorityRef": {
+        "authorityDomain": "REQUIREMENT",
+        "artifactType": "WEBSITE_REQUIREMENTS",
+        "artifactVersionRef": "WR-7",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "R17"
+        }
+      },
+      "safeFactKeys": [
+        "F-REQ"
+      ]
+    },
+    {
+      "key": "AUTH-DESIGN",
+      "authorityRef": {
+        "authorityDomain": "SOURCE_DESIGN",
+        "artifactType": "SELECTED_SOURCE_DESIGN",
+        "artifactVersionRef": "SD-2",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "siteStructure"
+        }
+      },
+      "safeFactKeys": [
+        "F-DESIGN"
+      ]
+    },
+    {
+      "key": "AUTH-IMPL",
+      "authorityRef": {
+        "authorityDomain": "IMPLEMENTATION",
+        "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+        "artifactVersionRef": "C4",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "contactForm"
+        }
+      },
+      "safeFactKeys": [
+        "F-IMPL",
+        "F-LANG",
+        "F-ROUTES"
+      ]
+    },
+    {
+      "key": "AUTH-BINDING",
+      "authorityRef": {
+        "authorityDomain": "FUNCTIONAL_BINDING",
+        "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+        "artifactVersionRef": "C4",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "FB4"
+        }
+      },
+      "safeFactKeys": [
+        "F-BINDING"
+      ]
+    },
+    {
+      "key": "AUTH-CONTRACT",
+      "authorityRef": {
+        "authorityDomain": "INTEGRATION_AUTHORIZATION",
+        "artifactType": "INTEGRATION_CONTRACT",
+        "artifactVersionRef": "IC2",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "contract"
+        }
+      },
+      "safeFactKeys": [
+        "F-CONTRACT"
+      ]
+    },
+    {
+      "key": "AUTH-QA",
+      "authorityRef": {
+        "authorityDomain": "QA_EVALUATION",
+        "artifactType": "QA_RESULT",
+        "artifactVersionRef": "Q8",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "gate"
+        }
+      },
+      "safeFactKeys": [
+        "F-QA"
+      ]
+    },
+    {
+      "key": "AUTH-HOURS",
+      "authorityRef": {
+        "authorityDomain": "CUSTOMER_FACT",
+        "artifactType": "CUSTOMER_PROFILE",
+        "artifactVersionRef": "CP-3",
+        "locator": {
+          "kind": "OBJECT_ID",
+          "value": "openingHours"
+        }
+      },
+      "safeFactKeys": [
+        "F-HOURS"
+      ]
+    },
+    {
+      "key": "AUTH-CTX-APPROVAL",
+      "authorityRef": {
+        "authorityDomain": "CONTEXT_STATE",
+        "artifactType": "DOCUMENTATION_CONTEXT",
+        "artifactVersionRef": "DC-CUST-1",
+        "locator": {
+          "kind": "CONTEXT_STATE",
+          "value": "CTX-APPROVAL"
+        }
+      },
+      "safeFactKeys": []
+    },
+    {
+      "key": "AUTH-CTX-NO-FIND",
+      "authorityRef": {
+        "authorityDomain": "CONTEXT_STATE",
+        "artifactType": "DOCUMENTATION_CONTEXT",
+        "artifactVersionRef": "DC-CUST-1",
+        "locator": {
+          "kind": "CONTEXT_STATE",
+          "value": "CTX-NO-FIND"
+        }
+      },
+      "safeFactKeys": []
+    },
+    {
+      "key": "AUTH-CTX-DEPLOYMENT",
+      "authorityRef": {
+        "authorityDomain": "CONTEXT_STATE",
+        "artifactType": "DOCUMENTATION_CONTEXT",
+        "artifactVersionRef": "DC-CUST-1",
+        "locator": {
+          "kind": "CONTEXT_STATE",
+          "value": "CTX-DEPLOYMENT"
+        }
+      },
+      "safeFactKeys": []
+    },
+    {
+      "key": "AUTH-CTX-MAINTENANCE",
+      "authorityRef": {
+        "authorityDomain": "CONTEXT_STATE",
+        "artifactType": "DOCUMENTATION_CONTEXT",
+        "artifactVersionRef": "DC-CUST-1",
+        "locator": {
+          "kind": "CONTEXT_STATE",
+          "value": "CTX-MAINTENANCE"
+        }
+      },
+      "safeFactKeys": []
+    }
+  ],
+  "resolvedFacts": [
+    {
+      "factKey": "F-CUSTOMER",
+      "authorityKey": "AUTH-CUSTOMER",
+      "factDomain": "CUSTOMER_FACT",
+      "factType": "BUSINESS_NAME",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "Beispiel GmbH"
+      }
+    },
+    {
+      "factKey": "F-REQ",
+      "authorityKey": "AUTH-REQ",
+      "factDomain": "REQUIREMENT",
+      "factType": "CONTACT_REQUIREMENT",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "MUST: contact form with authorized email delivery"
+      }
+    },
+    {
+      "factKey": "F-DESIGN",
+      "authorityKey": "AUTH-DESIGN",
+      "factDomain": "SOURCE_DESIGN",
+      "factType": "SELECTED_PAGES",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING_LIST",
+        "value": [
+          "/",
+          "/kontakt"
+        ]
+      }
+    },
+    {
+      "factKey": "F-IMPL",
+      "authorityKey": "AUTH-IMPL",
+      "factDomain": "IMPLEMENTATION",
+      "factType": "CONTACT_FORM_PRESENT",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "BOOLEAN",
+        "value": true
+      }
+    },
+    {
+      "factKey": "F-LANG",
+      "authorityKey": "AUTH-IMPL",
+      "factDomain": "IMPLEMENTATION",
+      "factType": "WEBSITE_LOCALE",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "de-AT"
+      }
+    },
+    {
+      "factKey": "F-BINDING",
+      "authorityKey": "AUTH-BINDING",
+      "factDomain": "FUNCTIONAL_BINDING",
+      "factType": "CONTACT_BINDING_STATE",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "IMPLEMENTED_BOUND"
+      }
+    },
+    {
+      "factKey": "F-CONTRACT",
+      "authorityKey": "AUTH-CONTRACT",
+      "factDomain": "INTEGRATION_AUTHORIZATION",
+      "factType": "EMAIL_DELIVERY_CONTRACT",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "IC2 authorized for FB4"
+      }
+    },
+    {
+      "factKey": "F-QA",
+      "authorityKey": "AUTH-QA",
+      "factDomain": "QA_EVALUATION",
+      "factType": "FULL_RELEASE_GATE",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING",
+        "value": "PASS"
+      }
+    },
+    {
+      "factKey": "F-HOURS",
+      "authorityKey": "AUTH-HOURS",
+      "factDomain": "CUSTOMER_FACT",
+      "factType": "OPENING_HOURS",
+      "state": "UNKNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE"
+    },
+    {
+      "factKey": "F-ROUTES",
+      "authorityKey": "AUTH-IMPL",
+      "factDomain": "IMPLEMENTATION",
+      "factType": "ACTUAL_ROUTES",
+      "state": "KNOWN",
+      "classification": "PUBLIC_DOCUMENTABLE",
+      "value": {
+        "valueType": "STRING_LIST",
+        "value": [
+          "/",
+          "/kontakt"
+        ]
+      }
+    }
+  ],
+  "contextStates": [
+    {
+      "stateKey": "CTX-APPROVAL",
+      "authorityKey": "AUTH-CTX-APPROVAL",
+      "kind": "MISSING_AUTHORITY",
+      "affectedAuthorityDomain": "APPROVAL",
+      "scopeRefs": [
+        {
+          "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "artifactVersionRef": "C4"
+        }
+      ]
+    },
+    {
+      "stateKey": "CTX-NO-FIND",
+      "authorityKey": "AUTH-CTX-NO-FIND",
+      "kind": "NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED",
+      "affectedAuthorityDomain": "QA_FINDING",
+      "scopeRefs": [
+        {
+          "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "artifactVersionRef": "C4"
+        },
+        {
+          "artifactType": "QA_RESULT",
+          "artifactVersionRef": "Q8"
+        }
+      ],
+      "disclosurePolicyRef": "DOCUMENTATION_POLICY@1.0.0"
+    },
+    {
+      "stateKey": "CTX-DEPLOYMENT",
+      "authorityKey": "AUTH-CTX-DEPLOYMENT",
+      "kind": "MISSING_AUTHORITY",
+      "affectedAuthorityDomain": "DEPLOYMENT",
+      "scopeRefs": [
+        {
+          "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "artifactVersionRef": "C4"
+        }
+      ]
+    },
+    {
+      "stateKey": "CTX-MAINTENANCE",
+      "authorityKey": "AUTH-CTX-MAINTENANCE",
+      "kind": "SECTION_AUTHORITY_UNAVAILABLE",
+      "affectedAuthorityDomain": "CONTEXT_STATE",
+      "scopeRefs": [
+        {
+          "artifactType": "WEBSITE_IMPLEMENTATION_CANDIDATE",
+          "artifactVersionRef": "C4"
+        }
+      ],
+      "sectionType": "CHANGE_AND_MAINTENANCE"
+    }
+  ],
+  "findingDisclosureView": {
+    "entries": []
+  },
+  "contextIssues": [],
+  "securityProjection": {
+    "redactionApplied": true,
+    "audienceMinimizationApplied": true,
+    "restrictedManifestRef": "RED-1"
+  },
+  "createdAt": "2026-09-20T10:00:00+02:00"
+}

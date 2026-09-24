@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: customer-handover-composition
+name: Customer Handover Composition
+version: 1
+
+description: >
+  Composition method for CUSTOMER_HANDOVER@1.0.0 - method guidance for the profile's own
+  document/section taxonomy and order, not a replacement profile.

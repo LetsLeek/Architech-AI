@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: navigation-flow-review
+name: Navigation Flow Review
+version: 1
+
+description: >
+  Evaluate authorized navigation and required user journeys only.

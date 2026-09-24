@@ -1,0 +1,10 @@
+schemaVersion: 1
+
+id: plan-website-design
+name: Plan Website Design
+version: 1
+
+description: >
+  Defines the process for deriving distinct, coherent,
+  implementation-ready website design proposals from validated
+  customer information and website requirements.

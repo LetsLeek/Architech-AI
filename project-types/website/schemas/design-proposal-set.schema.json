@@ -1,0 +1,867 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:website-design-proposal-set:v1",
+  "title": "Website Design Proposal Set",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "proposals"
+  ],
+  "properties": {
+    "proposals": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/proposal"
+      }
+    }
+  },
+  "$defs": {
+    "localRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Agent-generated reference unique within the complete artifact. Not a persistent platform identifier."
+    },
+    "canonicalRef": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque platform-provided reference to a canonical input fragment."
+    },
+    "canonicalRefArray": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/canonicalRef"
+      }
+    },
+    "proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "name",
+        "concept",
+        "websitePlan",
+        "designSpecification"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "concept": {
+          "type": "string",
+          "minLength": 1
+        },
+        "websitePlan": {
+          "$ref": "#/$defs/websitePlan"
+        },
+        "designSpecification": {
+          "$ref": "#/$defs/designSpecification"
+        }
+      }
+    },
+    "websitePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pages"
+      ],
+      "properties": {
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/page"
+          }
+        },
+        "navigationGroups": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/navigationGroup"
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "name",
+        "route",
+        "purpose",
+        "sections"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "route": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "sections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/section"
+          }
+        }
+      }
+    },
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "kind",
+        "purpose",
+        "layoutIntent",
+        "elements"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "hero",
+            "about",
+            "offerings",
+            "gallery",
+            "testimonials",
+            "pricing",
+            "opening-hours",
+            "contact",
+            "cta",
+            "faq",
+            "legal",
+            "custom"
+          ]
+        },
+        "customKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layoutIntent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responsiveBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "customerDataRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "elements": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/element"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "customKind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "customKind"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "element": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "kind",
+        "role",
+        "contentIntent"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "heading",
+            "text",
+            "image",
+            "cta",
+            "card-group",
+            "list",
+            "gallery",
+            "form",
+            "map",
+            "social-links",
+            "video",
+            "download",
+            "divider",
+            "custom"
+          ]
+        },
+        "customKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentIntent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "customerDataRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "patternRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "target": {
+          "$ref": "#/$defs/navigationTarget"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "customKind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "customKind"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "cta"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "target"
+            ]
+          }
+        }
+      ]
+    },
+    "navigationGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "kind",
+        "items"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "footer",
+            "utility",
+            "custom"
+          ]
+        },
+        "customKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/navigationItem"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "customKind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "customKind"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "navigationItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "target"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "$ref": "#/$defs/navigationTarget"
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "navigationTarget": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "pageRef"
+          ],
+          "properties": {
+            "type": {
+              "const": "page"
+            },
+            "pageRef": {
+              "$ref": "#/$defs/localRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "pageRef",
+            "sectionRef"
+          ],
+          "properties": {
+            "type": {
+              "const": "section"
+            },
+            "pageRef": {
+              "$ref": "#/$defs/localRef"
+            },
+            "sectionRef": {
+              "$ref": "#/$defs/localRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "customerDataRef"
+          ],
+          "properties": {
+            "type": {
+              "const": "customer-data"
+            },
+            "customerDataRef": {
+              "$ref": "#/$defs/canonicalRef"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "requirementRef"
+          ],
+          "properties": {
+            "type": {
+              "const": "requirement"
+            },
+            "requirementRef": {
+              "$ref": "#/$defs/canonicalRef"
+            }
+          }
+        }
+      ]
+    },
+    "designSpecification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "colors",
+        "typography",
+        "spacing",
+        "layout",
+        "uiPatterns",
+        "imagery",
+        "responsive"
+      ],
+      "properties": {
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        },
+        "colors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/colorToken"
+          }
+        },
+        "typography": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/typographyToken"
+          }
+        },
+        "spacing": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/spacingToken"
+          }
+        },
+        "layout": {
+          "$ref": "#/$defs/layout"
+        },
+        "uiPatterns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/uiPattern"
+          }
+        },
+        "imagery": {
+          "$ref": "#/$defs/imagery"
+        },
+        "motion": {
+          "$ref": "#/$defs/motion"
+        },
+        "responsive": {
+          "$ref": "#/$defs/responsive"
+        },
+        "localization": {
+          "$ref": "#/$defs/localization"
+        }
+      }
+    },
+    "colorToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "value"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "typographyToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "fontFamily",
+        "fontWeight",
+        "fontSizeRem",
+        "lineHeight"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fontFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fontWeight": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "fontSizeRem": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "lineHeight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "letterSpacingEm": {
+          "type": "number"
+        },
+        "fontStyle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "spacingToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "valueRem"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "valueRem": {
+          "type": "number",
+          "minimum": 0
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contentWidth",
+        "density",
+        "pageGutterRem",
+        "sectionGapRem",
+        "gridIntent"
+      ],
+      "properties": {
+        "contentWidth": {
+          "type": "string",
+          "enum": [
+            "narrow",
+            "standard",
+            "wide",
+            "mixed"
+          ]
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "compact",
+            "balanced",
+            "spacious"
+          ]
+        },
+        "pageGutterRem": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sectionGapRem": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gridIntent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxContentWidthRem": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "uiPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "localRef",
+        "kind",
+        "description",
+        "visualTreatment"
+      ],
+      "properties": {
+        "localRef": {
+          "$ref": "#/$defs/localRef"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "button",
+            "card",
+            "form-control",
+            "navigation",
+            "badge",
+            "media-frame",
+            "modal",
+            "accordion",
+            "tabs",
+            "custom"
+          ]
+        },
+        "customKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visualTreatment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interactionBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "custom"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "customKind"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "customKind"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "imagery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction",
+        "treatment"
+      ],
+      "properties": {
+        "direction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "treatment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "iconStyle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "intensity",
+        "style",
+        "reducedMotionBehavior"
+      ],
+      "properties": {
+        "intensity": {
+          "type": "string",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ]
+        },
+        "style": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reducedMotionBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "responsive": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "navigationBehavior",
+        "contentStacking",
+        "typeScaling",
+        "spacingAdjustment",
+        "mediaBehavior"
+      ],
+      "properties": {
+        "navigationBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentStacking": {
+          "type": "string",
+          "minLength": 1
+        },
+        "typeScaling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "spacingAdjustment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    },
+    "localization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "languageSwitcherBehavior",
+        "textExpansionBehavior",
+        "directionalityBehavior",
+        "requirementRefs"
+      ],
+      "properties": {
+        "languageSwitcherBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "textExpansionBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "directionalityBehavior": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requirementRefs": {
+          "$ref": "#/$defs/canonicalRefArray"
+        }
+      }
+    }
+  }
+}

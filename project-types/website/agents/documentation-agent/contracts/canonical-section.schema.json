@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:canonical-section:v1",
+  "title": "Core-composed section with localized renderer title from terminology registry",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "sectionType": {
+      "type": "string",
+      "enum": [
+        "CHANGE_AND_MAINTENANCE",
+        "CONTENT_AND_LANGUAGES",
+        "DEPLOYMENT_INFORMATION",
+        "FEATURES",
+        "FUNCTIONAL_BEHAVIOR",
+        "IMPLEMENTATION_OVERVIEW",
+        "INTEGRATIONS",
+        "KNOWN_LIMITATIONS",
+        "MAINTENANCE_NOTES",
+        "PROJECT_STATUS",
+        "QA_AND_OUTSTANDING_ISSUES",
+        "REFERENCES",
+        "ROUTING",
+        "RUNTIME_AND_ARCHITECTURE",
+        "TECHNICAL_CONSTRAINTS",
+        "WEBSITE_OVERVIEW",
+        "WEBSITE_STRUCTURE"
+      ]
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:canonical-block:v1"
+      },
+      "minItems": 0,
+      "maxItems": 80
+    }
+  },
+  "required": [
+    "sectionType",
+    "blocks"
+  ]
+}

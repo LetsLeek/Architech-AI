@@ -1,0 +1,78 @@
+name: SAST
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# AIW-93: this repo is private without GitHub Advanced Security (confirmed via the repos API -
+# security_and_analysis is null, the code-scanning API 403s), so native CodeQL code scanning
+# isn't available here - see docs/operations/ci-quality-gate-policy.md's SAST section for the
+# approved fallback (Semgrep OSS) and how findings stay visible without the Security tab.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    container:
+      image: semgrep/semgrep:1.176.1
+    env:
+      SEMGREP_SEND_METRICS: "off"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Full scan (report, never blocks)
+        # Every finding, any severity - purely to produce the SARIF report below. Exits 0
+        # regardless of findings (no --error), since the actual gate is the next step.
+        run: >
+          semgrep scan --config p/java --config p/typescript --config p/owasp-top-ten
+          --exclude node_modules --exclude target --exclude dist
+          --sarif --output semgrep.sarif .
+
+      - name: Upload SARIF report
+        # `if: always()` so the report is still available when the gate step below fails the job.
+        # AIW-100: 30 days, not the 14-day default - small text files with real audit value,
+        # cost-conscious retention is about artifact *size*, not treating every type the same.
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-sarif
+          path: semgrep.sarif
+          retention-days: 30
+
+      - name: Write findings to job summary
+        # AIW-100: without this, a failed gate only shows a generic non-zero exit code on the
+        # PR check - this puts the actual rule/file/line directly on the run's summary page, no
+        # artifact download needed. Reads the report step's own output, so it reflects every
+        # finding (any severity), not just what the gate below blocks on.
+        if: always()
+        run: |
+          total=$(jq '[.runs[0].results[]] | length' semgrep.sarif)
+          {
+            echo "## SAST (Semgrep) findings"
+            echo ""
+            echo "Total findings (any severity): **${total}**"
+            echo ""
+            if [ "$total" -gt 0 ]; then
+              jq -r '.runs[0].results[] | "<details><summary>\(.ruleId) (\(.level // "note")) - \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)</summary>\n\n\(.message.text)\n\n</details>\n"' semgrep.sarif | head -c 60000
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Gate on new HIGH/CRITICAL-equivalent findings
+        # Semgrep's ERROR severity is this project's HIGH/CRITICAL, per AIW-87's security
+        # severity policy - --severity ERROR filters to just that tier, --error then fails the
+        # build if any remain. WARNING/INFO findings are visible in the SARIF report above but
+        # never block, matching the "logged and triaged, not auto-blocking" MEDIUM/LOW policy.
+        run: >
+          semgrep scan --config p/java --config p/typescript --config p/owasp-top-ten
+          --exclude node_modules --exclude target --exclude dist
+          --severity ERROR --error .

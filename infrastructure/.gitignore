@@ -1,0 +1,10 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+# .terraform.lock.hcl is intentionally NOT ignored - like a package-lock.json, it pins exact
+# provider versions and belongs in version control for reproducible plans/applies.

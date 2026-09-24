@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-workflow-policy:v1",
+  "title": "Workflow triggers, separate from eligibility",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "workflowPolicyId": {
+      "const": "DOCUMENTATION_WORKFLOW_POLICY"
+    },
+    "version": {
+      "const": "1.0.0"
+    },
+    "enabledTriggers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "FULL_RELEASE_QA_FINALIZED",
+              "SCOPED_APPROVAL_RECORDED"
+            ]
+          },
+          "profileRef": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER_HANDOVER@1.0.0",
+              "TECHNICAL_HANDOVER@1.0.0"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "event",
+          "profileRef",
+          "conditions"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 8
+    },
+    "onDemand": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "profileRef": {
+            "type": "string",
+            "enum": [
+              "CUSTOMER_HANDOVER@1.0.0",
+              "TECHNICAL_HANDOVER@1.0.0"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 180
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        },
+        "required": [
+          "profileRef",
+          "conditions"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "optionalRefreshEvents": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "DEPLOYMENT_RECORDED"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 5,
+      "uniqueItems": true
+    },
+    "ignoredAutomaticTriggers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      },
+      "minItems": 1,
+      "maxItems": 20,
+      "uniqueItems": true
+    },
+    "triggerIdempotencyRequired": {
+      "const": true
+    },
+    "productGateDependency": {
+      "const": false
+    },
+    "maxGenerationAttempts": {
+      "const": 3
+    },
+    "maxSemanticEvaluatorExecutionsPerUnchangedCandidate": {
+      "const": 2
+    }
+  },
+  "required": [
+    "workflowPolicyId",
+    "version",
+    "enabledTriggers",
+    "onDemand",
+    "optionalRefreshEvents",
+    "ignoredAutomaticTriggers",
+    "triggerIdempotencyRequired",
+    "productGateDependency",
+    "maxGenerationAttempts",
+    "maxSemanticEvaluatorExecutionsPerUnchangedCandidate"
+  ]
+}

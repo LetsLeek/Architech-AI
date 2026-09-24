@@ -1,0 +1,187 @@
+spring:
+  application:
+    name: backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/architech}
+    username: ${SPRING_DATASOURCE_USERNAME:architech}
+    password: ${SPRING_DATASOURCE_PASSWORD:architech}
+  jpa:
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+  web:
+    error:
+      # Default is "never" - the frontend needs the actual message (e.g.
+      # UnsupportedProjectTypeException's text) to show a clear error, not just a bare status
+      # code. No sensitive internals leak here: only exceptions this platform raises itself
+      # (typically @ResponseStatus'd 4xx) carry a message worth showing; stack traces stay off.
+      # Renamed from server.error.* in Spring Boot 4.
+      include-message: always
+
+architech:
+  ai:
+    # Maps a logical model profile (declared in an agent.yaml, e.g. "structured-reasoning")
+    # to a concrete provider+model. "mock" is a placeholder provider with no real AI
+    # behind it - swapping in a real one (Anthropic, OpenAI, ...) is a config change here
+    # plus registering an AiProvider bean for it, never a change to any agent spec.
+    model-profiles:
+      structured-reasoning:
+        provider: mock
+        model: mock-model
+      # AIW-116: the Designer Agent's own modelProfile - mock by default for the same reason
+      # structured-reasoning is, so a fresh clone/CI never needs real credentials.
+      design-reasoning:
+        provider: mock
+        model: mock-model
+      # AIW-123: DesignProposalSetSemanticReviewer's own modelProfile - a platform review step,
+      # not an agent.yaml-declared agent, but resolved through the same AiGateway/model-profiles
+      # mechanism as any other AI call in this project.
+      semantic-review:
+        provider: mock
+        model: mock-model
+      # AIW-132: the Website Developer Agent's own modelProfile - mock by default for the
+      # same reason design-reasoning is.
+      implementation-reasoning:
+        provider: mock
+        model: mock-model
+      # AIW-167: the Website QA Agent's own modelProfile - mock by default for the same
+      # reason design-reasoning/implementation-reasoning are.
+      qa-reasoning:
+        provider: mock
+        model: mock-model
+      # AIW-187: the Website Documentation Agent's own modelProfile - mock by default for the
+      # same reason design-reasoning/implementation-reasoning/qa-reasoning are.
+      documentation-reasoning:
+        provider: mock
+        model: mock-model
+    # Per-1000-token USD pricing, keyed provider -> model. Harmless to keep here even while
+    # every model-profile still points at "mock" - CostCalculator only ever looks up whatever
+    # provider/model actually answered, and returns null (never fabricated) for anything not
+    # listed here. Anthropic's own published pricing as of 2026-09-08.
+    #
+    # cache-write/cache-read price the two prompt-cache token counts AnthropicProvider reports
+    # separately (AIW-129) - Anthropic's standard ephemeral (5-minute) cache multipliers: writing
+    # to the cache costs 1.25x a regular prompt token, reading from it costs 0.1x.
+    pricing:
+      anthropic:
+        claude-sonnet-5:
+          prompt-cost-per1000-tokens: 0.002
+          completion-cost-per1000-tokens: 0.01
+          cache-write-cost-per1000-tokens: 0.0025
+          cache-read-cost-per1000-tokens: 0.0002
+        claude-haiku-4-5-20251001:
+          prompt-cost-per1000-tokens: 0.001
+          completion-cost-per1000-tokens: 0.005
+          cache-write-cost-per1000-tokens: 0.00125
+          cache-read-cost-per1000-tokens: 0.0001
+        claude-opus-5:
+          prompt-cost-per1000-tokens: 0.005
+          completion-cost-per1000-tokens: 0.025
+          cache-write-cost-per1000-tokens: 0.00625
+          cache-read-cost-per1000-tokens: 0.0005
+    # AIW-65: guards against a misbehaving agent or execution loop running up unbounded real
+    # cost. Meaningless against the mock provider by construction, not special-cased here -
+    # AgentExecution.costUsd is only ever non-null once a real AiProvider reports usage, so a
+    # mock-only project/agent always sums to zero and never trips either limit below. Kept on
+    # by default (not opt-in like the real-ai profile itself) since it costs nothing to check
+    # and only ever matters the moment a real provider actually is wired in - exactly the
+    # moment this protection is needed most. Adjust these numbers, or set either to null to
+    # disable that specific bound, once real usage patterns are better known.
+    budget:
+      per-project:
+        soft-limit-usd: 2.00
+        hard-limit-usd: 5.00
+      per-agent:
+        requirements-agent:
+          soft-limit-usd: 2.00
+          hard-limit-usd: 5.00
+  runner:
+    # Platform-owned retry budget - agents never decide this for themselves.
+    max-attempts: 3
+  developer:
+    initial-generation:
+      # Platform-owned bounds for the A/B/C initial-generation fan-out (AIW-146) - Workflow/Core
+      # decides these, never the Developer Agent or a single sibling execution.
+      max-correction-cycles-per-sibling: 2
+      max-sibling-retries: 2
+    tool-loop:
+      # Platform-owned bounds for the multi-turn tool-calling loop (AIW-184) - never the
+      # Developer Agent's own decision. max-turns bounds model round-trips within one execution;
+      # max-tool-calls separately bounds the total number of individual tool calls dispatched
+      # across every turn.
+      max-turns: 20
+      max-tool-calls: 40
+  qa:
+    remediation:
+      # Platform-owned bound for Developer remediation cycles per (project, stage, Variant
+      # Lineage) (AIW-181) - Workflow/Core decides this, never the Developer Agent or a single
+      # QA execution.
+      max-remediation-cycles-per-stage: 2
+  security:
+    # AIW-185: real, non-secret default (same fallback pattern as spring.datasource.password's
+    # own "architech" below) so local dev/tests/CI work with zero setup - every real DEV/STAGING/
+    # PROD value overrides this via Key Vault (infrastructure/environments/*/main.tf), never a
+    # plain env var literal. See ApiKeyAuthenticationFilter for what this actually gates.
+    api-key: ${API_KEY:architech-dev-api-key}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  structured:
+    format:
+      # AIW-77: one JSON object per log line (Spring Boot's built-in structured logging, no
+      # extra dependency) - includes every active MDC entry (correlationId from
+      # RequestCorrelationFilter; httpMethod/httpPath/httpStatus/durationMs from
+      # RequestLoggingFilter) as top-level JSON fields automatically, which is what makes
+      # Container Apps' own console-log ingestion into Log Analytics (ContainerAppConsoleLogs)
+      # queryable by those fields rather than needing to regex a plain-text line.
+      console: logstash
+
+---
+# Opt-in only, never active by default (so a fresh clone/CI stays on the mock provider with
+# zero config) - activate locally with SPRING_PROFILES_ACTIVE=real-ai plus ANTHROPIC_API_KEY
+# set (see .env.example). Keeping this as a separate profile document, rather than changing
+# the base model-profiles above, means "use real AI" is always an explicit, visible opt-in -
+# never something a committed config change could silently turn on for everyone.
+spring:
+  config:
+    activate:
+      on-profile: real-ai
+
+architech:
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+    # AIW-62: OpenAiProvider exists and is registered like any other AiProvider bean, and its
+    # key loads here the same opt-in way Anthropic's does - but per AIW-62's own AC, nothing
+    # wires a model profile at "openai" below. Setting OPENAI_API_KEY alone does not make
+    # anything call OpenAI; a model-profiles entry naming provider "openai" would still need
+    # to be added deliberately, exactly like structured-reasoning was pointed at anthropic.
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+    model-profiles:
+      structured-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      design-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      semantic-review:
+        provider: anthropic
+        model: claude-sonnet-5
+      implementation-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      qa-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5
+      documentation-reasoning:
+        provider: anthropic
+        model: claude-sonnet-5

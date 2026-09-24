@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:semantic-documentation-candidate:v1",
+  "title": "The entire writable model output",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "$ref": "urn:aiw:schema:documentation:semantic-document-candidate:v1"
+      },
+      "minItems": 1,
+      "maxItems": 3
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "documents"
+  ],
+  "description": "No Core-owned contextRef/audience/locale/canonical state or provenance IDs are model-writable"
+}

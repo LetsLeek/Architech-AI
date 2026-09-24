@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:documentation-package-version:v1",
+  "title": "Immutable canonical DocumentationPackageVersion",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0.0"
+    },
+    "packageId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "documentationLineRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "projectRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "contextRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "profileRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "policyRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "audience": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER",
+        "DEVELOPER"
+      ]
+    },
+    "locale": {
+      "type": "string",
+      "enum": [
+        "de-AT",
+        "en-GB"
+      ]
+    },
+    "semanticArtifactRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true
+    },
+    "deterministicReportRefs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+      },
+      "minItems": 0,
+      "maxItems": 10,
+      "uniqueItems": true
+    },
+    "validationResultRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "originRunRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "supersedesPackageVersionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "generationReasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "INITIAL",
+          "AUTHORITY_STATE_CHANGE",
+          "PROFILE_CHANGE",
+          "POLICY_CHANGE",
+          "GENERATOR_CHANGE",
+          "DOCUMENTATION_CORRECTION",
+          "MANUAL_REGENERATION"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 7,
+      "uniqueItems": true
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "packageId",
+    "documentationLineRef",
+    "revision",
+    "projectRef",
+    "contextRef",
+    "profileRef",
+    "policyRef",
+    "audience",
+    "locale",
+    "semanticArtifactRefs",
+    "deterministicReportRefs",
+    "validationResultRef",
+    "originRunRef",
+    "generationReasons",
+    "createdAt"
+  ]
+}

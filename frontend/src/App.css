@@ -1,0 +1,200 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 20px;
+}
+
+.page button {
+  font: inherit;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.page button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.page .error {
+  color: #d1242f;
+}
+
+.page dl {
+  text-align: left;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+}
+
+.page dt {
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+.page dd {
+  margin: 0;
+  font-family: var(--mono);
+}
+
+.input-section {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.input-section h2 {
+  margin-bottom: 12px;
+}
+
+.input-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-section textarea,
+.input-section input[type='text'] {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.input-section .field-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-section .field-row input {
+  flex: 1;
+}
+
+.input-section .field-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.input-section ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+
+.input-section li {
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.status-running {
+  color: #9a6700;
+  background: rgba(154, 103, 0, 0.15);
+}
+
+.status-succeeded {
+  color: #1a7f37;
+  background: rgba(26, 127, 55, 0.15);
+}
+
+.status-failed {
+  color: #d1242f;
+  background: rgba(209, 36, 47, 0.15);
+}
+
+.artifact-meta {
+  color: var(--text);
+  font-size: 0.9em;
+  margin-bottom: 12px;
+}
+
+.profile-block {
+  margin-bottom: 20px;
+}
+
+.profile-block h3 {
+  margin: 0 0 6px;
+  font-size: 1em;
+  color: var(--text-h);
+}
+
+.provenance-note {
+  color: var(--text);
+  font-size: 0.85em;
+  margin: 0 0 8px;
+}
+
+.strength-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-h);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+}
+
+/* Wider than the default .input-section content width so three proposals can sit side by
+   side - the three-column grid collapses to one column on narrow viewports. */
+.input-section.proposal-set-section {
+  max-width: 1024px;
+}
+
+.proposal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.proposal-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  text-align: left;
+}
+
+.proposal-card h3 {
+  margin: 0 0 8px;
+  color: var(--text-h);
+}
+
+.proposal-card h4 {
+  margin: 0 0 6px;
+  font-size: 0.9em;
+  color: var(--text-h);
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  border: 1px solid var(--border);
+  vertical-align: middle;
+}

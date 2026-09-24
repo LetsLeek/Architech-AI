@@ -1,0 +1,9 @@
+schemaVersion: 1
+
+id: semantic-self-review
+name: Semantic Self-review
+version: 1
+
+description: >
+  Bounded internal quality check before returning schema-conformant semantic output;
+  never a formal validation and never grants PASS or canonical status.

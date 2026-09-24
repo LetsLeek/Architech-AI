@@ -1,0 +1,40 @@
+{
+  "resultType": "IMPLEMENTATION_READY",
+  "targetDesign": {
+    "designArtifactVersionRef": "design-artifact-version-fixture",
+    "proposalLocalRef": "proposal-a"
+  },
+  "implementationSummary": "Schema fixture: implemented the target proposal as a React/TypeScript/Vite website.",
+  "implementationAnchors": [
+    {
+      "designLocalRef": "page-home",
+      "kind": "PAGE",
+      "targets": [
+        {
+          "path": "src/pages/HomePage.tsx",
+          "symbol": "HomePage"
+        }
+      ]
+    },
+    {
+      "designLocalRef": "section-hero",
+      "kind": "SECTION",
+      "targets": [
+        {
+          "path": "src/pages/HomePage.tsx",
+          "symbol": "HomePage"
+        }
+      ]
+    }
+  ],
+  "functionalBindings": [
+    {
+      "requirementRef": "req-contact-local",
+      "designLocalRefs": [
+        "section-hero"
+      ],
+      "status": "IMPLEMENTED_LOCAL"
+    }
+  ],
+  "unresolvedIssues": []
+}

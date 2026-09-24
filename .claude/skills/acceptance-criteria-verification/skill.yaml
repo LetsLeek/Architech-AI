@@ -1,0 +1,38 @@
+schemaVersion: 1
+
+id: acceptance-criteria-verification
+name: Acceptance Criteria Verification
+version: 1
+
+description: >
+  Evaluates each Jira acceptance criterion against the implemented and
+  verified result before human review - satisfied, not satisfied, not
+  verifiable, or not applicable, each with real evidence, never a guess.
+
+inputs:
+  - name: implementationContext
+    type: object
+    description: jira-ticket-intake's output - acceptanceCriteria is what this skill checks off.
+    required: true
+  - name: verificationReport
+    type: object
+    description: implementation-verification's output - reused as evidence, not re-run.
+    required: true
+
+outputs:
+  - name: acceptanceCriteriaReport
+    type: object
+    description: >
+      The deterministic structure defined in SKILL.md's "Output / result
+      contract" - every criterion's status and evidence, plus any
+      ambiguous/contradictory criteria surfaced rather than guessed.
+
+preconditions:
+  - implementationContext and verificationReport were produced for the same ticket.
+  - verificationReport's overallStatus is not "incomplete" for a check a given criterion actually depends on - a criterion can't be marked satisfied on the strength of a check that never ran.
+
+stopConditions:
+  - A criterion's wording is genuinely ambiguous or contradicts another criterion on the same ticket in a way this skill cannot resolve - report it, do not guess an interpretation.
+
+allowedActionCategories:
+  - read-only

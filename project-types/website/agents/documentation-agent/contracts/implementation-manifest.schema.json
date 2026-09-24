@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:implementation-manifest:v1",
+  "title": "Core candidate route/runtime manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "candidateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "framework": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "buildTool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "runtimeClass": {
+          "type": "string",
+          "enum": [
+            "CLIENT_STATIC"
+          ]
+        }
+      },
+      "required": [
+        "framework",
+        "language",
+        "buildTool",
+        "runtimeClass"
+      ]
+    },
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^/",
+            "maxLength": 150
+          },
+          "pageId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "path",
+          "pageId",
+          "displayName"
+        ]
+      },
+      "minItems": 0,
+      "maxItems": 200
+    },
+    "immutableRepositoryStateRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    }
+  },
+  "required": [
+    "candidateRef",
+    "runtime",
+    "routes",
+    "immutableRepositoryStateRef"
+  ]
+}

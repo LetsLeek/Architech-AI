@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aiw:schema:documentation:artifact-ref:v1",
+  "title": "Exact canonical artifact reference",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "artifactType": {
+      "type": "string",
+      "enum": [
+        "CUSTOMER_PROFILE",
+        "WEBSITE_REQUIREMENTS",
+        "SELECTED_SOURCE_DESIGN",
+        "WEBSITE_IMPLEMENTATION_CANDIDATE",
+        "QA_RESULT",
+        "SELECTION_DECISION",
+        "APPROVAL_RECORD",
+        "DEPLOYMENT_RECORD",
+        "INTEGRATION_CONTRACT",
+        "DOCUMENTATION_CONTEXT",
+        "DOCUMENTATION_PACKAGE",
+        "DOCUMENTATION_ARTIFACT",
+        "DETERMINISTIC_REPORT"
+      ]
+    },
+    "artifactVersionRef": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "pattern": "^(?!latest$)(?!current$)(?!HEAD$)[A-Za-z0-9][A-Za-z0-9._:/@-]*$"
+    }
+  },
+  "required": [
+    "artifactType",
+    "artifactVersionRef"
+  ],
+  "description": "No implicit latest/current/branch selectors; existence/canonicality/lineage are checked by Core"
+}

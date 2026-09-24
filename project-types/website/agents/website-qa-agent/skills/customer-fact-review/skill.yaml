@@ -1,0 +1,8 @@
+schemaVersion: 1
+
+id: customer-fact-review
+name: Customer Fact Review
+version: 1
+
+description: >
+  Evaluate Candidate claims against Customer Profile authority only.

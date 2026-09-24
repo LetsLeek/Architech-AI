@@ -1,0 +1,174 @@
+# Azure environment architecture (AIW-67)
+
+The target environment model for the Architech AI **platform itself** - not the customer
+websites it produces (see [Platform environments vs. customer website
+environments](#platform-environments-vs-customer-website-environments) below, which this
+document deliberately does not cover).
+
+## Environments
+
+Three environments, strictly ordered: **DEV → STAGING → PROD**.
+
+| Environment | Purpose | Who touches it |
+|---|---|---|
+| DEV | Active development, integration of merged `develop` changes, manual exploration | Engineers, continuously |
+| STAGING | Pre-production verification against production-like config/scale | Engineers/QA, before each release |
+| PROD | Real customer traffic | End users; engineers only via deploy/observability tooling |
+
+Every platform environment (backend, database, secrets, configuration) is fully isolated per
+row above - nothing in this document describes a resource shared *between* DEV, STAGING, and
+PROD, only resources shared *within* the platform across environments (see [Shared vs.
+environment-specific resources](#shared-vs-environment-specific-resources)).
+
+## Environment isolation rules
+
+- **App:** each environment gets its own Container App instance, in its own resource group.
+  The same container image is promoted DEV → STAGING → PROD unchanged (see AIW-68); only the
+  environment-specific configuration injected into it differs. No environment's app instance
+  ever serves another environment's traffic.
+- **Database:** PROD gets its own PostgreSQL Flexible Server, with network/firewall rules and
+  an admin credential that exist only for PROD. DEV and STAGING may share a single non-prod
+  server (separate databases on it) purely as a cost optimization - an explicit, documented
+  exception, never extended to PROD. **Production data never exists outside the PROD
+  server**, by construction: nothing copies or seeds PROD data into DEV/STAGING.
+- **Secrets:** each environment gets its own Azure Key Vault (see
+  [`secret-management.md`](secret-management.md) for how the backend consumes it). PROD's Key
+  Vault is reachable only by PROD's own managed identity - a DEV or STAGING credential/identity
+  has no access path to a PROD secret, so a production API key or database password **cannot
+  be reused by non-production by design**, not merely by convention.
+- **Configuration:** environment-specific values (API keys, database connection strings,
+  feature flags) are injected as environment variables at deploy time from that environment's
+  own Key Vault (Container App secret references - see `secret-management.md`'s decision).
+  Nothing environment-specific is ever baked into the container image itself.
+
+## Azure resource groups and naming conventions
+
+Pattern: `<resource-type-abbreviation>-aiw-<scope>-<region>`, all lowercase, hyphen-separated
+except where an Azure resource type forbids hyphens (Container Registry, Storage Account -
+noted below). `aiw` is this platform's short workload token (matches the Jira project key).
+`<scope>` is `shared`, `dev`, `staging`, `prod`, or `nonprod` (AIW-72 - the one PostgreSQL server
+DEV and STAGING share, per the "Shared vs. environment-specific resources" section below; its own
+resource group, distinct from both `rg-aiw-dev-swc` and `rg-aiw-staging-swc`, since the server
+belongs to neither environment exclusively). `<region>` is the short Azure region code;
+`swc` (Sweden Central) is the primary region below - revisit if actual latency/compliance
+requirements point elsewhere, this is a config decision, not a fixed constraint of the naming
+scheme itself. **Not the original choice**: West Europe (`weu`) was the assumed default when
+this document was first written, but AIW-69's real bootstrap `terraform apply` hit a real Azure
+constraint - `RequestDisallowedByAzure: The selected region is currently not accepting new
+customers` - a restriction Azure applies to brand-new subscriptions in some high-demand regions.
+Verified via a real resource group + storage account test that Sweden Central accepts this
+subscription; switched every naming/tag/location reference accordingly before any other
+resource was created. Revisit once the subscription ages past whatever threshold lifts that
+restriction, if West Europe ever becomes preferable for latency/compliance reasons.
+
+| Resource | Naming pattern | Example (DEV) |
+|---|---|---|
+| Resource group | `rg-aiw-<scope>-<region>` | `rg-aiw-dev-swc` |
+| Container Apps Environment | `cae-aiw-<scope>-<region>` | `cae-aiw-dev-swc` |
+| Container App (backend) | `ca-aiw-backend-<scope>` | `ca-aiw-backend-dev` |
+| Container Registry (shared, AIW-70) | `acraiwshared` (no hyphens - ACR names are alphanumeric-only) | `acraiwshared` |
+| Key Vault | `kv-aiw-<scope>-<region>` | `kv-aiw-dev-swc` |
+| PostgreSQL Flexible Server | `psql-aiw-<scope>-<region>` | `psql-aiw-dev-swc` |
+| Log Analytics workspace | `log-aiw-<scope>-<region>` | `log-aiw-dev-swc` |
+| Storage account (if ever needed) | `staiw<scope><region>` (no hyphens, ≤24 lowercase alphanumeric chars) | `staiwdevswc` |
+
+Every resource carries these tags, usable directly as Terraform `tags = {}` blocks:
+
+```hcl
+tags = {
+  environment = "dev"        # dev | staging | prod | shared
+  workload    = "aiw"
+  managed-by  = "terraform"
+}
+```
+
+## Shared vs. environment-specific resources
+
+- **Shared across all platform environments:** the Container Registry
+  (`rg-aiw-shared-swc` / `acraiwshared`, AIW-70) - one registry holds every environment's
+  images, distinguished by tag, not by a separate registry per environment.
+- **Shared between DEV and STAGING only (AIW-72):** the NONPROD PostgreSQL Flexible Server
+  (`rg-aiw-nonprod-swc` / `psql-aiw-nonprod-swc`) - one server, two separate databases
+  (`aiw_dev`/`aiw_staging`) and two separate least-privilege roles, one per database, per the
+  documented "DEV and STAGING may share a single non-prod server... purely as a cost
+  optimization" exception below. Never extended to PROD (AIW-76 gives PROD its own dedicated
+  server, in PROD's own resource group).
+- **Environment-specific (one per DEV/STAGING/PROD):** Container App, Key Vault - each lives in
+  that environment's own resource group (`rg-aiw-<scope>-<region>`) and is never referenced by
+  another environment's resources.
+- **Shared between DEV and STAGING only (AIW-74), real subscription constraint - not a design
+  choice:** the Container Apps Environment (`cae-aiw-dev-swc`) and its Log Analytics workspace.
+  A real `terraform apply` for STAGING's own environment hit
+  `MaxNumberOfGlobalEnvironmentsInSubExceeded` - this subscription allows only **one** Container
+  App Environment, subscription-wide, not per-region. STAGING's Container App
+  (`ca-aiw-backend-staging`) therefore runs inside DEV's environment, read via
+  `terraform_remote_state` on `dev.tfstate` (`environments/staging/main.tf`) - the same
+  shared-non-prod-infra pattern as the NONPROD PostgreSQL server above, same "never extended to
+  PROD" boundary. An environment is a networking/logging boundary only; each Container App
+  within it remains a fully separate resource with its own FQDN, ingress, scaling and identity -
+  nothing about traffic or secrets crosses between DEV's and STAGING's Container Apps as a
+  result. Revisit if this subscription's quota is ever raised.
+
+## Container Registry (AIW-70)
+
+`acraiwshared` - Basic SKU (no real usage yet to justify Standard/Premium's higher cost; revisit
+once actual pull volume/geo-replication needs are known, the same "start at the honest baseline"
+posture this project already applies to coverage/quality gates). Admin user disabled
+(`admin_enabled = false`) - every push/pull is a real, auditable RBAC role assignment, never a
+shared username/password.
+
+- **Push**: only `.github/workflows/backend-ci.yml`'s `docker-build` job, only on `push` to
+  `develop`/`main` (never on a pull request, from anyone) - the same GitHub Actions OIDC
+  identity `infrastructure/terraform-ci.yml` uses for `plan`, granted `AcrPush` scoped to just
+  this registry in `infrastructure/environments/shared/main.tf` (Azure's `AcrPush` role already
+  includes pull, so no separate grant is needed for CI's own use).
+- **Pull (runtime)**: each environment's Container App managed identity gets its own `AcrPull`
+  role assignment, scoped to this registry, once that identity actually exists (AIW-71 for DEV,
+  AIW-74 for STAGING, AIW-75 for PROD) - not granted here ahead of time, since there is nothing
+  real to scope it to yet.
+- **Tagging**: every pushed image is tagged with the full Git commit SHA
+  (`architech-backend:<sha>`) and *only* that tag - `latest` is never pushed, so no deployment
+  step can accidentally resolve to a moving tag instead of pinning explicitly (this ticket's own
+  acceptance criterion). The same image (by digest) is promoted DEV → STAGING → PROD unchanged
+  (AIW-68's own contract) - promotion changes which environment references a given SHA tag, never
+  the image content behind it.
+- **Retention**: every tagged image is kept indefinitely by default - a SHA tag is, by
+  construction, a potential rollback target for as long as any environment might reference it,
+  so nothing time-based prunes tagged images. Untagged manifests (leftover layers from a
+  superseded multi-arch manifest list, not expected in normal operation since tags are never
+  overwritten) are the only thing intended for time-based cleanup, via `az acr config retention`
+  - not yet configured via Terraform (the `azurerm_container_registry` resource doesn't expose
+  this setting directly); tracked here as a known gap rather than silently assumed handled, to
+  be picked up when actual untagged-manifest accumulation is observed rather than pre-emptively.
+
+## Subscription model
+
+**Now:** a single Azure subscription holds every resource group above (`shared`, `dev`,
+`staging`, `prod`). Isolation between environments relies on resource-group boundaries, RBAC
+role assignments scoped per resource group, and the naming/tagging convention above - acceptable
+at this stage given the platform's current scale and the absence of real customer data in PROD
+yet.
+
+**Future path (not yet executed):** split into two subscriptions once PROD carries real
+customer data or traffic that justifies the stronger isolation a subscription boundary
+provides (separate billing, separate default RBAC root, contained blast radius for a
+misconfigured policy or role assignment):
+
+- `architech-nonprod` - `shared`, `dev`, and `staging` resource groups.
+- `architech-prod` - the `prod` resource group only.
+
+Moving `prod` into its own subscription is a resource-group-level move (Azure supports moving
+resource groups between subscriptions), not a rebuild - the naming convention above already
+treats `prod` as fully self-contained, which is what makes that later move straightforward.
+
+## Platform environments vs. customer website environments
+
+This document covers only the Architech AI **platform's own** DEV/STAGING/PROD - the backend
+and frontend that let a customer create a project and run Requirements Analysis. It
+deliberately does **not** cover the (future) infrastructure that hosts a customer's *generated
+website* in preview or production - that is a different concern with a different shape
+(likely provisioned dynamically per customer/project by the platform itself, not a small,
+fixed set of environments managed by hand via Terraform the way this document's resources
+are). Naming/tagging/resource-group conventions for customer website hosting are out of scope
+here and should get their own decision once that feature exists - don't reuse `rg-aiw-*`
+naming for it, to keep the two concerns unambiguous in the Azure portal and in cost reporting.

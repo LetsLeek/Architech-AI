@@ -1,0 +1,12 @@
+{
+  "business": {"name": "Green Leaf Cafe"},
+  "contact": {"phone": "+43 1 2345678"},
+  "locations": [{"localRef": "cust-loc-1", "name": "Vienna HQ"}],
+  "offerings": [{"localRef": "cust-off-1", "name": "Coffee"}],
+  "openingHours": [],
+  "socialLinks": [],
+  "providedClaims": [],
+  "unknowns": [],
+  "conflicts": [],
+  "provenance": []
+}

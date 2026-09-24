@@ -1,0 +1,121 @@
+name: Roll back backend (STAGING)
+
+# AIW-86: restores a previously-deployed revision without rebuilding or re-promoting anything -
+# Azure Container Apps keeps inactive revision history even in "Single" revision mode (the mode
+# this project's container-app module uses), so rollback is "activate an old revision + shift
+# traffic to it," never a new terraform apply with an older image tag (that would create a BRAND
+# NEW revision from the old image, not restore the actual prior one, and would re-run that
+# image's startup/migration path unnecessarily).
+#
+# STAGING only, deliberately - this is the one non-production rollback path this ticket's own AC
+# requires be exercised and documented; DEV auto-redeploys every push anyway (rolling back there
+# just means deploying an older commit through the normal pipeline), and PROD rollback follows
+# the identical mechanism once PROD's Container App exists (see
+# docs/operations/rollback-runbook.md).
+on:
+  workflow_dispatch:
+    inputs:
+      target_revision:
+        description: >
+          Exact revision name to roll back to (from `az containerapp revision list --name
+          ca-aiw-backend-staging --resource-group rg-aiw-staging-swc -o table`) - must already
+          exist; this workflow never creates a new revision.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-staging
+  # Shares DEV's staging concurrency group deliberately (backend-deploy-staging.yml) - a
+  # rollback and a promotion must never race against the same Container App's revision/traffic
+  # state.
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Roll back STAGING
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: staging
+      url: ${{ steps.url.outputs.base-url }}
+
+    env:
+      APP_NAME: ca-aiw-backend-staging
+      RESOURCE_GROUP: rg-aiw-staging-swc
+      # Routed through env: rather than interpolated directly into each run: block below -
+      # inputs.* is caller-supplied, and Semgrep's run-shell-injection rule correctly flags
+      # direct ${{ }} interpolation in `run:` regardless of how trusted a caller is today.
+      TARGET_REVISION: ${{ inputs.target_revision }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Azure login (OIDC, no client secret)
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify target revision exists
+        # Fails fast with a clear error rather than letting `revision activate` fail deeper in
+        # with a less obvious Azure CLI error.
+        run: |
+          if ! az containerapp revision show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+              --revision "$TARGET_REVISION" >/dev/null 2>&1; then
+            echo "::error::Revision '$TARGET_REVISION' not found for $APP_NAME - list existing revisions with: az containerapp revision list --name $APP_NAME --resource-group $RESOURCE_GROUP -o table"
+            exit 1
+          fi
+
+      - name: Activate target revision
+        # A no-op if it's already active (e.g. re-running after a transient traffic-set
+        # failure) - `revision activate` on an already-active revision succeeds idempotently.
+        run: az containerapp revision activate --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision "$TARGET_REVISION"
+
+      - name: Shift all traffic to the target revision
+        # Single revision mode still supports an explicit traffic-weight set - this is what
+        # actually completes the rollback (activation alone doesn't route requests to it).
+        run: az containerapp ingress traffic set --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --revision-weight "${TARGET_REVISION}=100"
+
+      - name: Resolve backend URL and API key
+        id: url
+        # AIW-185: read straight from Key Vault rather than `terraform output` - this workflow
+        # deliberately never runs terraform (rollback is an `az revision activate` + traffic
+        # shift, no apply), so it has no state to read an output from. ::add-mask:: keeps the
+        # key out of this run's logs.
+        env:
+          KEY_VAULT_NAME: kv-aiw-staging-swc
+        run: |
+          fqdn=$(az containerapp show --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "base-url=https://${fqdn}" >> "$GITHUB_OUTPUT"
+          api_key=$(az keyvault secret show --vault-name "$KEY_VAULT_NAME" --name backend-api-key --query value -o tsv)
+          echo "::add-mask::${api_key}"
+          echo "api-key=${api_key}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify rollback is healthy
+        # Confirms the *application* rolled back successfully - this deliberately says nothing
+        # about the database, which this workflow never touches (application rollback and
+        # database rollback are two separate concerns/procedures - see
+        # docs/operations/rollback-runbook.md's own "Application rollback vs. database
+        # rollback" section).
+        uses: ./.github/actions/backend-smoke-test
+        with:
+          base-url: ${{ steps.url.outputs.base-url }}
+          api-key: ${{ steps.url.outputs.api-key }}
+          environment-name: STAGING (post-rollback)
+
+      - name: Summary
+        env:
+          BASE_URL: ${{ steps.url.outputs.base-url }}
+        run: |
+          {
+            echo "## STAGING rollback"
+            echo ""
+            echo "- **Rolled back to revision**: \`$TARGET_REVISION\`"
+            echo "- **URL**: $BASE_URL"
+            echo "- **Database**: not touched by this workflow - see docs/operations/rollback-runbook.md if a schema rollback is also needed"
+          } >> "$GITHUB_STEP_SUMMARY"
