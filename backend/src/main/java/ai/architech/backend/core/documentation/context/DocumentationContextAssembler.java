@@ -37,12 +37,16 @@ import tools.jackson.databind.node.ObjectNode;
  *
  * <p><b>What this class deliberately does not compute</b> (mirrors {@code
  * QAExecutionPreflightValidator}'s own "what this class deliberately does not validate yet"
- * idiom): {@code findingDisclosureView} and {@code contextIssues} are schema-required top-level
- * fields, but neither is computed here - they are accepted as caller-supplied parameters, since
- * both require the real {@code FindingDisclosureEvaluator} (AIW-192, not built yet). Similarly,
- * the {@code NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED} context-state kind is deliberately not
- * produced by this class for the same reason. {@code securityProjection} is no longer
- * caller-supplied (AIW-191): this class now computes it for real, by running {@link
+ * idiom): only {@code contextIssues} remains a caller-supplied parameter - no conflict-detection
+ * logic ({@code AUTHORITY_CONFLICT}/{@code CONFORMANCE_MISMATCH}/{@code
+ * REPRESENTATION_DIVERGENCE}) exists anywhere in this codebase yet, and building it speculatively
+ * is out of scope here; that remains a real, separate, unticketed gap. {@code
+ * findingDisclosureView} and the {@code NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED} context-state
+ * kind are now computed for real by {@link DocumentationFindingDisclosureEvaluator} (AIW-192),
+ * which can also throw {@link DocumentationFindingDisclosureBlockedException} - fail closed, no
+ * context is assembled at all - when a customer-audience finding is blocking/escalated/unmapped.
+ * {@code securityProjection} is no longer caller-supplied either (AIW-191): this class now
+ * computes it for real, by running {@link
  * DocumentationAudienceMinimizer} then {@link DocumentationSecretScanner} over the already-built
  * {@code authorityCatalog}/{@code resolvedFacts} before they enter the final payload - only once
  * both steps pass does {@code securityProjection.redactionApplied}/{@code
@@ -65,8 +69,11 @@ public class DocumentationContextAssembler {
 
 	private static final String SCHEMA_VERSION = "1.0.0";
 	private static final String SELECTED_SECTION_UNAVAILABLE_MARKER = "SCOPED_SECTION_UNAVAILABLE_IF_APPLICABLE";
+	private static final String CUSTOMER_AUDIENCE = "CUSTOMER";
+	private static final String NO_FIND_STATE_KEY = "CTX_NO_CUSTOMER_DISCLOSABLE_FINDINGS";
 
 	private final DocumentationAuthorityAdapter authorityAdapter;
+	private final DocumentationFindingDisclosureEvaluator findingDisclosureEvaluator;
 	private final DocumentationAudienceMinimizer audienceMinimizer;
 	private final DocumentationSecretScanner secretScanner;
 	private final DocumentationContextRepository contextRepository;
@@ -75,12 +82,14 @@ public class DocumentationContextAssembler {
 
 	DocumentationContextAssembler(
 			DocumentationAuthorityAdapter authorityAdapter,
+			DocumentationFindingDisclosureEvaluator findingDisclosureEvaluator,
 			DocumentationAudienceMinimizer audienceMinimizer,
 			DocumentationSecretScanner secretScanner,
 			DocumentationContextRepository contextRepository,
 			ArtifactVersionRepository artifactVersionRepository,
 			ObjectMapper objectMapper) {
 		this.authorityAdapter = authorityAdapter;
+		this.findingDisclosureEvaluator = findingDisclosureEvaluator;
 		this.audienceMinimizer = audienceMinimizer;
 		this.secretScanner = secretScanner;
 		this.contextRepository = contextRepository;
@@ -94,7 +103,6 @@ public class DocumentationContextAssembler {
 			QaResult qaResult,
 			DocumentationProfile profile,
 			String targetLocale,
-			JsonNode findingDisclosureView,
 			List<JsonNode> contextIssues) {
 		UUID contextId = UUID.randomUUID();
 
@@ -105,14 +113,23 @@ public class DocumentationContextAssembler {
 		ArrayNode rawResolvedFacts = objectMapper.createArrayNode();
 		addFacts(rawAuthorityCatalog, rawResolvedFacts, candidate, qaResult, authoritySnapshot);
 
+		DocumentationFindingDisclosureEvaluator.DocumentationFindingDisclosureResult disclosureResult =
+				findingDisclosureEvaluator.evaluate(candidate, qaResult, profile.primaryAudience());
+		disclosureResult.authorityCatalogEntries().forEach(rawAuthorityCatalog::add);
+
 		ArrayNode contextStates = objectMapper.createArrayNode();
 		addContextStates(contextStates, rawAuthorityCatalog, contextId, candidate, profile, authoritySnapshot);
+		addNoCustomerDisclosableFindingsStateIfNeeded(
+				contextStates, rawAuthorityCatalog, contextId, candidate, qaResult, profile, disclosureResult);
 
 		DocumentationAudienceMinimizer.MinimizedContent minimized =
 				audienceMinimizer.minimize(rawResolvedFacts, rawAuthorityCatalog, profile.primaryAudience());
 		secretScanner.scan(minimized.resolvedFacts(), minimized.authorityCatalog());
 		ArrayNode authorityCatalog = minimized.authorityCatalog();
 		ArrayNode resolvedFacts = minimized.resolvedFacts();
+
+		ObjectNode findingDisclosureView = objectMapper.createObjectNode();
+		findingDisclosureView.set("entries", disclosureResult.entries());
 
 		ObjectNode root = objectMapper.createObjectNode();
 		root.put("schemaVersion", SCHEMA_VERSION);
@@ -392,6 +409,46 @@ public class DocumentationContextAssembler {
 		contextStates.add(state);
 
 		authorityCatalog.add(contextStateCatalogEntry(authorityKey, contextId, stateKey));
+	}
+
+	/**
+	 * {@code NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED} (AIW-192, {@code DECISION_LOG.md} point 6 -
+	 * "a narrow Core-owned deterministic fact, scoped to candidate/QA/disclosure policy," never "bug
+	 * free"). Emitted only for {@code CUSTOMER} audience, only when the evaluator's disclosure view
+	 * ended up with zero entries - which, given {@link DocumentationFindingDisclosureEvaluator}'s own
+	 * logic, only happens when there were zero current-candidate findings at all (every {@code ALLOW}
+	 * -disposed finding always discloses for customer; anything worse already threw before reaching
+	 * here). {@code DEVELOPER} audience never gets this kind - its own {@code entries: []} already
+	 * faithfully represents "no current findings" without needing a separate proof.
+	 */
+	private void addNoCustomerDisclosableFindingsStateIfNeeded(
+			ArrayNode contextStates,
+			ArrayNode authorityCatalog,
+			UUID contextId,
+			WebsiteImplementationCandidate candidate,
+			QaResult qaResult,
+			DocumentationProfile profile,
+			DocumentationFindingDisclosureEvaluator.DocumentationFindingDisclosureResult disclosureResult) {
+		if (!CUSTOMER_AUDIENCE.equals(profile.primaryAudience()) || disclosureResult.anyDisclosed()) {
+			return;
+		}
+
+		String authorityKey = "AUTH_" + NO_FIND_STATE_KEY;
+
+		ArrayNode scopeRefs = objectMapper.createArrayNode();
+		scopeRefs.add(artifactRefRaw("WEBSITE_IMPLEMENTATION_CANDIDATE", candidate.getId().toString()));
+		scopeRefs.add(artifactRefRaw("QA_RESULT", qaResult.getId().toString()));
+
+		ObjectNode state = objectMapper.createObjectNode();
+		state.put("stateKey", NO_FIND_STATE_KEY);
+		state.put("authorityKey", authorityKey);
+		state.put("kind", "NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED");
+		state.put("affectedAuthorityDomain", "QA_FINDING");
+		state.set("scopeRefs", scopeRefs);
+		state.put("disclosurePolicyRef", profile.findingPolicyRef());
+		contextStates.add(state);
+
+		authorityCatalog.add(contextStateCatalogEntry(authorityKey, contextId, NO_FIND_STATE_KEY));
 	}
 
 	private ObjectNode contextStateCatalogEntry(String key, UUID contextId, String stateKey) {
