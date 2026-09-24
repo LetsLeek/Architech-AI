@@ -1,0 +1,61 @@
+registryVersion: 1.0.0
+claimTypes:
+- id: CUSTOMER_FACT
+  domainMinimum: []
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: REQUIREMENT_DESCRIPTION
+  domainMinimum: []
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: DESIGN_DESCRIPTION
+  domainMinimum: []
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: IMPLEMENTATION_DESCRIPTION
+  domainMinimum: []
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: FUNCTIONAL_BEHAVIOR
+  domainMinimum:
+  - IMPLEMENTATION
+  - FUNCTIONAL_BINDING
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: INTEGRATION_DESCRIPTION
+  domainMinimum:
+  - FUNCTIONAL_BINDING
+  - INTEGRATION_AUTHORIZATION
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: QA_STATUS
+  domainMinimum:
+  - QA_EVALUATION
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: KNOWN_LIMITATION
+  domainMinimum:
+  - QA_FINDING
+  - TECHNICAL_CONSTRAINT
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: APPROVAL_STATUS
+  domainMinimum:
+  - APPROVAL
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: DEPLOYMENT_STATUS
+  domainMinimum:
+  - DEPLOYMENT
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: AUTHORITY_AVAILABILITY
+  domainMinimum:
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: UNKNOWN_REPRESENTATION
+  domainMinimum:
+  - CUSTOMER_FACT
+  - REQUIREMENT
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: CONFLICT_REPRESENTATION
+  domainMinimum:
+  - CONTEXT_STATE
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
+- id: TECHNICAL_CONSTRAINT
+  domainMinimum: []
+  note: domainMinimum is a starting precheck; statement-specific sufficiency requires bounded semantic evaluation
