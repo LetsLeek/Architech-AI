@@ -1,6 +1,7 @@
 package ai.architech.backend.core.documentation.context;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ai.architech.backend.core.agentexecution.AgentExecution;
 import ai.architech.backend.core.agentexecution.AgentExecutionRepository;
@@ -100,8 +101,8 @@ class DocumentationContextAssemblerIT {
 		QaResult qaResult = seedQaResult(candidate, "PASS");
 		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
 
-		DocumentationContext context = assembler.assemble(
-				projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of(), trueSecurityProjection());
+		DocumentationContext context =
+				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		SchemaValidationResult result = schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson());
@@ -109,6 +110,8 @@ class DocumentationContextAssemblerIT {
 
 		assertThat(context.getContextVersion()).isEqualTo(1);
 		assertThat(contextRepository.findById(context.getId())).isPresent();
+		assertThat(content.path("securityProjection").path("redactionApplied").asBoolean()).isTrue();
+		assertThat(content.path("securityProjection").path("audienceMinimizationApplied").asBoolean()).isTrue();
 
 		List<String> stateKeys = stream(content.path("contextStates")).map(n -> n.path("stateKey").asString()).toList();
 		assertThat(stateKeys).containsExactlyInAnyOrder(
@@ -137,8 +140,8 @@ class DocumentationContextAssemblerIT {
 		QaResult qaResult = seedQaResult(candidate, "HOLD");
 		DocumentationProfile profile = profileLoader.resolve("TECHNICAL_HANDOVER@1.0.0");
 
-		DocumentationContext context = assembler.assemble(
-				projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of(), trueSecurityProjection());
+		DocumentationContext context =
+				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		SchemaValidationResult result = schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson());
@@ -161,8 +164,8 @@ class DocumentationContextAssemblerIT {
 		QaResult qaResult = seedQaResult(candidate, "PASS");
 		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
 
-		DocumentationContext context = assembler.assemble(
-				projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of(), trueSecurityProjection());
+		DocumentationContext context =
+				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		assertThat(schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson()).valid()).isTrue();
@@ -178,6 +181,25 @@ class DocumentationContextAssemblerIT {
 	}
 
 	@Test
+	void blocksAssemblyWhenAGeneratedFactAccidentallyContainsASecretShape() {
+		UUID projectId = seedProject();
+		// AKIA + 16 alphanumerics: structurally matches SecretPatterns.AWS_ACCESS_KEY, but is an
+		// unambiguous, obviously-fake test placeholder, never a real key.
+		String fakeSecretLookingBusinessName = "AKIAFAKETESTKEY12345";
+		seedCustomerProfile(projectId, fakeSecretLookingBusinessName, 0);
+		seedCanonicalArtifact(projectId, "website-requirements");
+		WebsiteImplementationCandidate candidate = seedCandidateWithDesignAndBindings(projectId, "prop-a", "[]");
+		QaResult qaResult = seedQaResult(candidate, "PASS");
+		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
+
+		assertThatThrownBy(() -> assembler.assemble(
+						projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of()))
+				.isInstanceOf(DocumentationSecretLeakageDetectedException.class)
+				.hasMessageContaining("AWS_ACCESS_KEY")
+				.hasMessageNotContaining(fakeSecretLookingBusinessName);
+	}
+
+	@Test
 	void truncatesAnOversizedImplementationSummaryRatherThanFailingSchemaValidation() {
 		UUID projectId = seedProject();
 		seedCanonicalArtifact(projectId, "website-requirements");
@@ -187,8 +209,8 @@ class DocumentationContextAssemblerIT {
 		QaResult qaResult = seedQaResult(candidate, "PASS");
 		DocumentationProfile profile = profileLoader.resolve("TECHNICAL_HANDOVER@1.0.0");
 
-		DocumentationContext context = assembler.assemble(
-				projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of(), trueSecurityProjection());
+		DocumentationContext context =
+				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of());
 
 		assertThat(schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson()).valid()).isTrue();
 
@@ -209,13 +231,6 @@ class DocumentationContextAssemblerIT {
 	private JsonNode emptyFindingDisclosureView() {
 		ObjectNode node = objectMapper.createObjectNode();
 		node.set("entries", objectMapper.createArrayNode());
-		return node;
-	}
-
-	private JsonNode trueSecurityProjection() {
-		ObjectNode node = objectMapper.createObjectNode();
-		node.put("redactionApplied", true);
-		node.put("audienceMinimizationApplied", true);
 		return node;
 	}
 

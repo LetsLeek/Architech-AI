@@ -37,18 +37,18 @@ import tools.jackson.databind.node.ObjectNode;
  *
  * <p><b>What this class deliberately does not compute</b> (mirrors {@code
  * QAExecutionPreflightValidator}'s own "what this class deliberately does not validate yet"
- * idiom): {@code findingDisclosureView}, {@code contextIssues} and {@code securityProjection} are
- * all schema-required top-level fields, but none of them are computed here - they are accepted as
- * caller-supplied parameters. {@code securityProjection.redactionApplied}/{@code
- * audienceMinimizationApplied} are both schema {@code const: true}: a context can only ever be
- * schema-valid once real redaction has actually happened, which is AIW-191's job (not built yet).
- * {@code findingDisclosureView} entries require the real {@code FindingDisclosureEvaluator}
- * (AIW-192, not built yet) - not guessed at here. Similarly, the {@code
- * NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED} context-state kind is deliberately not produced by
- * this class for the same reason: it depends on that same evaluator's real output. No production
- * caller should invoke {@link #assemble} with a fabricated {@code true} security projection until
- * AIW-191 exists to legitimately produce one - only tests do that today, to prove the rest of the
- * assembly is schema-valid in isolation.
+ * idiom): {@code findingDisclosureView} and {@code contextIssues} are schema-required top-level
+ * fields, but neither is computed here - they are accepted as caller-supplied parameters, since
+ * both require the real {@code FindingDisclosureEvaluator} (AIW-192, not built yet). Similarly,
+ * the {@code NO_CUSTOMER_DISCLOSABLE_FINDINGS_RECORDED} context-state kind is deliberately not
+ * produced by this class for the same reason. {@code securityProjection} is no longer
+ * caller-supplied (AIW-191): this class now computes it for real, by running {@link
+ * DocumentationAudienceMinimizer} then {@link DocumentationSecretScanner} over the already-built
+ * {@code authorityCatalog}/{@code resolvedFacts} before they enter the final payload - only once
+ * both steps pass does {@code securityProjection.redactionApplied}/{@code
+ * audienceMinimizationApplied} (both schema {@code const: true}) become honestly {@code true}. A
+ * detected secret throws {@link DocumentationSecretLeakageDetectedException} rather than producing
+ * any context at all - fail closed, per {@code DOC-SEC-006}.
  *
  * <p>The {@code authorityCatalog}/{@code resolvedFacts} "provenance catalog" built here is
  * intentionally bounded to five verified, schema-grounded facts (business name and opening-hours
@@ -67,16 +67,22 @@ public class DocumentationContextAssembler {
 	private static final String SELECTED_SECTION_UNAVAILABLE_MARKER = "SCOPED_SECTION_UNAVAILABLE_IF_APPLICABLE";
 
 	private final DocumentationAuthorityAdapter authorityAdapter;
+	private final DocumentationAudienceMinimizer audienceMinimizer;
+	private final DocumentationSecretScanner secretScanner;
 	private final DocumentationContextRepository contextRepository;
 	private final ArtifactVersionRepository artifactVersionRepository;
 	private final ObjectMapper objectMapper;
 
 	DocumentationContextAssembler(
 			DocumentationAuthorityAdapter authorityAdapter,
+			DocumentationAudienceMinimizer audienceMinimizer,
+			DocumentationSecretScanner secretScanner,
 			DocumentationContextRepository contextRepository,
 			ArtifactVersionRepository artifactVersionRepository,
 			ObjectMapper objectMapper) {
 		this.authorityAdapter = authorityAdapter;
+		this.audienceMinimizer = audienceMinimizer;
+		this.secretScanner = secretScanner;
 		this.contextRepository = contextRepository;
 		this.artifactVersionRepository = artifactVersionRepository;
 		this.objectMapper = objectMapper;
@@ -89,19 +95,24 @@ public class DocumentationContextAssembler {
 			DocumentationProfile profile,
 			String targetLocale,
 			JsonNode findingDisclosureView,
-			List<JsonNode> contextIssues,
-			JsonNode securityProjection) {
+			List<JsonNode> contextIssues) {
 		UUID contextId = UUID.randomUUID();
 
 		DocumentationAuthoritySnapshot authoritySnapshot = authorityAdapter.buildAuthoritySnapshot(projectId, candidate, qaResult);
 		DocumentationQaState qaState = authorityAdapter.buildQaState(candidate, qaResult);
 
-		ArrayNode authorityCatalog = objectMapper.createArrayNode();
-		ArrayNode resolvedFacts = objectMapper.createArrayNode();
-		addFacts(authorityCatalog, resolvedFacts, candidate, qaResult, authoritySnapshot);
+		ArrayNode rawAuthorityCatalog = objectMapper.createArrayNode();
+		ArrayNode rawResolvedFacts = objectMapper.createArrayNode();
+		addFacts(rawAuthorityCatalog, rawResolvedFacts, candidate, qaResult, authoritySnapshot);
 
 		ArrayNode contextStates = objectMapper.createArrayNode();
-		addContextStates(contextStates, authorityCatalog, contextId, candidate, profile, authoritySnapshot);
+		addContextStates(contextStates, rawAuthorityCatalog, contextId, candidate, profile, authoritySnapshot);
+
+		DocumentationAudienceMinimizer.MinimizedContent minimized =
+				audienceMinimizer.minimize(rawResolvedFacts, rawAuthorityCatalog, profile.primaryAudience());
+		secretScanner.scan(minimized.resolvedFacts(), minimized.authorityCatalog());
+		ArrayNode authorityCatalog = minimized.authorityCatalog();
+		ArrayNode resolvedFacts = minimized.resolvedFacts();
 
 		ObjectNode root = objectMapper.createObjectNode();
 		root.put("schemaVersion", SCHEMA_VERSION);
@@ -122,7 +133,7 @@ public class DocumentationContextAssembler {
 		ArrayNode contextIssuesNode = objectMapper.createArrayNode();
 		contextIssues.forEach(contextIssuesNode::add);
 		root.set("contextIssues", contextIssuesNode);
-		root.set("securityProjection", securityProjection);
+		root.set("securityProjection", securityProjectionNode());
 		root.put("createdAt", Instant.now().toString());
 
 		String contentJson = objectMapper.writeValueAsString(root);
@@ -141,6 +152,18 @@ public class DocumentationContextAssembler {
 		snapshot.selectionDecisionRef().ifPresent(ref -> node.set("selectionDecisionRef", artifactRefNode(ref)));
 		snapshot.approvalRecordRef().ifPresent(ref -> node.set("approvalRecordRef", artifactRefNode(ref)));
 		snapshot.deploymentRecordRef().ifPresent(ref -> node.set("deploymentRecordRef", artifactRefNode(ref)));
+		return node;
+	}
+
+	/**
+	 * Reached only after {@link DocumentationAudienceMinimizer} and {@link DocumentationSecretScanner}
+	 * both ran without objection - {@code redactionApplied}/{@code audienceMinimizationApplied} are
+	 * honestly {@code true} at this point, not hardcoded ahead of any real check (AIW-191).
+	 */
+	private ObjectNode securityProjectionNode() {
+		ObjectNode node = objectMapper.createObjectNode();
+		node.put("redactionApplied", true);
+		node.put("audienceMinimizationApplied", true);
 		return node;
 	}
 
