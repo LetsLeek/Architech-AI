@@ -35,6 +35,12 @@ public class DocumentationAuthorityAdapter {
 	static final String CUSTOMER_PROFILE_TYPE = "customer-profile";
 	static final String WEBSITE_REQUIREMENTS_TYPE = "website-requirements";
 
+	private static final String CUSTOMER_PROFILE_ARTIFACT_TYPE = "CUSTOMER_PROFILE";
+	private static final String WEBSITE_REQUIREMENTS_ARTIFACT_TYPE = "WEBSITE_REQUIREMENTS";
+	private static final String SELECTED_SOURCE_DESIGN_ARTIFACT_TYPE = "SELECTED_SOURCE_DESIGN";
+	private static final String WEBSITE_IMPLEMENTATION_CANDIDATE_ARTIFACT_TYPE = "WEBSITE_IMPLEMENTATION_CANDIDATE";
+	private static final String QA_RESULT_ARTIFACT_TYPE = "QA_RESULT";
+
 	private final ArtifactRepository artifactRepository;
 	private final ArtifactVersionRepository artifactVersionRepository;
 
@@ -52,9 +58,10 @@ public class DocumentationAuthorityAdapter {
 	 */
 	public DocumentationAuthoritySnapshot buildAuthoritySnapshot(
 			UUID projectId, WebsiteImplementationCandidate candidate, QaResult qaResult) {
-		Optional<String> customerProfileRef = latestVersion(projectId, CUSTOMER_PROFILE_TYPE).map(v -> v.getId().toString());
-		String websiteRequirementsRef = latestVersion(projectId, WEBSITE_REQUIREMENTS_TYPE)
-				.map(v -> v.getId().toString())
+		Optional<DocumentationArtifactRef> customerProfileRef = latestVersion(projectId, CUSTOMER_PROFILE_TYPE)
+				.map(v -> new DocumentationArtifactRef(CUSTOMER_PROFILE_ARTIFACT_TYPE, v.getId().toString()));
+		DocumentationArtifactRef websiteRequirementsRef = latestVersion(projectId, WEBSITE_REQUIREMENTS_TYPE)
+				.map(v -> new DocumentationArtifactRef(WEBSITE_REQUIREMENTS_ARTIFACT_TYPE, v.getId().toString()))
 				.orElseThrow(() -> new ApplicationException(
 						ErrorCode.CANONICAL_ARTIFACT_NOT_FOUND,
 						"No canonical '" + WEBSITE_REQUIREMENTS_TYPE + "' artifact exists for project " + projectId));
@@ -62,9 +69,9 @@ public class DocumentationAuthorityAdapter {
 		return new DocumentationAuthoritySnapshot(
 				customerProfileRef,
 				websiteRequirementsRef,
-				candidate.getSourceDesignRef(),
-				candidate.getId().toString(),
-				qaResult.getId().toString(),
+				new DocumentationArtifactRef(SELECTED_SOURCE_DESIGN_ARTIFACT_TYPE, candidate.getSourceDesignRef()),
+				new DocumentationArtifactRef(WEBSITE_IMPLEMENTATION_CANDIDATE_ARTIFACT_TYPE, candidate.getId().toString()),
+				new DocumentationArtifactRef(QA_RESULT_ARTIFACT_TYPE, qaResult.getId().toString()),
 				Optional.empty(),
 				Optional.empty(),
 				Optional.empty());
