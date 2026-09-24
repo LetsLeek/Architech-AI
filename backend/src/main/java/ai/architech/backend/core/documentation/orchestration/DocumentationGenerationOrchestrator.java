@@ -204,7 +204,7 @@ public class DocumentationGenerationOrchestrator {
 				runnerResult.execution().succeed();
 				agentExecutionRepository.save(runnerResult.execution());
 				return new DocumentationGenerationOutcome.Success(
-						context, candidateJson, reports, generationAttempts, passed.attempts());
+						context, candidateJson, reports, generationAttempts, passed.attempts(), runnerResult.execution().getId());
 			}
 			if (semanticOutcome instanceof SemanticEvaluationOutcome.Exhausted exhausted) {
 				markFailed(runnerResult.execution(), "semantic evaluator exhausted its own retry budget");
