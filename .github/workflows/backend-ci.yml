@@ -175,7 +175,7 @@ jobs:
         # identity infrastructure/terraform-ci.yml uses, now also granted AcrPush (scoped to
         # just this one registry) in infrastructure/environments/shared/main.tf.
         if: github.event_name == 'push'
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
@@ -296,7 +296,7 @@ jobs:
         # AIW-81: the one workflow in this project whose OIDC identity is granted real write
         # access (Contributor, scoped only to rg-aiw-dev-swc - see
         # infrastructure/bootstrap/access.tf) rather than Reader.
-        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
