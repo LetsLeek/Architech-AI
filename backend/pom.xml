@@ -36,6 +36,14 @@
 			itself.
 		-->
 		<tomcat.version>11.0.25</tomcat.version>
+		<!--
+			AIW-204: excludes @Tag("real-model-eval") tests (the Documentation generator/semantic-
+			validator evaluation gates, which make real, costed Anthropic API calls) from every
+			default test/verify run - including CI's own `./mvnw verify`. Overridden to empty by the
+			`real-model-eval` profile below, the only way these tests ever actually run. See
+			docs/operations/documentation-agent-evaluation-gates.md.
+		-->
+		<test.excludedGroups>real-model-eval</test.excludedGroups>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -229,6 +237,7 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
 					<argLine>@{surefireArgLine}</argLine>
+					<excludedGroups>${test.excludedGroups}</excludedGroups>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -250,6 +259,7 @@
 					<systemPropertyVariables>
 						<spring.profiles.active>test</spring.profiles.active>
 					</systemPropertyVariables>
+					<excludedGroups>${test.excludedGroups}</excludedGroups>
 				</configuration>
 				<executions>
 					<execution>
@@ -290,5 +300,23 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<!--
+				AIW-204: the only way to actually run the real-model-eval-tagged Documentation
+				generator/semantic-validator evaluation gates - `./mvnw verify -Preal-model-eval`.
+				Requires application.yml's `real-ai` Spring profile to also be active (a real
+				Anthropic API key configured) or these tests will simply exercise the mock provider
+				and their assertions will fail. A deliberate, infrequent, human-triggered action tied
+				to an actual release/config/model change - never invoked by CI, never automatic. See
+				docs/operations/documentation-agent-evaluation-gates.md.
+			-->
+			<id>real-model-eval</id>
+			<properties>
+				<test.excludedGroups></test.excludedGroups>
+			</properties>
+		</profile>
+	</profiles>
 
 </project>
