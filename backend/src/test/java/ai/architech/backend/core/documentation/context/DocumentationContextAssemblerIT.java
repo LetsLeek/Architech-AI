@@ -102,7 +102,7 @@ class DocumentationContextAssemblerIT {
 		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
 
 		DocumentationContext context =
-				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of());
+				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		SchemaValidationResult result = schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson());
@@ -115,7 +115,9 @@ class DocumentationContextAssemblerIT {
 
 		List<String> stateKeys = stream(content.path("contextStates")).map(n -> n.path("stateKey").asString()).toList();
 		assertThat(stateKeys).containsExactlyInAnyOrder(
-				"CTX_SELECTION_DECISION", "CTX_APPROVAL_RECORD", "CTX_DEPLOYMENT_RECORD", "CTX_SECTION_CHANGE_AND_MAINTENANCE");
+				"CTX_SELECTION_DECISION", "CTX_APPROVAL_RECORD", "CTX_DEPLOYMENT_RECORD", "CTX_SECTION_CHANGE_AND_MAINTENANCE",
+				"CTX_NO_CUSTOMER_DISCLOSABLE_FINDINGS");
+		assertThat(content.path("findingDisclosureView").path("entries").size()).isZero();
 
 		List<String> factTypes = stream(content.path("resolvedFacts")).map(n -> n.path("factType").asString()).toList();
 		assertThat(factTypes).contains(
@@ -141,7 +143,7 @@ class DocumentationContextAssemblerIT {
 		DocumentationProfile profile = profileLoader.resolve("TECHNICAL_HANDOVER@1.0.0");
 
 		DocumentationContext context =
-				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of());
+				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		SchemaValidationResult result = schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson());
@@ -165,7 +167,7 @@ class DocumentationContextAssemblerIT {
 		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
 
 		DocumentationContext context =
-				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of());
+				assembler.assemble(projectId, candidate, qaResult, profile, "de-AT", List.of());
 
 		JsonNode content = objectMapper.readTree(context.getContentJson());
 		assertThat(schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson()).valid()).isTrue();
@@ -193,7 +195,7 @@ class DocumentationContextAssemblerIT {
 		DocumentationProfile profile = profileLoader.resolve("CUSTOMER_HANDOVER@1.0.0");
 
 		assertThatThrownBy(() -> assembler.assemble(
-						projectId, candidate, qaResult, profile, "de-AT", emptyFindingDisclosureView(), List.of()))
+						projectId, candidate, qaResult, profile, "de-AT", List.of()))
 				.isInstanceOf(DocumentationSecretLeakageDetectedException.class)
 				.hasMessageContaining("AWS_ACCESS_KEY")
 				.hasMessageNotContaining(fakeSecretLookingBusinessName);
@@ -210,7 +212,7 @@ class DocumentationContextAssemblerIT {
 		DocumentationProfile profile = profileLoader.resolve("TECHNICAL_HANDOVER@1.0.0");
 
 		DocumentationContext context =
-				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", emptyFindingDisclosureView(), List.of());
+				assembler.assemble(projectId, candidate, qaResult, profile, "en-GB", List.of());
 
 		assertThat(schemaRegistry.validate(CONTEXT_SCHEMA_URN, context.getContentJson()).valid()).isTrue();
 
@@ -226,12 +228,6 @@ class DocumentationContextAssemblerIT {
 		Stream.Builder<JsonNode> builder = Stream.builder();
 		array.forEach(builder::add);
 		return builder.build();
-	}
-
-	private JsonNode emptyFindingDisclosureView() {
-		ObjectNode node = objectMapper.createObjectNode();
-		node.set("entries", objectMapper.createArrayNode());
-		return node;
 	}
 
 	private UUID seedProject() {
