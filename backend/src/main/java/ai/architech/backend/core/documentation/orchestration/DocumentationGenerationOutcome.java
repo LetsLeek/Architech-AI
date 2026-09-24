@@ -2,6 +2,7 @@ package ai.architech.backend.core.documentation.orchestration;
 
 import ai.architech.backend.core.documentation.context.DocumentationContext;
 import java.util.List;
+import java.util.UUID;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
@@ -23,13 +24,22 @@ import tools.jackson.databind.node.ObjectNode;
  */
 public sealed interface DocumentationGenerationOutcome {
 
-	/** Everything a future AIW-200 persistence step or AIW-201 renderer would need. */
+	/**
+	 * Everything a future AIW-200 persistence step or AIW-201 renderer would need.
+	 *
+	 * <p>{@code originAgentExecutionId} substitutes for {@code documentation-package-version.schema
+	 * .json}'s schema-required {@code originRunRef}: there is no persisted {@code DocumentationRun}
+	 * row to point at (this class's own javadoc explains why), so AIW-200 points at the real {@code
+	 * AgentExecution} that actually produced the winning candidate instead - the closest real,
+	 * already-persisted row to "the run that produced this."
+	 */
 	record Success(
 			DocumentationContext context,
 			String candidateJson,
 			List<ObjectNode> reports,
 			int generationAttemptCount,
-			int evaluationAttemptCount)
+			int evaluationAttemptCount,
+			UUID originAgentExecutionId)
 			implements DocumentationGenerationOutcome {}
 
 	/**
