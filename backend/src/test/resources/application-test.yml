@@ -14,3 +14,14 @@ spring:
     username: test
     password: test
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    # AIW-211: the full IT suite spins up dozens of distinct Spring contexts (one per unique
+    # @MockitoBean/@MockitoSpyBean combination a test class declares), and every context gets
+    # its own HikariCP pool against the same single Testcontainers Postgres instance. Spring's
+    # default per-context pool size (10) times enough concurrently-cached contexts routinely
+    # exceeds Postgres's own default max_connections (100), failing unrelated tests with
+    # "FATAL: sorry, too many clients already" - a pre-existing latent fragility this ticket's
+    # own new context (FullPipelineEndToEndIT's own unique @MockitoSpyBean AiGateway
+    # combination) was enough to tip over. A small per-context pool is all any single IT's own
+    # own Hikari pool ever actually needs.
+    hikari:
+      maximum-pool-size: 3
