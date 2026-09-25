@@ -5,8 +5,11 @@ import { getProject, type Project } from '../api/projects'
 import CustomerProfileView from '../components/CustomerProfileView'
 import DesignProposalGenerationSection from '../components/DesignProposalGenerationSection'
 import DesignProposalSetView from '../components/DesignProposalSetView'
+import DeveloperGenerationSection from '../components/DeveloperGenerationSection'
+import DocumentationView from '../components/DocumentationView'
 import FileInputSection from '../components/FileInputSection'
 import FreeTextInputSection from '../components/FreeTextInputSection'
+import QaResultView from '../components/QaResultView'
 import RequirementsAnalysisSection from '../components/RequirementsAnalysisSection'
 import StructuredInputSection from '../components/StructuredInputSection'
 import WebsiteRequirementsView from '../components/WebsiteRequirementsView'
@@ -23,6 +26,10 @@ function ProjectDetailPage() {
   const [fileCount, setFileCount] = useState(0)
   const [profileRefreshKey, setProfileRefreshKey] = useState(0)
   const [designsRefreshKey, setDesignsRefreshKey] = useState(0)
+  // Bumped once a Developer generation run succeeds. QA and (on a QA pass) Documentation both run
+  // synchronously inside that same backend call (AIW-213), so a fetch right after success already
+  // sees fresh results for both - no polling needed.
+  const [websiteGenerationRefreshKey, setWebsiteGenerationRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!projectId) {
@@ -96,6 +103,13 @@ function ProjectDetailPage() {
         onViewDesigns={() => document.getElementById('design-proposal-set-view')?.scrollIntoView({ behavior: 'smooth' })}
       />
       <DesignProposalSetView projectId={project.id} refreshKey={designsRefreshKey} />
+
+      <DeveloperGenerationSection
+        projectId={project.id}
+        onSucceeded={() => setWebsiteGenerationRefreshKey((key) => key + 1)}
+      />
+      <QaResultView projectId={project.id} refreshKey={websiteGenerationRefreshKey} />
+      <DocumentationView projectId={project.id} refreshKey={websiteGenerationRefreshKey} />
     </section>
   )
 }
