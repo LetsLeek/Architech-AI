@@ -134,6 +134,11 @@ class WebsiteGenerationDrivingServiceIT {
 		for (String localRef : List.of("prop-a", "prop-b", "prop-c")) {
 			script.add(toolUseWrite());
 			script.add(finalAnswerResponse(readyResultEnvelope(localRef)));
+			// AIW-213: driveSibling now triggers QA (a real AiGateway call, same shared "mock"
+			// provider) the moment a sibling's own Candidate exists - one throwaway entry keeps the
+			// next sibling's own two scripted entries correctly positioned. Its own content doesn't
+			// matter: QA failing on unscripted/invalid output is already an expected, non-fatal path.
+			script.add(finalAnswerResponse(""));
 		}
 		mockAiProvider.script(script);
 
@@ -167,6 +172,9 @@ class WebsiteGenerationDrivingServiceIT {
 		mockAiProvider.script(List.of(
 				toolUseWrite(),
 				finalAnswerResponse(readyResultEnvelope("prop-a")),
+				// AIW-213: prop-a's own real Candidate triggers a real (throwaway-content) QA call
+				// before prop-b's own turn begins - see the sibling comment above.
+				finalAnswerResponse(""),
 				finalAnswerResponse("{\"wrong-key\": {}}"),
 				finalAnswerResponse("{\"wrong-key\": {}}"),
 				finalAnswerResponse("{\"wrong-key\": {}}"),

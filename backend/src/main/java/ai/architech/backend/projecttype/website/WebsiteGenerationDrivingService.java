@@ -4,6 +4,7 @@ import ai.architech.backend.core.artifact.Artifact;
 import ai.architech.backend.core.artifact.ArtifactRepository;
 import ai.architech.backend.core.artifact.ArtifactVersion;
 import ai.architech.backend.core.artifact.ArtifactVersionRepository;
+import ai.architech.backend.core.candidate.WebsiteImplementationCandidate;
 import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.error.ErrorCode;
 import ai.architech.backend.core.repository.DevelopmentBaseProvisioner;
@@ -15,6 +16,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -54,6 +57,8 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class WebsiteGenerationDrivingService {
 
+	private static final Logger log = LoggerFactory.getLogger(WebsiteGenerationDrivingService.class);
+
 	private static final String DESIGN_PROPOSAL_SET_TYPE = "design-proposal-set";
 
 	private final ArtifactRepository artifactRepository;
@@ -61,6 +66,7 @@ public class WebsiteGenerationDrivingService {
 	private final DevelopmentBaseProvisioner developmentBaseProvisioner;
 	private final DeveloperExecutionInputAssembler developerExecutionInputAssembler;
 	private final DeveloperToolLoopOrchestrator developerToolLoopOrchestrator;
+	private final QaTriggerService qaTriggerService;
 	private final InitialGenerationProperties properties;
 	private final ObjectMapper objectMapper;
 
@@ -70,6 +76,7 @@ public class WebsiteGenerationDrivingService {
 			DevelopmentBaseProvisioner developmentBaseProvisioner,
 			DeveloperExecutionInputAssembler developerExecutionInputAssembler,
 			DeveloperToolLoopOrchestrator developerToolLoopOrchestrator,
+			QaTriggerService qaTriggerService,
 			InitialGenerationProperties properties,
 			ObjectMapper objectMapper) {
 		this.artifactRepository = artifactRepository;
@@ -77,6 +84,7 @@ public class WebsiteGenerationDrivingService {
 		this.developmentBaseProvisioner = developmentBaseProvisioner;
 		this.developerExecutionInputAssembler = developerExecutionInputAssembler;
 		this.developerToolLoopOrchestrator = developerToolLoopOrchestrator;
+		this.qaTriggerService = qaTriggerService;
 		this.properties = properties;
 		this.objectMapper = objectMapper;
 	}
@@ -120,9 +128,45 @@ public class WebsiteGenerationDrivingService {
 			Workspace workspace = new Workspace(workspaceRoot);
 
 			DeveloperToolLoopResult result = developerToolLoopOrchestrator.run(projectId, executionInputJson, workspace);
+			if (result.candidate() != null) {
+				triggerQa(projectId, proposalLocalRef, result.candidate());
+			}
 			return new WebsiteGenerationSiblingOutcome(proposalLocalRef, result.execution(), result.candidate(), null);
 		} catch (RuntimeException e) {
 			return new WebsiteGenerationSiblingOutcome(proposalLocalRef, null, null, e.getMessage());
+		}
+	}
+
+	/**
+	 * AIW-213's own hook point: fires the real QA execution trigger the moment Developer-
+	 * Candidate-Acceptance has happened for real (that acceptance already ran inside {@link
+	 * DeveloperToolLoopOrchestrator#run} by the time {@code result.candidate()} is non-null - see
+	 * this class's own javadoc). Best-effort/non-fatal by design: {@link
+	 * QaTriggerService#triggerFullReleaseQa} already never throws, but this is still wrapped
+	 * defensively so a QA-side surprise can never turn a successful Developer sibling into a
+	 * failed one. {@link WebsiteGenerationSiblingOutcome}'s own shape is deliberately left
+	 * unchanged by this ticket - surfacing QA outcome there is real, separate follow-up scope; for
+	 * now a warning log line is this V1's own "never silently vanish without a trace" guarantee.
+	 */
+	private void triggerQa(UUID projectId, String proposalLocalRef, WebsiteImplementationCandidate candidate) {
+		try {
+			QaTriggerOutcome outcome = qaTriggerService.triggerFullReleaseQa(projectId, candidate);
+			if (!outcome.succeeded()) {
+				log.warn(
+						"QA trigger did not produce a QaResult for project {} sibling {} candidate {}: qaIssues={} failureMessage={}",
+						projectId,
+						proposalLocalRef,
+						candidate.getId(),
+						outcome.qaIssues(),
+						outcome.failureMessage());
+			}
+		} catch (RuntimeException e) {
+			log.warn(
+					"QA trigger threw unexpectedly for project {} sibling {} candidate {}",
+					projectId,
+					proposalLocalRef,
+					candidate.getId(),
+					e);
 		}
 	}
 

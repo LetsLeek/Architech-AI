@@ -160,6 +160,11 @@ class DeveloperGenerationControllerIT {
 		for (String localRef : List.of("prop-a", "prop-b", "prop-c")) {
 			script.add(toolUseWrite());
 			script.add(finalAnswerResponse(readyResultEnvelope(localRef)));
+			// AIW-213: driveSibling now triggers QA (a real AiGateway call, same shared "mock"
+			// provider) the moment a sibling's own Candidate exists - one throwaway entry keeps the
+			// next sibling's own two scripted entries correctly positioned. Its own content doesn't
+			// matter: QA failing on unscripted/invalid output is already an expected, non-fatal path.
+			script.add(finalAnswerResponse(""));
 		}
 		mockAiProvider.script(script);
 
