@@ -33,6 +33,14 @@ import tools.jackson.databind.ObjectMapper;
  * actionable (a genuinely useful thing to navigate to) is a semantic-review question - AIW-123's
  * scope, not this deterministic one's.
  *
+ * <p>Not every customer-profile fragment worth citing has a {@code localRef}: the schema only
+ * puts one on array items ({@code locations[]}, {@code offerings[]}, etc) - a top-level scalar
+ * field such as {@code business.name} or {@code contact.phone} has none. A candidate legitimately
+ * citing such a field has no localRef to use, so it cites the dot-separated path into the
+ * customer-profile JSON instead (e.g. {@code "business.name"}). Such a citation is permitted
+ * exactly when that path resolves to a real, present node in the active customer-profile JSON -
+ * an invented or misspelled path still correctly fails.
+ *
  * <p>Detects and reports only: never repairs, renames, or drops an invalid ref from a candidate.
  */
 @Component
@@ -68,7 +76,8 @@ public class DesignProposalSetCanonicalReferenceValidator {
 				}
 			}
 			for (String customerDataRef : CustomerDataRefExtractor.extract(proposal)) {
-				if (!permittedCustomerDataRefs.contains(customerDataRef)) {
+				if (!permittedCustomerDataRefs.contains(customerDataRef)
+						&& !resolvesToPresentNode(customerProfileRoot, customerDataRef)) {
 					issues.add(new DesignProposalSetValidationIssue(
 							proposalRef, "customerDataRef", "'" + customerDataRef + "' is not part of the active customer-profile artifact"));
 				}
@@ -76,5 +85,27 @@ public class DesignProposalSetCanonicalReferenceValidator {
 		}
 
 		return issues.isEmpty() ? DesignProposalSetValidationResult.passed() : new DesignProposalSetValidationResult(false, issues);
+	}
+
+	/**
+	 * Resolves a dot-separated path (e.g. {@code "business.name"}) into {@code root}, returning
+	 * true only if every segment along the way is present and the final node is not missing. An
+	 * empty path never resolves.
+	 */
+	private static boolean resolvesToPresentNode(JsonNode root, String dotPath) {
+		if (dotPath == null || dotPath.isBlank()) {
+			return false;
+		}
+		JsonNode node = root;
+		for (String segment : dotPath.split("\\.")) {
+			if (segment.isEmpty()) {
+				return false;
+			}
+			node = node.path(segment);
+			if (node.isMissingNode()) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
