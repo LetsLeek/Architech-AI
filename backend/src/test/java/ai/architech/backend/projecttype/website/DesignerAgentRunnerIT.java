@@ -175,6 +175,47 @@ class DesignerAgentRunnerIT {
 	}
 
 	@Test
+	void passesSchemaValidationWhenASectionHasAnExplicitNullCustomKindOnANonCustomKind() {
+		// AIW-215: the real model (Claude Sonnet 5) emitted "customKind": null on a section whose
+		// kind was not "custom" - the schema's if/then/else requires customKind to be completely
+		// absent (not merely falsy) whenever kind != "custom", so a present-but-null value used to
+		// fail schema validation even though it's a harmless JSON-encoding quirk.
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		AgentExecution execution = startedExecution(project);
+		when(designProposalSetSemanticReviewer.review(any(), any(), any(), any())).thenReturn(SemanticReviewResult.passed());
+
+		String proposalWithExplicitNullCustomKind =
+				proposal("a").replace("\"kind\": \"hero\",", "\"kind\": \"hero\", \"customKind\": null,");
+		String candidateOutput =
+				envelope("[" + proposalWithExplicitNullCustomKind + "," + proposal("b") + "," + proposal("c") + "]");
+
+		DesignProposalGenerationResult result = designerAgentRunner.validateAndPersist(
+				project.getId(), CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS, new RunnerResult(execution, candidateOutput));
+
+		assertThat(result.succeeded()).isTrue();
+		assertThat(result.validationIssues()).isEmpty();
+		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.SUCCEEDED);
+	}
+
+	@Test
+	void stillFailsSchemaValidationWhenAGenuinelyRequiredFieldIsMissing() {
+		// Proves the null-stripping normalization doesn't mask real schema violations: dropping the
+		// required "kind" property entirely (not merely setting it to null) must still fail.
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		AgentExecution execution = startedExecution(project);
+
+		String proposalMissingRequiredKind = proposal("a").replace("\"kind\": \"hero\",", "");
+		String candidateOutput =
+				envelope("[" + proposalMissingRequiredKind + "," + proposal("b") + "," + proposal("c") + "]");
+
+		DesignProposalGenerationResult result = designerAgentRunner.validateAndPersist(
+				project.getId(), CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS, new RunnerResult(execution, candidateOutput));
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.validationIssues()).anyMatch(issue -> issue.startsWith("schema:"));
+	}
+
+	@Test
 	void endToEndRunFailsWhenNoCanonicalRequirementsArtifactsExistYetForTheProject() {
 		Project project = projectRepository.saveAndFlush(new Project("website"));
 
