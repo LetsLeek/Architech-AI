@@ -64,6 +64,11 @@ are unique within the entire design-proposal-set artifact.
 
 Check proposal, page, section, element, navigation-group, and UI-pattern references.
 
+A common failure mode is reusing the same localRef value (for example a hero
+section or primary-navigation id) identically across different proposals -
+prefix every localRef with its own proposal's localRef (or another
+proposal-specific token) to guarantee uniqueness across the whole artifact.
+
 Local references remain non-persistent identifiers.
 
 ## Internal Reference Check

@@ -115,8 +115,8 @@ architech:
       # Developer Agent's own decision. max-turns bounds model round-trips within one execution;
       # max-tool-calls separately bounds the total number of individual tool calls dispatched
       # across every turn.
-      max-turns: 20
-      max-tool-calls: 40
+      max-turns: 40
+      max-tool-calls: 80
   qa:
     remediation:
       # Platform-owned bound for Developer remediation cycles per (project, stage, Variant

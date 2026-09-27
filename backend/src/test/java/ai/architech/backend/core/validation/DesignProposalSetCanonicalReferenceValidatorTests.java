@@ -9,7 +9,7 @@ class DesignProposalSetCanonicalReferenceValidatorTests {
 	private final DesignProposalSetCanonicalReferenceValidator validator = new DesignProposalSetCanonicalReferenceValidator();
 
 	private static final String CUSTOMER_PROFILE = """
-			{"locations": [{"localRef": "cust-1"}]}
+			{"business": {"name": "Green Leaf Cafe"}, "locations": [{"localRef": "cust-1"}]}
 			""";
 	private static final String WEBSITE_REQUIREMENTS = """
 			{"goals": [{"localRef": "req-1"}]}
@@ -121,6 +121,44 @@ class DesignProposalSetCanonicalReferenceValidatorTests {
 
 		assertThat(result.valid()).isFalse();
 		assertThat(result.issues()).anyMatch(issue -> issue.reason().contains("'does-not-exist' is not part of the active website-requirements"));
+	}
+
+	@Test
+	void acceptsACustomerDataRefThatIsADotPathToAPresentScalarCustomerProfileField() {
+		// "business.name" has no localRef of its own (only array items do) - a candidate citing a
+		// top-level scalar field legitimately has no localRef to use, so it cites the dot-path
+		// instead, and that must resolve against the real customer-profile JSON.
+		String designProposalSet =
+				"""
+				{"proposals": [
+				  {"localRef": "prop-a", "websitePlan": {"pages": [
+				     {"localRef": "page-1", "sections": [{"localRef": "sec-1", "customerDataRefs": ["business.name"], "elements": []}]}
+				  ]}}
+				]}
+				""";
+
+		DesignProposalSetValidationResult result = validator.validate(designProposalSet, CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS);
+
+		assertThat(result.valid()).isTrue();
+		assertThat(result.issues()).isEmpty();
+	}
+
+	@Test
+	void rejectsACustomerDataRefThatIsADotPathToAFieldThatDoesNotExistInTheCustomerProfile() {
+		String designProposalSet =
+				"""
+				{"proposals": [
+				  {"localRef": "prop-a", "websitePlan": {"pages": [
+				     {"localRef": "page-1", "sections": [{"localRef": "sec-1", "customerDataRefs": ["business.nonexistentField"], "elements": []}]}
+				  ]}}
+				]}
+				""";
+
+		DesignProposalSetValidationResult result = validator.validate(designProposalSet, CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS);
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues())
+				.anyMatch(issue -> issue.reason().contains("'business.nonexistentField' is not part of the active customer-profile"));
 	}
 
 	@Test
