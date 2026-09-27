@@ -21,6 +21,7 @@ import ai.architech.backend.core.validation.DesignProposalSetCanonicalReferenceV
 import ai.architech.backend.core.validation.DesignProposalSetStructureValidator;
 import ai.architech.backend.core.validation.DesignProposalSetSemanticReviewer;
 import ai.architech.backend.core.validation.LocalRefUniquenessValidator;
+import ai.architech.backend.core.validation.NullOptionalFieldNormalizer;
 import ai.architech.backend.core.validation.OutputContractParser;
 import ai.architech.backend.core.validation.OutputContractResult;
 import ai.architech.backend.core.validation.SemanticReviewFinding;
@@ -73,6 +74,7 @@ public class DesignerAgentRunner {
 	private final AgentDefinitionLoader agentDefinitionLoader;
 	private final OutputContractParser outputContractParser;
 	private final ArtifactSchemaValidator artifactSchemaValidator;
+	private final NullOptionalFieldNormalizer nullOptionalFieldNormalizer;
 	private final LocalRefUniquenessValidator localRefUniquenessValidator;
 	private final DesignProposalSetStructureValidator designProposalSetStructureValidator;
 	private final DesignProposalSetCanonicalReferenceValidator designProposalSetCanonicalReferenceValidator;
@@ -88,6 +90,7 @@ public class DesignerAgentRunner {
 			AgentDefinitionLoader agentDefinitionLoader,
 			OutputContractParser outputContractParser,
 			ArtifactSchemaValidator artifactSchemaValidator,
+			NullOptionalFieldNormalizer nullOptionalFieldNormalizer,
 			LocalRefUniquenessValidator localRefUniquenessValidator,
 			DesignProposalSetStructureValidator designProposalSetStructureValidator,
 			DesignProposalSetCanonicalReferenceValidator designProposalSetCanonicalReferenceValidator,
@@ -101,6 +104,7 @@ public class DesignerAgentRunner {
 		this.agentDefinitionLoader = agentDefinitionLoader;
 		this.outputContractParser = outputContractParser;
 		this.artifactSchemaValidator = artifactSchemaValidator;
+		this.nullOptionalFieldNormalizer = nullOptionalFieldNormalizer;
 		this.localRefUniquenessValidator = localRefUniquenessValidator;
 		this.designProposalSetStructureValidator = designProposalSetStructureValidator;
 		this.designProposalSetCanonicalReferenceValidator = designProposalSetCanonicalReferenceValidator;
@@ -166,7 +170,15 @@ public class DesignerAgentRunner {
 		CandidateOutput candidate = candidateOutputRepository.saveAndFlush(
 				new CandidateOutput(execution.getId(), DESIGN_PROPOSAL_SET_TYPE, candidateJson));
 
-		artifactSchemaValidator.validate(outputContract.schemaContent(), candidateJson).issues()
+		// Normalizes only the JSON-Schema conformance gate: a model emitting an explicit `null` on
+		// an optional field it means to omit (e.g. "customKind": null on a non-"custom" section) is
+		// a harmless JSON-encoding quirk, not a distinct answer - no schema in this codebase ever
+		// uses "null" as a meaningful type. The raw, unmodified candidateJson is still what's
+		// persisted above as the authoritative CandidateOutput and what every other validator below
+		// (structure, canonical-ref, identity, promotion) evaluates - only this one schema check
+		// sees the normalized copy.
+		String candidateJsonForSchemaValidation = nullOptionalFieldNormalizer.stripNullFields(candidateJson);
+		artifactSchemaValidator.validate(outputContract.schemaContent(), candidateJsonForSchemaValidation).issues()
 				.forEach(issue -> issues.add("schema: " + issue.path() + ": " + issue.message()));
 		localRefUniquenessValidator.validate(candidateJson).issues()
 				.forEach(issue -> issues.add("local-ref: " + issue.localRef() + ": " + issue.reason()));
