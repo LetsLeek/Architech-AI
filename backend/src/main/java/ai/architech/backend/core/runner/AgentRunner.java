@@ -26,6 +26,7 @@ import ai.architech.backend.core.rule.RuleLoader;
 import ai.architech.backend.core.skill.SkillDefinition;
 import ai.architech.backend.core.skill.SkillLoader;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -185,6 +186,75 @@ public class AgentRunner {
 					buildMessagesFromInputArtifacts(agentDefinition, skills, rules, inputArtifactsByType),
 					agentDefinition.limits().maxOutputTokens(),
 					execution.getId().toString());
+
+			AiResponse response = aiGateway.invoke(request);
+
+			BigDecimal cost = costCalculator.calculateUsd(
+					response.provider(),
+					response.model(),
+					response.promptTokens(),
+					response.completionTokens(),
+					response.cacheCreationInputTokens(),
+					response.cacheReadInputTokens());
+			execution.recordModelUsage(response, cost);
+			agentExecutionRepository.save(execution);
+
+			return new RunnerResult(execution, response.content());
+		} catch (RuntimeException e) {
+			execution.fail(e.getMessage());
+			agentExecutionRepository.save(execution);
+			throw new AgentRunnerException("Agent execution " + execution.getId() + " failed", e);
+		}
+	}
+
+	/**
+	 * Same steps 1-8 as {@link #runWithInputArtifacts}, but for a feedback-correction round
+	 * within the SAME attempt: reuses {@link #buildMessagesFromInputArtifacts} for the base
+	 * {@code [system, user]} pair, then appends the prior attempt's raw model output as an
+	 * {@code assistant} message and {@code correctionFeedback} as a further {@code user} message
+	 * describing exactly what failed real validation, before invoking the AI Gateway again. A
+	 * distinct {@link AgentExecution} is created for this round (never a mutation of the prior
+	 * attempt's own record), same reasoning {@link #runWithInputArtifacts} already gives.
+	 * Infra-failure retry (e.g. via {@code BoundedRetryAgentRunner}) is deliberately out of scope
+	 * for a correction round - only the first attempt of a Designer generation goes through that
+	 * wrapper (AIW-216's own accepted simplification).
+	 */
+	public RunnerResult runWithInputArtifactsAndCorrection(
+			UUID projectId,
+			String agentId,
+			int agentVersion,
+			Map<String, String> inputArtifactsByType,
+			String priorRawOutput,
+			String correctionFeedback) {
+		AgentExecution execution = new AgentExecution(projectId, agentId, agentVersion);
+		agentExecutionRepository.save(execution);
+
+		try {
+			aiUsageBudgetGuard.checkBeforeInvoking(projectId, agentId);
+		} catch (ApplicationException e) {
+			execution.fail(e.getMessage());
+			agentExecutionRepository.save(execution);
+			throw e;
+		}
+
+		try {
+			execution.start();
+
+			AgentDefinition agentDefinition = agentDefinitionLoader.resolve(agentId, agentVersion);
+			List<SkillDefinition> skills = agentDefinition.skills().stream()
+					.map(skillId -> skillLoader.resolve(skillId, REFERENCED_DEFINITION_VERSION))
+					.toList();
+			List<RuleDefinition> rules = agentDefinition.rules().stream()
+					.map(ruleId -> ruleLoader.resolve(ruleId, REFERENCED_DEFINITION_VERSION))
+					.toList();
+
+			List<AiMessage> messages =
+					new ArrayList<>(buildMessagesFromInputArtifacts(agentDefinition, skills, rules, inputArtifactsByType));
+			messages.add(new AiMessage("assistant", priorRawOutput));
+			messages.add(new AiMessage("user", correctionFeedback));
+
+			AiRequest request = new AiRequest(
+					agentDefinition.modelProfile(), messages, agentDefinition.limits().maxOutputTokens(), execution.getId().toString());
 
 			AiResponse response = aiGateway.invoke(request);
 

@@ -123,6 +123,13 @@ architech:
       # Lineage) (AIW-181) - Workflow/Core decides this, never the Developer Agent or a single
       # QA execution.
       max-remediation-cycles-per-stage: 2
+  designer:
+    # Platform-owned bound for the Designer Agent's own feedback-correction loop (AIW-216) -
+    # when Designer's real validation pipeline finds issues, feed them back to the model within
+    # the same attempt and ask for a corrected resubmission, up to this many times. Kept low: each
+    # retry is a real paid call with a larger prompt than the original (it also carries the full
+    # prior output).
+    max-feedback-retries: 1
   security:
     # AIW-185: real, non-secret default (same fallback pattern as spring.datasource.password's
     # own "architech" below) so local dev/tests/CI work with zero setup - every real DEV/STAGING/
