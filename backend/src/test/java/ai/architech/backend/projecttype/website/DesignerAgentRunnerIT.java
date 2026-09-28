@@ -2,15 +2,23 @@ package ai.architech.backend.projecttype.website;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ai.architech.backend.core.agentexecution.AgentExecution;
 import ai.architech.backend.core.agentexecution.AgentExecutionRepository;
 import ai.architech.backend.core.agentexecution.AgentExecutionStatus;
-import ai.architech.backend.core.artifact.ArtifactVersionRepository;
+import ai.architech.backend.core.artifact.CandidateOutput;
 import ai.architech.backend.core.artifact.CandidateOutputRepository;
+import ai.architech.backend.core.artifact.CandidatePromoter;
+import ai.architech.backend.core.artifact.ArtifactVersionRepository;
 import ai.architech.backend.core.project.Project;
 import ai.architech.backend.core.project.ProjectRepository;
+import ai.architech.backend.core.runner.AgentRunner;
 import ai.architech.backend.core.runner.RunnerResult;
 import ai.architech.backend.core.validation.DesignProposalSetSemanticReviewer;
 import ai.architech.backend.core.validation.SemanticReviewFinding;
@@ -18,6 +26,7 @@ import ai.architech.backend.core.validation.SemanticReviewResult;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -50,8 +59,19 @@ class DesignerAgentRunnerIT {
 	@Autowired
 	private DesignerAgentRunner designerAgentRunner;
 
+	@Autowired
+	private CandidatePromoter candidatePromoter;
+
 	@MockitoBean
 	private DesignProposalSetSemanticReviewer designProposalSetSemanticReviewer;
+
+	// AIW-216: mocked so the feedback-retry-loop tests below can hand-script exactly what each
+	// attempt (first, then correction) returns, without needing a real AI provider - same
+	// reasoning DesignProposalSetSemanticReviewer above is already mocked for. BoundedRetryAgentRunner
+	// itself stays real: it's a thin wrapper that just delegates its single call straight through
+	// to this same mock, so wiring it doesn't add any behavior worth faking separately.
+	@MockitoBean
+	private AgentRunner agentRunner;
 
 	private static final String CUSTOMER_PROFILE = """
 			{"locations": [{"localRef": "cust-1"}]}
@@ -221,6 +241,132 @@ class DesignerAgentRunnerIT {
 
 		org.assertj.core.api.Assertions.assertThatThrownBy(() -> designerAgentRunner.run(project.getId()))
 				.isInstanceOf(ai.architech.backend.core.error.ApplicationException.class);
+	}
+
+	// AIW-216: DesignerAgentRunner#run's own bounded feedback-correction retry loop. AgentRunner
+	// is mocked (see the field above) so each attempt's raw model output is exactly what this test
+	// scripts, without needing a real AI provider - every real validator/persistence step below
+	// still runs for real, same as every other test in this class.
+
+	@Test
+	void runSucceedsOnFirstAttemptWithoutAnyFeedbackRetry() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.CUSTOMER_PROFILE_TYPE, CUSTOMER_PROFILE);
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.WEBSITE_REQUIREMENTS_TYPE, WEBSITE_REQUIREMENTS);
+		when(designProposalSetSemanticReviewer.review(any(), any(), any(), any())).thenReturn(SemanticReviewResult.passed());
+
+		AgentExecution firstAttemptExecution = startedExecution(project);
+		when(agentRunner.runWithInputArtifacts(
+						eq(project.getId()), eq(DesignerAgentRunner.AGENT_ID), eq(DesignerAgentRunner.AGENT_VERSION), any()))
+				.thenReturn(new RunnerResult(firstAttemptExecution, envelope(threeValidProposals())));
+
+		DesignProposalGenerationResult result = designerAgentRunner.run(project.getId());
+
+		assertThat(result.succeeded()).isTrue();
+		assertThat(result.validationIssues()).isEmpty();
+		assertThat(result.execution().getId()).isEqualTo(firstAttemptExecution.getId());
+		verify(agentRunner, never()).runWithInputArtifactsAndCorrection(any(), any(), anyInt(), any(), any(), any());
+	}
+
+	@Test
+	void runIssuesOneFeedbackRetryWithTheRealValidationIssuesAndSucceeds() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.CUSTOMER_PROFILE_TYPE, CUSTOMER_PROFILE);
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.WEBSITE_REQUIREMENTS_TYPE, WEBSITE_REQUIREMENTS);
+		when(designProposalSetSemanticReviewer.review(any(), any(), any(), any())).thenReturn(SemanticReviewResult.passed());
+
+		// Only 2 proposals instead of the schema-required 3 - same fixture
+		// failsButStillRecordsTheCandidateAsAuditWhenSchemaValidationFails above already proves
+		// fails real schema validation with a genuine "schema:" issue.
+		String invalidCandidateOutput = envelope("[" + proposal("a") + "," + proposal("b") + "]");
+		AgentExecution firstAttemptExecution = startedExecution(project);
+		when(agentRunner.runWithInputArtifacts(
+						eq(project.getId()), eq(DesignerAgentRunner.AGENT_ID), eq(DesignerAgentRunner.AGENT_VERSION), any()))
+				.thenReturn(new RunnerResult(firstAttemptExecution, invalidCandidateOutput));
+
+		// Computes the exact real issues the pipeline produces for this invalid candidate against a
+		// throwaway execution, so the assertion below is tied to genuine validator output - not a
+		// hardcoded guess at its wording.
+		List<String> realIssuesFromFirstAttempt = designerAgentRunner
+				.validateAndPersist(
+						project.getId(),
+						CUSTOMER_PROFILE,
+						WEBSITE_REQUIREMENTS,
+						new RunnerResult(startedExecution(project), invalidCandidateOutput))
+				.validationIssues();
+		assertThat(realIssuesFromFirstAttempt).isNotEmpty();
+
+		AgentExecution retryExecution = startedExecution(project);
+		ArgumentCaptor<String> feedbackCaptor = ArgumentCaptor.forClass(String.class);
+		when(agentRunner.runWithInputArtifactsAndCorrection(
+						eq(project.getId()),
+						eq(DesignerAgentRunner.AGENT_ID),
+						eq(DesignerAgentRunner.AGENT_VERSION),
+						any(),
+						eq(invalidCandidateOutput),
+						feedbackCaptor.capture()))
+				.thenReturn(new RunnerResult(retryExecution, envelope(threeValidProposals())));
+
+		DesignProposalGenerationResult result = designerAgentRunner.run(project.getId());
+
+		assertThat(result.succeeded()).isTrue();
+		assertThat(result.execution().getId()).isEqualTo(retryExecution.getId());
+		verify(agentRunner, times(1)).runWithInputArtifactsAndCorrection(any(), any(), anyInt(), any(), any(), any());
+		realIssuesFromFirstAttempt.forEach(issue -> assertThat(feedbackCaptor.getValue()).contains(issue));
+	}
+
+	@Test
+	void runReturnsTheLastAttemptsIssuesAfterExhaustingTheFeedbackRetryBudgetWithNoThirdAttempt() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.CUSTOMER_PROFILE_TYPE, CUSTOMER_PROFILE);
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.WEBSITE_REQUIREMENTS_TYPE, WEBSITE_REQUIREMENTS);
+
+		// First attempt: only 2 proposals -> fails with a "schema:" issue.
+		String firstInvalidCandidateOutput = envelope("[" + proposal("a") + "," + proposal("b") + "]");
+		AgentExecution firstAttemptExecution = startedExecution(project);
+		when(agentRunner.runWithInputArtifacts(
+						eq(project.getId()), eq(DesignerAgentRunner.AGENT_ID), eq(DesignerAgentRunner.AGENT_VERSION), any()))
+				.thenReturn(new RunnerResult(firstAttemptExecution, firstInvalidCandidateOutput));
+
+		// Retry: 3 proposals (passes schema) but one page ref doesn't resolve within its own
+		// proposal -> a distinct "structure:" issue, proving the final result carries the RETRY's
+		// own issues, not the first attempt's.
+		String brokenProposal = proposal("a")
+				.replace(
+						"\"elements\": [{\"localRef\": \"el-a\", \"kind\": \"heading\", \"role\": \"title\", \"contentIntent\": \"welcome\"}]",
+						"""
+						"elements": [
+						  {"localRef": "el-a", "kind": "heading", "role": "title", "contentIntent": "welcome"},
+						  {"localRef": "el-a-2", "kind": "cta", "role": "action", "contentIntent": "go",
+						   "target": {"type": "page", "pageRef": "does-not-exist"}}
+						]""");
+		String retryInvalidCandidateOutput = envelope("[" + brokenProposal + "," + proposal("b") + "," + proposal("c") + "]");
+		AgentExecution retryExecution = startedExecution(project);
+		when(agentRunner.runWithInputArtifactsAndCorrection(
+						eq(project.getId()),
+						eq(DesignerAgentRunner.AGENT_ID),
+						eq(DesignerAgentRunner.AGENT_VERSION),
+						any(),
+						eq(firstInvalidCandidateOutput),
+						any()))
+				.thenReturn(new RunnerResult(retryExecution, retryInvalidCandidateOutput));
+
+		DesignProposalGenerationResult result = designerAgentRunner.run(project.getId());
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.execution().getId()).isEqualTo(retryExecution.getId());
+		assertThat(result.validationIssues())
+				.anyMatch(issue -> issue.startsWith("structure[prop-a]") && issue.contains("does-not-exist"));
+		assertThat(result.validationIssues()).noneMatch(issue -> issue.startsWith("schema:"));
+		// max-feedback-retries defaults to 1 (application.yml) - exactly one retry, never a third
+		// attempt.
+		verify(agentRunner, times(1)).runWithInputArtifactsAndCorrection(any(), any(), anyInt(), any(), any(), any());
+	}
+
+	private void promoteCanonicalArtifact(UUID projectId, String type, String content) {
+		AgentExecution seedExecution = agentExecutionRepository.saveAndFlush(new AgentExecution(projectId, "requirements-agent", 1));
+		CandidateOutput candidate = candidateOutputRepository.saveAndFlush(new CandidateOutput(seedExecution.getId(), type, content));
+		candidatePromoter.promote(projectId, candidate);
 	}
 
 	private static String threeValidProposals() {

@@ -15,6 +15,7 @@ import ai.architech.backend.core.project.ProjectRepository;
 import ai.architech.backend.core.projectinput.ProjectInput;
 import ai.architech.backend.core.projectinput.ProjectInputRepository;
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,6 +96,77 @@ class AgentRunnerIT {
 		agentExecutionRepository.saveAndFlush(priorExecution);
 
 		assertThatThrownBy(() -> agentRunner.run(snapshot.getId(), "requirements-agent", 1))
+				.isInstanceOf(ApplicationException.class)
+				.satisfies(thrown -> assertThat(((ApplicationException) thrown).errorCode())
+						.isEqualTo(ErrorCode.AI_BUDGET_HARD_LIMIT_EXCEEDED));
+
+		var newExecutionsForThisProject = agentExecutionRepository.findAll().stream()
+				.filter(e -> e.getProjectId().equals(project.getId()) && !e.getId().equals(priorExecution.getId()))
+				.toList();
+		assertThat(newExecutionsForThisProject).hasSize(1);
+		assertThat(newExecutionsForThisProject.get(0).getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
+		assertThat(newExecutionsForThisProject.get(0).getFailureReason()).contains("hard limit exceeded");
+	}
+
+	// AIW-216: runWithInputArtifactsAndCorrection - same steps 1-8 as runWithInputArtifacts, plus
+	// the appended assistant/user correction turns, so mirrors this class's own run()/
+	// runWithInputArtifacts coverage above rather than inventing new scenarios.
+
+	@Test
+	void runsTheRealFrozenDesignerAgentWithACorrectionMessageAppendedAndStopsBeforeSuccess() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+
+		RunnerResult result = agentRunner.runWithInputArtifactsAndCorrection(
+				project.getId(),
+				"designer-agent",
+				1,
+				Map.of(
+						"customer-profile", "{\"locations\": [{\"localRef\": \"cust-1\"}]}",
+						"website-requirements", "{\"goals\": [{\"localRef\": \"req-1\"}]}"),
+				"{\"design-proposal-set\": {}}",
+				"Validation issues:\n- schema: /proposals: is missing");
+
+		// Candidate was received, but success requires validation+persistence (that half of the
+		// lifecycle lives in DesignerAgentRunner, not here) - so the execution deliberately stays
+		// RUNNING, never SUCCEEDED, same as runWithInputArtifacts's own equivalent test.
+		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.RUNNING);
+		assertThat(result.execution().getProvider()).isEqualTo("mock");
+		assertThat(result.execution().getModel()).isEqualTo("mock-model");
+		assertThat(result.candidateOutput()).isEqualTo("");
+
+		var persisted = agentExecutionRepository.findById(result.execution().getId()).orElseThrow();
+		assertThat(persisted.getStatus()).isEqualTo(AgentExecutionStatus.RUNNING);
+		assertThat(persisted.getAgentId()).isEqualTo("designer-agent");
+	}
+
+	@Test
+	void marksTheExecutionFailedAndRethrowsWhenTheAgentDoesNotExistForACorrectionRound() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+
+		assertThatThrownBy(() -> agentRunner.runWithInputArtifactsAndCorrection(
+						project.getId(), "does-not-exist", 1, Map.of(), "prior output", "correction feedback"))
+				.isInstanceOf(AgentRunnerException.class);
+
+		var executions = agentExecutionRepository.findAll().stream()
+				.filter(e -> e.getAgentId().equals("does-not-exist") && e.getProjectId().equals(project.getId()))
+				.toList();
+		assertThat(executions).hasSize(1);
+		assertThat(executions.get(0).getStatus()).isEqualTo(AgentExecutionStatus.FAILED);
+	}
+
+	@Test
+	void blocksACorrectionRoundAndFailsTheExecutionWhenTheProjectsHardBudgetLimitIsAlreadyReached() {
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+
+		// Seeds prior spend for this project already at application.yml's configured default hard
+		// limit ($5) - proves AiUsageBudgetGuard is wired into this new method too, without
+		// spending any real money or needing a real AI provider.
+		AgentExecution priorExecution = new AgentExecution(project.getId(), "designer-agent", 1);
+		priorExecution.recordModelUsage("anthropic", "claude-sonnet-5", 1000, 100, new BigDecimal("5.00"));
+		agentExecutionRepository.saveAndFlush(priorExecution);
+
+		assertThatThrownBy(() -> agentRunner.runWithInputArtifactsAndCorrection(
+						project.getId(), "designer-agent", 1, Map.of(), "prior output", "correction feedback"))
 				.isInstanceOf(ApplicationException.class)
 				.satisfies(thrown -> assertThat(((ApplicationException) thrown).errorCode())
 						.isEqualTo(ErrorCode.AI_BUDGET_HARD_LIMIT_EXCEEDED));

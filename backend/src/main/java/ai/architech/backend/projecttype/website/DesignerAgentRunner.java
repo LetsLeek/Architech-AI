@@ -14,6 +14,7 @@ import ai.architech.backend.core.artifact.CandidateOutputRepository;
 import ai.architech.backend.core.artifact.CandidatePromoter;
 import ai.architech.backend.core.error.ApplicationException;
 import ai.architech.backend.core.error.ErrorCode;
+import ai.architech.backend.core.runner.AgentRunner;
 import ai.architech.backend.core.runner.BoundedRetryAgentRunner;
 import ai.architech.backend.core.runner.RunnerResult;
 import ai.architech.backend.core.validation.ArtifactSchemaValidator;
@@ -56,6 +57,15 @@ import org.springframework.stereotype.Component;
  * Agent's two - so a plain {@link CandidatePromoter#promote} is this ticket's own atomic
  * persistence unit; no {@code RequirementsOutputPersister}-style dual-artifact transactional
  * wrapper is needed for a single promotion.
+ *
+ * <p>AIW-216: when {@link #validateAndPersist} comes back with non-empty {@code
+ * validationIssues}, {@link #run} retries up to {@link DesignerFeedbackRetryProperties#maxFeedbackRetries()}
+ * times by feeding those exact issues back to the model as a follow-up turn within the same
+ * attempt (via {@link AgentRunner#runWithInputArtifactsAndCorrection}) and asking it to resubmit
+ * a corrected full candidate, before giving up - a bounded, generic structural fix for real-model
+ * validation failures instead of a one-off code patch per new failure signature. Only the first
+ * attempt goes through {@link BoundedRetryAgentRunner}'s own infra-failure retry coverage;
+ * infra-failure retry on a correction round is out of scope here (an accepted simplification).
  */
 @Component
 public class DesignerAgentRunner {
@@ -71,6 +81,8 @@ public class DesignerAgentRunner {
 	private final ArtifactRepository artifactRepository;
 	private final ArtifactVersionRepository artifactVersionRepository;
 	private final BoundedRetryAgentRunner boundedRetryAgentRunner;
+	private final AgentRunner agentRunner;
+	private final DesignerFeedbackRetryProperties designerFeedbackRetryProperties;
 	private final AgentDefinitionLoader agentDefinitionLoader;
 	private final OutputContractParser outputContractParser;
 	private final ArtifactSchemaValidator artifactSchemaValidator;
@@ -87,6 +99,8 @@ public class DesignerAgentRunner {
 			ArtifactRepository artifactRepository,
 			ArtifactVersionRepository artifactVersionRepository,
 			BoundedRetryAgentRunner boundedRetryAgentRunner,
+			AgentRunner agentRunner,
+			DesignerFeedbackRetryProperties designerFeedbackRetryProperties,
 			AgentDefinitionLoader agentDefinitionLoader,
 			OutputContractParser outputContractParser,
 			ArtifactSchemaValidator artifactSchemaValidator,
@@ -101,6 +115,8 @@ public class DesignerAgentRunner {
 		this.artifactRepository = artifactRepository;
 		this.artifactVersionRepository = artifactVersionRepository;
 		this.boundedRetryAgentRunner = boundedRetryAgentRunner;
+		this.agentRunner = agentRunner;
+		this.designerFeedbackRetryProperties = designerFeedbackRetryProperties;
 		this.agentDefinitionLoader = agentDefinitionLoader;
 		this.outputContractParser = outputContractParser;
 		this.artifactSchemaValidator = artifactSchemaValidator;
@@ -125,14 +141,59 @@ public class DesignerAgentRunner {
 	public DesignProposalGenerationResult run(UUID projectId) {
 		String customerProfileJson = fetchCanonicalArtifact(projectId, CUSTOMER_PROFILE_TYPE);
 		String websiteRequirementsJson = fetchCanonicalArtifact(projectId, WEBSITE_REQUIREMENTS_TYPE);
+		Map<String, String> inputArtifactsByType =
+				Map.of(CUSTOMER_PROFILE_TYPE, customerProfileJson, WEBSITE_REQUIREMENTS_TYPE, websiteRequirementsJson);
 
 		RunnerResult runnerResult = boundedRetryAgentRunner.runWithRetriesUsingInputArtifacts(
-				projectId,
-				AGENT_ID,
-				AGENT_VERSION,
-				Map.of(CUSTOMER_PROFILE_TYPE, customerProfileJson, WEBSITE_REQUIREMENTS_TYPE, websiteRequirementsJson));
+				projectId, AGENT_ID, AGENT_VERSION, inputArtifactsByType);
 
-		return validateAndPersist(projectId, customerProfileJson, websiteRequirementsJson, runnerResult);
+		DesignProposalGenerationResult result =
+				validateAndPersist(projectId, customerProfileJson, websiteRequirementsJson, runnerResult);
+
+		int maxFeedbackRetries = designerFeedbackRetryProperties.maxFeedbackRetries();
+		for (int attempt = 1; !result.succeeded() && attempt <= maxFeedbackRetries; attempt++) {
+			log.warn(
+					"Designer Agent execution {} failed validation with {} issue(s); issuing feedback-correction"
+							+ " retry {} of {}",
+					result.execution().getId(),
+					result.validationIssues().size(),
+					attempt,
+					maxFeedbackRetries);
+
+			RunnerResult correctionResult = agentRunner.runWithInputArtifactsAndCorrection(
+					projectId,
+					AGENT_ID,
+					AGENT_VERSION,
+					inputArtifactsByType,
+					runnerResult.candidateOutput(),
+					buildCorrectionFeedback(result.validationIssues()));
+
+			result = validateAndPersist(projectId, customerProfileJson, websiteRequirementsJson, correctionResult);
+			runnerResult = correctionResult;
+		}
+
+		return result;
+	}
+
+	/**
+	 * A direct, specific instruction to resubmit a complete corrected candidate - never a partial
+	 * patch, since only a full JSON object is ever what {@link #validateAndPersist} accepts as a
+	 * candidate. Includes every real issue text {@code validateAndPersist} produced, unmodified -
+	 * this is deliberately generic across every failure mode the validation pipeline can report
+	 * (output-contract, schema, local-ref, structure, canonical-reference, semantic review), not
+	 * a message tailored to any one of them.
+	 */
+	private static String buildCorrectionFeedback(List<String> issues) {
+		StringBuilder feedback = new StringBuilder(
+				"Your previous design-proposal-set response failed validation with the following issues. "
+						+ "Resubmit the COMPLETE corrected JSON (not a partial patch) that fixes every issue below "
+						+ "while keeping the rest of your design intent consistent with your original proposals. "
+						+ "Do not introduce any new violation of the original schema or rules.\n\n"
+						+ "Validation issues:\n");
+		for (String issue : issues) {
+			feedback.append("- ").append(issue).append('\n');
+		}
+		return feedback.toString();
 	}
 
 	/**
