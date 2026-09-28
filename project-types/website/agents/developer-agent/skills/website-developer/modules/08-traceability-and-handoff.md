@@ -21,6 +21,8 @@ Use only canonical functional requirement refs in the target Proposal's authoriz
 
 `UnresolvedIssue` is only for candidate-compatible upstream/integration conditions. Known implementation defects, verification failures, infrastructure errors, refactor debt and generic TODOs do not belong there.
 
+Each `UnresolvedIssue.code` must be exactly one of `MISSING_UPSTREAM_INFORMATION`, `UPSTREAM_CONFLICT`, `MISSING_INTEGRATION_CONTRACT`, or `INVALID_INTEGRATION_CONTRACT` — never a free-text value. `relatedIntegrationContractRefs` must contain at least one ref when `code` is `INVALID_INTEGRATION_CONTRACT`.
+
 ## BLOCKED
 
 A blocked result contains one or more `DeveloperBlocker` causes and no pseudo-Candidate metadata. Completion blockers are nonlocal; Developer-owned defects are execution failures, not blockers.

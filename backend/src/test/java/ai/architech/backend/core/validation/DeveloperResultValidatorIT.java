@@ -102,6 +102,23 @@ class DeveloperResultValidatorIT {
 			{"proposals": [%s, %s, %s]}
 			""".formatted(proposal("prop-a", true), proposal("prop-b", false), proposal("prop-c", false));
 
+	private static final String WEBSITE_REQUIREMENTS_WITH_TWO_FUNCTIONAL_REQUIREMENTS =
+			"""
+			{
+			  "goals": [], "targetAudiences": [], "contentRequirements": [],
+			  "functionalRequirements": [
+			    {"localRef": "req-func-1", "type": "booking", "description": "Let customers book a table", "strength": "must", "sourceRefs": ["s1"]},
+			    {"localRef": "req-func-2", "type": "payment", "description": "Let customers pay a deposit online", "strength": "should", "sourceRefs": ["s1"]}
+			  ],
+			  "languages": [], "constraints": [], "unknowns": [], "conflicts": []
+			}
+			""";
+
+	private static final String PROPOSAL_SET_WITH_TWO_FUNCTIONAL_REQUIREMENTS_JSON =
+			"""
+			{"proposals": [%s]}
+			""".formatted(proposal("prop-a", false).replace("\"requirementRefs\": []", "\"requirementRefs\": [\"req-func-1\", \"req-func-2\"]"));
+
 	@Autowired
 	private ProjectRepository projectRepository;
 
@@ -254,6 +271,34 @@ class DeveloperResultValidatorIT {
 
 		String valid = readyResult(
 				target.path("designArtifactVersionRef").asString(), "prop-a", anchorsJson(), bindingsJson(), "[]");
+
+		DeveloperResultValidationResult result = developerResultValidator.validate(
+				valid, executionInput, projectId, REPOSITORY_FILES, List.of());
+
+		assertThat(result.valid()).as(result.issues().toString()).isTrue();
+	}
+
+	@Test
+	void acceptsAValidImplementationReadyHandoffWithOneImplementedLocalAndOneUnboundBinding() {
+		// AIW-217 regression guard: proves the shape a real paid run got wrong (mixing a "BLOCKED"
+		// top-level result with an invalid free-text UNBOUND note) is unnecessary - a partial result
+		// with one IMPLEMENTED_LOCAL and one genuinely UNBOUND binding is valid IMPLEMENTATION_READY.
+		UUID projectId = projectRepository.saveAndFlush(new Project("website")).getId();
+		persistArtifactVersion(projectId, "customer-profile", CUSTOMER_PROFILE);
+		persistArtifactVersion(projectId, "website-requirements", WEBSITE_REQUIREMENTS_WITH_TWO_FUNCTIONAL_REQUIREMENTS);
+		persistArtifactVersion(projectId, "design-proposal-set", PROPOSAL_SET_WITH_TWO_FUNCTIONAL_REQUIREMENTS_JSON);
+
+		String executionInput = assemble(projectId);
+		JsonNode target = objectMapper.readTree(executionInput).path("targetDesign");
+
+		String mixedBindings =
+				"""
+				[
+				  {"requirementRef": "req-func-1", "designLocalRefs": ["sec-a-hero"], "status": "IMPLEMENTED_LOCAL"},
+				  {"requirementRef": "req-func-2", "designLocalRefs": ["sec-a-hero"], "status": "UNBOUND", "blockerCode": "MISSING_INTEGRATION_CONTRACT"}
+				]""";
+		String valid = readyResult(
+				target.path("designArtifactVersionRef").asString(), "prop-a", anchorsJson(), mixedBindings, "[]");
 
 		DeveloperResultValidationResult result = developerResultValidator.validate(
 				valid, executionInput, projectId, REPOSITORY_FILES, List.of());
