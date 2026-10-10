@@ -20,6 +20,22 @@ spacing, imagery, UI patterns, interaction, and responsive composition.
 Do not finalize detailed pages, routes, design tokens, or implementation
 details in this phase.
 
+## Creative Ambition
+
+Pursue genuinely distinctive, confident design character within the permitted
+space, not generic or interchangeable template defaults.
+
+Avoid defaulting to the most common, expected pattern (for example, a centered
+hero above a three-icon feature row above a plain footer) unless it is actually
+the strongest expression of that direction, not merely the easiest.
+
+A strong direction has a clear point of view - a specific typographic or
+compositional idea, a confident color relationship, or a distinctive structural
+choice - that makes it memorable rather than merely acceptable.
+
+Favor specific, concrete creative choices over vague descriptors such as
+"clean" or "modern" used alone.
+
 ## Meaningful Differentiation
 
 Differentiate the proposals across several relevant design dimensions

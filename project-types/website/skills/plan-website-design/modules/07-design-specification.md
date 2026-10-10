@@ -114,6 +114,20 @@ supported by canonical input.
 
 Asset sourcing, licensing, external search, and image generation are outside this skill.
 
+## Imagery Fallback Strategy
+
+When no real customer photography, illustration, or other imagery is confirmed
+to exist, do not default to generic, empty, placeholder-feeling treatment.
+
+Define a deliberate fallback visual strategy instead - such as confident
+large-scale typography as the dominant visual element, considered
+color-blocking, abstract geometric or pattern treatment, or an illustrative
+direction - so the proposal still reads as intentional and premium without
+depending on unavailable photography.
+
+Do not represent an imagery fallback strategy as though real photography or
+illustration exists.
+
 ## Motion
 
 Define motion only when it contributes meaningfully to the proposal.
