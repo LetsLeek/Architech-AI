@@ -66,3 +66,14 @@ The following are intentionally not frozen by this Developer Agent V1 handoff:
 - the real `developer-safe-integration-contract-view:v1` projection content (AIW-144 replaces the current placeholder).
 
 Do not resolve these implementation freedoms by changing the frozen artifact semantics.
+
+## Revision Log
+
+Frozen status protects against incidental/uncontrolled drift during implementation work, not
+against deliberate, reviewed spec revisions approved by the project owner. Each entry below is
+such a revision, not a breach.
+
+- 2026-10-10 (AIW-218): clarified `modules/04-responsive-and-styling.md`'s font-loading guidance
+  - Designer-specified typography is sufficient authority on its own; fonts must be implemented via
+  a bundled local package rather than a runtime CDN link. No capability/network/dependency-policy
+  change. Reviewed and approved by project owner.
