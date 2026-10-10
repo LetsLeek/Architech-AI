@@ -49,3 +49,14 @@ The following are intentionally not frozen by this Designer Agent V1 handoff:
 - optional semantic review policy.
 
 Do not resolve these implementation freedoms by changing the frozen artifact semantics.
+
+## Revision Log
+
+Frozen status protects against incidental/uncontrolled drift during implementation work, not
+against deliberate, reviewed spec revisions approved by the project owner. Each entry below is
+such a revision, not a breach.
+
+- 2026-10-10 (AIW-219): added creative-ambition/craft-quality guidance to `AGENT.md`,
+  `modules/03-design-directions.md`, `modules/07-design-specification.md` (imagery fallback
+  strategy) and `modules/10-proposal-differentiation.md` (quality check item). No existing
+  integrity/boundary rule changed. Reviewed and approved by project owner.
