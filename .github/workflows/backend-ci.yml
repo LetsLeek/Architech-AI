@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-coverage
           path: backend/target/site/jacoco/
@@ -69,7 +69,7 @@ jobs:
         # failure) - lets a developer see exactly what failed without re-running locally.
         # Short retention: only useful for debugging a recent failure, never needed later.
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-test-reports
           path: |
@@ -140,7 +140,7 @@ jobs:
       - name: Upload SARIF report
         # AIW-100: 30 days, not the 14-day default - small text file with real audit value.
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: trivy-image-sarif
           path: trivy-image.sarif
@@ -228,7 +228,7 @@ jobs:
         # 30 days, matching the other small, audit-relevant text artifacts (AIW-100's
         # retention-by-type table) - not the 14-day default.
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: backend-sbom-provenance
           path: |
