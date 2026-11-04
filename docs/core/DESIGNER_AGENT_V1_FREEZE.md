@@ -81,3 +81,11 @@ such a revision, not a breach.
   changed - still describes intended effect only, never implementation code/libraries, and motion
   still must never imply unscoped content/interactions/navigation. Reviewed and approved by
   project owner.
+- 2026-11-04 (AIW-227): raised `agent.yaml`'s `limits.maxOutputTokens` from 16000 to 32000.
+  Discovered live, against the real API: a real Designer execution (three full proposals,
+  requested right after AIW-224's own creative-ambition/motion guidance landed) truncated
+  mid-JSON ("Unexpected end-of-input... expected close marker for Array") and failed
+  output-contract validation. claude-sonnet-5 supports up to 128000 output tokens; completion
+  cost is billed per token actually generated, not per configured ceiling, so this raises
+  headroom only - it does not raise cost by itself. No semantic/schema/rule change. Reviewed
+  and approved by project owner.
