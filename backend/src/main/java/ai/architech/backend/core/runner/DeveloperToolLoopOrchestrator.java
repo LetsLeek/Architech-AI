@@ -70,11 +70,16 @@ import tools.jackson.databind.ObjectMapper;
  * allowlist before ever touching the sandbox ({@link DeveloperToolDispatcher}), and persisted as
  * exactly one {@link ToolExecution} row regardless of outcome.
  *
- * <p>{@link AiUsageBudgetGuard#checkBeforeInvoking} is called once per execution, before the
- * first model call - the same per-attempt (not per-turn) granularity {@link AgentRunner} already
- * uses - rather than once per turn, since a single execution attempting many turns is still one
- * budget-relevant "attempt" from the caller's perspective; token/cost usage across every turn is
- * still summed and recorded on the execution when it finishes, so nothing is under-reported.
+ * <p>AIW-223: {@link AiUsageBudgetGuard#checkBeforeInvoking} is called before every turn, not only
+ * once before the first (unlike {@link AgentRunner}'s single-call agents, where one check per
+ * attempt is already the entire attempt). {@code max-turns}/{@code max-tool-calls} were doubled
+ * by AIW-214 (20-&gt;40, 40-&gt;80) once a real run showed the original bounds were too tight to
+ * even reach self-correction - a per-turn re-check keeps that higher ceiling from also doubling
+ * the worst-case $ a single already-approved execution can spend past a hard limit before the
+ * *next* execution's own preflight check would otherwise be the first thing to notice. A trip
+ * ends the execution the same way exhausting {@code max-turns}/{@code max-tool-calls} already
+ * does - {@code FAILED}, with every turn's usage up to that point still applied - never an
+ * uncaught exception out of an execution already mid-flight with real, costed turns behind it.
  */
 @Component
 public class DeveloperToolLoopOrchestrator {
@@ -189,6 +194,11 @@ public class DeveloperToolLoopOrchestrator {
 			while (true) {
 				if (state.turns >= properties.maxTurns()) {
 					return terminateBudgetExhausted(execution, state, "tool-calling turn budget (" + properties.maxTurns() + ") exhausted");
+				}
+				try {
+					aiUsageBudgetGuard.checkBeforeInvoking(projectId, AGENT_ID);
+				} catch (ApplicationException e) {
+					return terminateBudgetExhausted(execution, state, e.getMessage());
 				}
 				state.turns++;
 
