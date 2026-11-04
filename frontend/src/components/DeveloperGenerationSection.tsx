@@ -70,7 +70,7 @@ function DeveloperGenerationSection({ projectId, onSucceeded }: DeveloperGenerat
       <p>Runs Website Developer generation for all three A/B/C design proposals, then QA, and Documentation on a QA pass.</p>
 
       <button type="button" onClick={handleGenerate} disabled={submitting}>
-        {submitting ? 'Generating…' : 'Website generieren'}
+        {submitting ? 'Generating…' : 'Generate website'}
       </button>
 
       {submitting && (

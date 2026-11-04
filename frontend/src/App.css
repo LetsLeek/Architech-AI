@@ -99,6 +99,114 @@
   word-break: break-word;
 }
 
+/* Business details form (StructuredInputSection) - wider than the default .input-section so
+   the field grid has room to lay out in columns, and spaced out more since it holds several
+   distinct sub-sections rather than one simple input. */
+.structured-input-section {
+  max-width: 640px;
+}
+
+.structured-input-section h3 {
+  margin: 20px 0 8px;
+  font-size: 0.95em;
+  color: var(--text-h);
+}
+
+.section-hint {
+  color: var(--text);
+  font-size: 0.88em;
+  margin: 0 0 12px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px 16px;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9em;
+  color: var(--text-h);
+}
+
+.field-label input[type='text'],
+.field-label textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.opening-hours-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.opening-hours-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.opening-hours-day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.opening-hours-times {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opening-hours-times input[type='time'] {
+  font: inherit;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.add-row-button {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 0.85em;
+  padding: 6px 12px !important;
+}
+
+.toggle-link {
+  font-size: 0.85em;
+  font-weight: 400;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+}
+
+.save-confirmation {
+  color: #1a7f37;
+  font-size: 0.9em;
+}
+
+.structured-input-history {
+  margin-top: 16px;
+  color: var(--text);
+  font-size: 0.9em;
+}
+
+.structured-input-history summary {
+  cursor: pointer;
+  color: var(--text-h);
+}
+
 .status-badge {
   display: inline-block;
   padding: 2px 10px;
