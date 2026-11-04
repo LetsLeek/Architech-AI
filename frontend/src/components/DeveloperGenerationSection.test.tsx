@@ -50,7 +50,7 @@ describe('DeveloperGenerationSection', () => {
 
     render(<DeveloperGenerationSection projectId="project-1" onSucceeded={onSucceeded} />)
 
-    await user.click(screen.getByRole('button', { name: 'Website generieren' }))
+    await user.click(screen.getByRole('button', { name: 'Generate website' }))
 
     expect(startMock).toHaveBeenCalledWith('project-1')
     await waitFor(() => expect(screen.getByText('All succeeded')).toBeInTheDocument())
@@ -68,7 +68,7 @@ describe('DeveloperGenerationSection', () => {
 
     render(<DeveloperGenerationSection projectId="project-1" />)
 
-    await user.click(screen.getByRole('button', { name: 'Website generieren' }))
+    await user.click(screen.getByRole('button', { name: 'Generate website' }))
 
     expect(await screen.findByText('A website generation is already running for this project')).toBeInTheDocument()
   })
@@ -79,7 +79,7 @@ describe('DeveloperGenerationSection', () => {
 
     render(<DeveloperGenerationSection projectId="project-1" />)
 
-    await user.click(screen.getByRole('button', { name: 'Website generieren' }))
+    await user.click(screen.getByRole('button', { name: 'Generate website' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Backend is unreachable')
   })
@@ -94,7 +94,7 @@ describe('DeveloperGenerationSection', () => {
     )
 
     render(<DeveloperGenerationSection projectId="project-1" />)
-    const generateButton = screen.getByRole('button', { name: 'Website generieren' })
+    const generateButton = screen.getByRole('button', { name: 'Generate website' })
 
     await user.dblClick(generateButton)
 
@@ -121,7 +121,7 @@ describe('DeveloperGenerationSection', () => {
 
     render(<DeveloperGenerationSection projectId="project-1" />)
 
-    await user.click(screen.getByRole('button', { name: 'Website generieren' }))
+    await user.click(screen.getByRole('button', { name: 'Generate website' }))
 
     expect(await screen.findByText('Not all succeeded')).toBeInTheDocument()
     expect(screen.getByText('workspace provisioning failed')).toBeInTheDocument()

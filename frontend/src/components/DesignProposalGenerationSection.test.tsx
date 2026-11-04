@@ -49,7 +49,7 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    expect(await screen.findByRole('button', { name: '3 Designs generieren' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Generate 3 designs' })).toBeDisabled()
     expect(screen.getByText(/Requires a confirmed customer profile and website requirements/)).toBeInTheDocument()
   })
 
@@ -58,7 +58,7 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    expect(await screen.findByRole('button', { name: '3 Designs generieren' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Generate 3 designs' })).toBeDisabled()
     expect(screen.getByRole('status')).toHaveTextContent('A design proposal generation is already running…')
   })
 
@@ -71,12 +71,12 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    const generateButton = await screen.findByRole('button', { name: '3 Designs generieren' })
+    const generateButton = await screen.findByRole('button', { name: 'Generate 3 designs' })
     await user.click(generateButton)
 
     expect(startMock).toHaveBeenCalledWith('project-1')
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Designs ansehen' })).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: 'Designs neu generieren' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'View designs' })).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Regenerate designs' })).toBeInTheDocument()
     expect(screen.getByText('SUCCEEDED')).toBeInTheDocument()
   })
 
@@ -89,12 +89,12 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    await user.click(await screen.findByRole('button', { name: '3 Designs generieren' }))
+    await user.click(await screen.findByRole('button', { name: 'Generate 3 designs' }))
 
     expect(await screen.findByText('the model/runtime failed on every permitted attempt')).toBeInTheDocument()
     expect(screen.getByText('No canonical design proposal set was produced.')).toBeInTheDocument()
     // Never silently promoted to the "view/regenerate" state on a failed run.
-    expect(screen.queryByRole('button', { name: 'Designs ansehen' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'View designs' })).not.toBeInTheDocument()
   })
 
   it('shows a generic error state without a canonical output claim on an unexpected failure', async () => {
@@ -104,7 +104,7 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    await user.click(await screen.findByRole('button', { name: '3 Designs generieren' }))
+    await user.click(await screen.findByRole('button', { name: 'Generate 3 designs' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Backend is unreachable')
   })
@@ -120,7 +120,7 @@ describe('DesignProposalGenerationSection', () => {
     )
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
-    const generateButton = await screen.findByRole('button', { name: '3 Designs generieren' })
+    const generateButton = await screen.findByRole('button', { name: 'Generate 3 designs' })
 
     await user.dblClick(generateButton)
 
@@ -135,9 +135,9 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    expect(await screen.findByRole('button', { name: 'Designs ansehen' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Designs neu generieren' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '3 Designs generieren' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'View designs' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Regenerate designs' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Generate 3 designs' })).not.toBeInTheDocument()
   })
 
   it('requires confirmation before regenerating and never calls the API on cancel', async () => {
@@ -149,12 +149,12 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    await user.click(await screen.findByRole('button', { name: 'Designs neu generieren' }))
+    await user.click(await screen.findByRole('button', { name: 'Regenerate designs' }))
     expect(screen.getByText(/starts a new, paid AI execution/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(startMock).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Designs neu generieren' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Regenerate designs' })).toBeInTheDocument()
   })
 
   it('starts a new generation once regeneration is confirmed', async () => {
@@ -166,7 +166,7 @@ describe('DesignProposalGenerationSection', () => {
 
     render(<DesignProposalGenerationSection projectId="project-1" />)
 
-    await user.click(await screen.findByRole('button', { name: 'Designs neu generieren' }))
+    await user.click(await screen.findByRole('button', { name: 'Regenerate designs' }))
     await user.click(screen.getByRole('button', { name: 'Confirm regeneration' }))
 
     await waitFor(() => expect(startMock).toHaveBeenCalledWith('project-1'))

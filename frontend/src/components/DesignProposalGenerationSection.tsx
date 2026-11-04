@@ -132,7 +132,7 @@ function DesignProposalGenerationSection({ projectId, onViewDesigns, onSucceeded
       {!hasProposalSet && action.kind !== 'confirm-regeneration' && (
         <>
           <button type="button" onClick={handleGenerate} disabled={!readiness.ready || blocked}>
-            {submitting ? 'Generating…' : '3 Designs generieren'}
+            {submitting ? 'Generating…' : 'Generate 3 designs'}
           </button>
           <p>Creates three design proposals from the confirmed project requirements.</p>
         </>
@@ -141,10 +141,10 @@ function DesignProposalGenerationSection({ projectId, onViewDesigns, onSucceeded
       {hasProposalSet && action.kind !== 'confirm-regeneration' && action.kind !== 'running' && (
         <>
           <button type="button" onClick={() => onViewDesigns?.()}>
-            Designs ansehen
+            View designs
           </button>
           <button type="button" onClick={() => setAction({ kind: 'confirm-regeneration' })} disabled={!readiness.ready || blocked}>
-            Designs neu generieren
+            Regenerate designs
           </button>
         </>
       )}
