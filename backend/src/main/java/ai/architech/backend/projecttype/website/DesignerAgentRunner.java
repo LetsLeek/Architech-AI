@@ -252,19 +252,24 @@ public class DesignerAgentRunner {
 			return failExecution(execution, issues);
 		}
 
-		String candidateJson = contractResult.artifactContentByType().get(DESIGN_PROPOSAL_SET_TYPE);
+		// AIW-222: normalized once, immediately, before persistence - not only for the
+		// schema-conformance gate (AIW-215's original, narrower scope). A model emitting an
+		// explicit `null` on an optional field it means to omit (e.g. "customKind": null on a
+		// non-"custom" section) is a harmless JSON-encoding quirk, not a distinct answer - no
+		// schema in this codebase ever uses "null" as a meaningful type - so stripping it loses no
+		// real information. Doing this only for a schema-only copy left the literal null in the
+		// CandidateOutput audit record AND in the promoted canonical artifact (CandidatePromoter
+		// promotes a CandidateOutput's content "exactly as recorded" - there is no separate
+		// "promote this other string" path), pushing the same harmless-but-foreign-looking value
+		// onto every downstream consumer (Developer/QA/Documentation agents) and onto
+		// DesignProposalSetCanonicalReferenceValidator's own null-vs-absent distinction, instead of
+		// normalizing it once, here.
+		String candidateJson =
+				nullOptionalFieldNormalizer.stripNullFields(contractResult.artifactContentByType().get(DESIGN_PROPOSAL_SET_TYPE));
 		CandidateOutput candidate = candidateOutputRepository.saveAndFlush(
 				new CandidateOutput(execution.getId(), DESIGN_PROPOSAL_SET_TYPE, candidateJson));
 
-		// Normalizes only the JSON-Schema conformance gate: a model emitting an explicit `null` on
-		// an optional field it means to omit (e.g. "customKind": null on a non-"custom" section) is
-		// a harmless JSON-encoding quirk, not a distinct answer - no schema in this codebase ever
-		// uses "null" as a meaningful type. The raw, unmodified candidateJson is still what's
-		// persisted above as the authoritative CandidateOutput and what every other validator below
-		// (structure, canonical-ref, identity, promotion) evaluates - only this one schema check
-		// sees the normalized copy.
-		String candidateJsonForSchemaValidation = nullOptionalFieldNormalizer.stripNullFields(candidateJson);
-		artifactSchemaValidator.validate(outputContract.schemaContent(), candidateJsonForSchemaValidation).issues()
+		artifactSchemaValidator.validate(outputContract.schemaContent(), candidateJson).issues()
 				.forEach(issue -> issues.add("schema: " + issue.path() + ": " + issue.message()));
 		localRefUniquenessValidator.validate(candidateJson).issues()
 				.forEach(issue -> issues.add("local-ref: " + issue.localRef() + ": " + issue.reason()));

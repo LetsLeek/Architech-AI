@@ -113,13 +113,30 @@ artifact itself is sufficient documentation of the decision.
 
 Use only platform-provided canonical references available to the current execution.
 
-Treat canonical references as opaque identifiers.
+Treat localRef-style canonical references as opaque identifiers.
 
 Do not create, rename, modify, repair, parse, or infer meaning from their format.
 
 Do not use localRef values from prior candidate artifacts as canonical references.
 
 Do not use original customer sourceRefs as a substitute for canonical artifact references.
+
+### Scalar Customer Data Without a Local Reference
+
+Not every canonical customer-profile fragment carries a localRef - only array items
+(for example individual locations or offerings) do. A top-level scalar field, such as
+the business name or a contact phone number, has none.
+
+To cite such a scalar field as a customerDataRef, use its own dot-separated path into
+the canonical customer-profile structure exactly as that structure's own field names
+appear (for example "business.name" or "contact.phone") - this is the one canonical
+reference form that is a real navigation path, not an opaque identifier.
+
+Such a citation is valid only when it names one specific, present, non-null scalar
+value. Do not cite a whole object or array this way (for example, do not cite
+"locations" to mean "the business's locations in general"): cite a specific array
+item's own localRef instead, or omit the reference entirely when no single item is
+the actual subject.
 
 ## Artifact Boundaries
 
@@ -160,7 +177,9 @@ Before continuing, confirm that:
 - pure designer decisions do not carry fabricated customer references;
 - no sourceRefs or prior localRefs are used as canonical references;
 - requirement and customer-data reference domains are not mixed;
-- no canonical reference was invented, repaired, or reinterpreted.
+- no canonical reference was invented, repaired, or reinterpreted;
+- every scalar customerDataRef dot-path names one present, non-null scalar value, never a
+  whole object or array.
 
 ## Handoff
 

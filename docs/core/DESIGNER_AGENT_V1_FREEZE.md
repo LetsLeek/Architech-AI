@@ -60,3 +60,14 @@ such a revision, not a breach.
   `modules/03-design-directions.md`, `modules/07-design-specification.md` (imagery fallback
   strategy) and `modules/10-proposal-differentiation.md` (quality check item). No existing
   integrity/boundary rule changed. Reviewed and approved by project owner.
+- 2026-11-04 (AIW-222): added a "Scalar Customer Data Without a Local Reference" section to
+  `modules/09-traceability.md`, documenting the dot-path `customerDataRef` mechanism
+  (AIW-122's own backend-validated mechanism for a top-level scalar customer-profile field
+  that has no localRef) explicitly for the first time, plus a matching Traceability Check
+  item. Found missing while hardening `DesignProposalSetCanonicalReferenceValidator` to
+  reject null/container dot-path citations it had previously accepted too leniently: the
+  model had no documented way to construct this reference form correctly at all, and the
+  existing "treat canonical references as opaque identifiers, do not parse" instruction
+  actively contradicts the one reference form that genuinely is a parsed navigation path -
+  now scoped explicitly to localRef-style references only. No existing integrity/boundary
+  rule changed.

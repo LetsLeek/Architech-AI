@@ -38,8 +38,10 @@ import tools.jackson.databind.ObjectMapper;
  * field such as {@code business.name} or {@code contact.phone} has none. A candidate legitimately
  * citing such a field has no localRef to use, so it cites the dot-separated path into the
  * customer-profile JSON instead (e.g. {@code "business.name"}). Such a citation is permitted
- * exactly when that path resolves to a real, present node in the active customer-profile JSON -
- * an invented or misspelled path still correctly fails.
+ * exactly when that path resolves to a real, present, non-null <em>scalar</em> node in the active
+ * customer-profile JSON - an invented/misspelled path, a path to an explicit JSON {@code null}
+ * (AIW-222: present-but-null is not "real, present" any more than absent is), or a path to a
+ * whole object/array container (not a specific scalar fragment) still correctly fails.
  *
  * <p>Detects and reports only: never repairs, renames, or drops an invalid ref from a candidate.
  */
@@ -89,23 +91,28 @@ public class DesignProposalSetCanonicalReferenceValidator {
 
 	/**
 	 * Resolves a dot-separated path (e.g. {@code "business.name"}) into {@code root}, returning
-	 * true only if every segment along the way is present and the final node is not missing. An
-	 * empty path never resolves.
+	 * true only if every segment along the way is present and the final node is a non-null scalar
+	 * - never a container (object/array), since those aren't a single deterministically-knowable
+	 * fragment the way a localRef-bearing array item is. An empty path, or any path containing an
+	 * empty segment (e.g. a leading/trailing/doubled dot such as {@code "business."}), never
+	 * resolves - {@code split("\\.", -1)} (a negative limit) is required here specifically to keep
+	 * a *trailing* empty segment instead of silently discarding it, which is what {@code
+	 * split("\\.")}'s default limit of {@code 0} does.
 	 */
 	private static boolean resolvesToPresentNode(JsonNode root, String dotPath) {
 		if (dotPath == null || dotPath.isBlank()) {
 			return false;
 		}
 		JsonNode node = root;
-		for (String segment : dotPath.split("\\.")) {
+		for (String segment : dotPath.split("\\.", -1)) {
 			if (segment.isEmpty()) {
 				return false;
 			}
 			node = node.path(segment);
-			if (node.isMissingNode()) {
+			if (node.isMissingNode() || node.isNull()) {
 				return false;
 			}
 		}
-		return true;
+		return !node.isObject() && !node.isArray();
 	}
 }
