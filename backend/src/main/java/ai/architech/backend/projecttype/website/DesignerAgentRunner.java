@@ -66,6 +66,16 @@ import org.springframework.stereotype.Component;
  * validation failures instead of a one-off code patch per new failure signature. Only the first
  * attempt goes through {@link BoundedRetryAgentRunner}'s own infra-failure retry coverage;
  * infra-failure retry on a correction round is out of scope here (an accepted simplification).
+ *
+ * <p>AIW-221: a correction round itself can throw (e.g. the project's hard AI-usage budget limit,
+ * untouched by {@link BoundedRetryAgentRunner}, trips mid-loop once the first attempt already
+ * spent money; or the AI Gateway fails outright) - {@link #run} catches that and falls back to
+ * the last real {@link DesignProposalGenerationResult} already computed and persisted by {@link
+ * #validateAndPersist}, instead of letting the exception unwind the whole method. Without this, a
+ * correction-round failure would discard an already-persisted, inspectable FAILED execution with
+ * real validation issues in favor of an opaque 500 from {@code GlobalExceptionHandler} - {@link
+ * DesignProposalGenerationController#start} only catches {@link
+ * ai.architech.backend.core.runner.RetryBudgetExhaustedException}, which this is not.
  */
 @Component
 public class DesignerAgentRunner {
@@ -160,13 +170,28 @@ public class DesignerAgentRunner {
 					attempt,
 					maxFeedbackRetries);
 
-			RunnerResult correctionResult = agentRunner.runWithInputArtifactsAndCorrection(
-					projectId,
-					AGENT_ID,
-					AGENT_VERSION,
-					inputArtifactsByType,
-					runnerResult.candidateOutput(),
-					buildCorrectionFeedback(result.validationIssues()));
+			RunnerResult correctionResult;
+			try {
+				correctionResult = agentRunner.runWithInputArtifactsAndCorrection(
+						projectId,
+						AGENT_ID,
+						AGENT_VERSION,
+						inputArtifactsByType,
+						runnerResult.candidateOutput(),
+						buildCorrectionFeedback(result.validationIssues()));
+			} catch (RuntimeException e) {
+				// AIW-221: the correction round itself failed (budget guard tripped, or the AI
+				// Gateway errored) - keep the last real, already-persisted result instead of letting
+				// this exception replace it with an opaque 500 further up the call stack.
+				log.warn(
+						"Designer Agent feedback-correction retry {} of {} failed to even complete for execution"
+								+ " {}; keeping its last validated result instead of retrying further",
+						attempt,
+						maxFeedbackRetries,
+						result.execution().getId(),
+						e);
+				break;
+			}
 
 			result = validateAndPersist(projectId, customerProfileJson, websiteRequirementsJson, correctionResult);
 			runnerResult = correctionResult;

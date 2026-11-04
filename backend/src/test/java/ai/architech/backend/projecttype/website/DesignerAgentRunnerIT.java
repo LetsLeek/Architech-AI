@@ -363,6 +363,48 @@ class DesignerAgentRunnerIT {
 		verify(agentRunner, times(1)).runWithInputArtifactsAndCorrection(any(), any(), anyInt(), any(), any(), any());
 	}
 
+	@Test
+	void runFallsBackToTheFirstAttemptsRealResultWhenTheCorrectionRoundItselfThrows() {
+		// AIW-221: the correction round can fail outright (budget guard trip, AI Gateway error,
+		// etc.) rather than come back with a usable candidate at all. Before this fix, that
+		// exception unwound run() entirely, discarding the first attempt's already-persisted,
+		// inspectable FAILED result and surfacing only as an opaque 500 further up the stack.
+		Project project = projectRepository.saveAndFlush(new Project("website"));
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.CUSTOMER_PROFILE_TYPE, CUSTOMER_PROFILE);
+		promoteCanonicalArtifact(project.getId(), DesignerAgentRunner.WEBSITE_REQUIREMENTS_TYPE, WEBSITE_REQUIREMENTS);
+
+		String firstInvalidCandidateOutput = envelope("[" + proposal("a") + "," + proposal("b") + "]");
+		AgentExecution firstAttemptExecution = startedExecution(project);
+		when(agentRunner.runWithInputArtifacts(
+						eq(project.getId()), eq(DesignerAgentRunner.AGENT_ID), eq(DesignerAgentRunner.AGENT_VERSION), any()))
+				.thenReturn(new RunnerResult(firstAttemptExecution, firstInvalidCandidateOutput));
+
+		List<String> realIssuesFromFirstAttempt = designerAgentRunner
+				.validateAndPersist(
+						project.getId(),
+						CUSTOMER_PROFILE,
+						WEBSITE_REQUIREMENTS,
+						new RunnerResult(startedExecution(project), firstInvalidCandidateOutput))
+				.validationIssues();
+		assertThat(realIssuesFromFirstAttempt).isNotEmpty();
+
+		when(agentRunner.runWithInputArtifactsAndCorrection(
+						eq(project.getId()),
+						eq(DesignerAgentRunner.AGENT_ID),
+						eq(DesignerAgentRunner.AGENT_VERSION),
+						any(),
+						eq(firstInvalidCandidateOutput),
+						any()))
+				.thenThrow(new ai.architech.backend.core.runner.AgentRunnerException("AI Gateway failed", new RuntimeException("boom")));
+
+		DesignProposalGenerationResult result = designerAgentRunner.run(project.getId());
+
+		assertThat(result.succeeded()).isFalse();
+		assertThat(result.execution().getId()).isEqualTo(firstAttemptExecution.getId());
+		realIssuesFromFirstAttempt.forEach(issue -> assertThat(result.validationIssues()).contains(issue));
+		verify(agentRunner, times(1)).runWithInputArtifactsAndCorrection(any(), any(), anyInt(), any(), any(), any());
+	}
+
 	private void promoteCanonicalArtifact(UUID projectId, String type, String content) {
 		AgentExecution seedExecution = agentExecutionRepository.saveAndFlush(new AgentExecution(projectId, "requirements-agent", 1));
 		CandidateOutput candidate = candidateOutputRepository.saveAndFlush(new CandidateOutput(seedExecution.getId(), type, content));
