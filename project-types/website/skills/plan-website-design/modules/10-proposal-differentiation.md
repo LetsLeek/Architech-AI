@@ -132,6 +132,7 @@ Before continuing, confirm that:
 - all authoritative constraints are preserved;
 - each proposal has a coherent independent design identity;
 - differences are perceptible beyond isolated cosmetic changes where freedom permits;
+- each proposal independently reflects genuine creative ambition and craft, not merely safe, interchangeable design choices;
 - no proposal is intentionally weaker than another;
 - no unsupported feature scope or customer facts were introduced;
 - names and concepts match the actual completed designs;
