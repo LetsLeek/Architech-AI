@@ -337,6 +337,110 @@ class AnthropicProviderTests {
 	}
 
 	@Test
+	void cachesTheSoleMessagesContentWhenToolsAreDeclaredEvenOnTheFirstTurn() {
+		// AIW-225: the loop's very first turn has exactly one plain-string user message - still
+		// worth a cache-write breakpoint, since a tool-calling execution is expected to have
+		// further turns that can read it back.
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson = """
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+		String expectedMessagesJson =
+				"""
+				[{"role": "user", "content": [
+				  {"type": "text", "text": "start", "cache_control": {"type": "ephemeral"}}
+				]}]""";
+
+		server.expect(requestTo(MESSAGES_URL))
+				.andExpect(content().json("{\"messages\": " + expectedMessagesJson + "}", false))
+				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		ToolSchema filesystemTool = new ToolSchema(
+				"filesystem", "reads and writes files", objectMapper.readTree("{\"type\": \"object\"}"));
+		AiRequest request = new AiRequest(
+				"structured-reasoning", List.of(new AiMessage("user", "start")), 100, "corr-14", List.of(filesystemTool));
+
+		provider.invoke(request, "claude-sonnet-5");
+
+		server.verify();
+	}
+
+	@Test
+	void cachesOnlyTheLastMessagesLastBlockAcrossAMultiTurnToolCallingConversation() {
+		// AIW-225: earlier turns' own messages must stay exactly as they were (no cache_control
+		// added retroactively) - only the conversation's own current last block gets the
+		// breakpoint, since that's the one whose prefix the *next* turn can actually reuse.
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson = """
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+		String expectedMessagesJson =
+				"""
+				[
+				  {"role": "user", "content": "start"},
+				  {"role": "assistant", "content": [
+				    {"type": "tool_use", "id": "call-1", "name": "filesystem", "input": {"operation": "write"}}
+				  ]},
+				  {"role": "user", "content": [
+				    {"type": "tool_result", "tool_use_id": "call-1", "content": "wrote it", "is_error": false, "cache_control": {"type": "ephemeral"}}
+				  ]}
+				]""";
+
+		server.expect(requestTo(MESSAGES_URL))
+				.andExpect(content().json("{\"messages\": " + expectedMessagesJson + "}", false))
+				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		ToolSchema filesystemTool = new ToolSchema(
+				"filesystem", "reads and writes files", objectMapper.readTree("{\"type\": \"object\"}"));
+		AiMessage assistantTurn = new AiMessage(
+				"assistant",
+				List.of(new ContentBlock.ToolUse("call-1", "filesystem", objectMapper.readTree("{\"operation\": \"write\"}"))));
+		AiMessage toolResultTurn = new AiMessage("user", List.of(new ContentBlock.ToolResult("call-1", "wrote it", false)));
+		AiRequest request = new AiRequest(
+				"structured-reasoning",
+				List.of(new AiMessage("user", "start"), assistantTurn, toolResultTurn),
+				100,
+				"corr-15",
+				List.of(filesystemTool));
+
+		provider.invoke(request, "claude-sonnet-5");
+
+		server.verify();
+	}
+
+	@Test
+	void neverAddsACacheBreakpointToTheConversationWhenNoToolsAreDeclared() {
+		// Confirms AIW-225's new behavior is gated strictly on tools being present - a plain
+		// M1/M2 single-shot call (no tools) must see its message completely unchanged.
+		RestClient.Builder builder = RestClient.builder();
+		MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+		AnthropicProvider provider = new AnthropicProvider(builder, new AnthropicProperties("test-key"), objectMapper);
+
+		String responseJson = """
+				{"model": "claude-sonnet-5", "content": [], "usage": {"input_tokens": 1, "output_tokens": 1}}
+				""";
+
+		server.expect(requestTo(MESSAGES_URL))
+				.andExpect(content()
+						.json(
+								"{\"model\":\"claude-sonnet-5\",\"max_tokens\":100,\"thinking\":{\"type\":\"disabled\"},\"messages\":[{\"role\":\"user\",\"content\":\"start\"}]}",
+								true))
+				.andRespond(withSuccess(responseJson, MediaType.APPLICATION_JSON));
+
+		AiRequest request = new AiRequest("structured-reasoning", List.of(new AiMessage("user", "start")), 100, "corr-16");
+
+		provider.invoke(request, "claude-sonnet-5");
+
+		server.verify();
+	}
+
+	@Test
 	void throwsWhenNoApiKeyIsConfiguredWithoutMakingAnyRequest() {
 		RestClient.Builder builder = RestClient.builder();
 		MockRestServiceServer.bindTo(builder).build();

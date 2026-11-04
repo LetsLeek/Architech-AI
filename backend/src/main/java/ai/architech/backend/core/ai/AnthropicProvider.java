@@ -60,6 +60,21 @@ import tools.jackson.databind.node.ObjectNode;
  * changes. Verified against the real API: an identical second call re-used the cached prefix
  * ({@code usage.cache_read_input_tokens} matched the first call's {@code
  * cache_creation_input_tokens}) instead of paying full input-token price again.
+ *
+ * <p>AIW-225: also marks the conversation's own last content block as a second cache
+ * breakpoint, but only when {@code request.tools()} is non-empty - by {@link AiRequest}'s own
+ * javadoc, the only caller that ever supplies tools is {@code DeveloperToolLoopOrchestrator}'s
+ * multi-turn loop, where every turn's {@code conversation} list is strictly append-only (prior
+ * turns' messages are never rewritten). Anthropic caches everything up to and including a
+ * marked block, so turn N's breakpoint (written once, at the end of turn N's own request)
+ * becomes turn N+1's matching prefix for everything through turn N - turn N+1 then only pays
+ * full input price for its own new content (turn N's response plus the new tool results) before
+ * writing its own breakpoint for turn N+2 to reuse, and so on. Without this, a 40-turn execution
+ * re-priced its entire accumulated conversation history from scratch on every single turn.
+ * Deliberately NOT applied to M1/M2's single-shot calls or the Designer's one-off
+ * feedback-correction retry (AIW-216) - those either never have a second call to read the
+ * breakpoint back, or the expected retry rate is too low for the ~25% cache-write premium to
+ * reliably pay for itself.
  */
 @Component
 class AnthropicProvider implements AiProvider {
@@ -114,6 +129,7 @@ class AnthropicProvider implements AiProvider {
 
 		StringBuilder system = new StringBuilder();
 		ArrayNode messages = body.putArray("messages");
+		ObjectNode lastMessageNode = null;
 		for (AiMessage message : request.messages()) {
 			if ("system".equals(message.role())) {
 				if (!system.isEmpty()) {
@@ -132,6 +148,7 @@ class AnthropicProvider implements AiProvider {
 					appendContentBlock(contentBlocks, block);
 				}
 			}
+			lastMessageNode = messageNode;
 		}
 		if (!system.isEmpty()) {
 			ObjectNode systemBlock =
@@ -146,8 +163,31 @@ class AnthropicProvider implements AiProvider {
 				toolNode.put("description", tool.description());
 				toolNode.set("input_schema", tool.inputSchema());
 			}
+			markLastContentBlockCacheable(lastMessageNode);
 		}
 		return body;
+	}
+
+	/** See this class's own javadoc (AIW-225) for why this only ever runs for the tool-calling loop. */
+	private static void markLastContentBlockCacheable(ObjectNode lastMessageNode) {
+		if (lastMessageNode == null) {
+			return;
+		}
+		JsonNode content = lastMessageNode.get("content");
+		if (content.isArray()) {
+			ArrayNode blocks = (ArrayNode) content;
+			if (!blocks.isEmpty()) {
+				((ObjectNode) blocks.get(blocks.size() - 1)).putObject("cache_control").put("type", "ephemeral");
+			}
+			return;
+		}
+		// Plain-string content (the loop's very first turn, built via AiMessage's two-arg
+		// constructor) - cache_control requires block form, same reason the system prompt is
+		// sent as a one-element array rather than a plain string.
+		String text = content.asString();
+		lastMessageNode.remove("content");
+		ObjectNode textBlock = lastMessageNode.putArray("content").addObject().put("type", "text").put("text", text);
+		textBlock.putObject("cache_control").put("type", "ephemeral");
 	}
 
 	private void appendContentBlock(ArrayNode contentBlocks, ContentBlock block) {
