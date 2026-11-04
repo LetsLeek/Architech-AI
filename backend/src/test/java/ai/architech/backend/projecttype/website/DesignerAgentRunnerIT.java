@@ -215,6 +215,14 @@ class DesignerAgentRunnerIT {
 		assertThat(result.succeeded()).isTrue();
 		assertThat(result.validationIssues()).isEmpty();
 		assertThat(result.execution().getStatus()).isEqualTo(AgentExecutionStatus.SUCCEEDED);
+
+		// AIW-222: the null-stripping must apply to what's actually persisted/promoted, not just
+		// to a throwaway copy used solely for the schema check - otherwise the literal null leaks
+		// into the canonical artifact every downstream agent (Developer/QA/Documentation) reads.
+		String persistedCandidate = candidateOutputRepository.findByAgentExecutionId(execution.getId()).get(0).getContent();
+		assertThat(persistedCandidate).doesNotContain("\"customKind\":null").doesNotContain("\"customKind\": null");
+		String promotedArtifact = artifactVersionRepository.findByAgentExecutionId(execution.getId()).get(0).getContent();
+		assertThat(promotedArtifact).doesNotContain("\"customKind\":null").doesNotContain("\"customKind\": null");
 	}
 
 	@Test

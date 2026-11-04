@@ -168,4 +168,67 @@ class DesignProposalSetCanonicalReferenceValidatorTests {
 		assertThat(result.valid()).isFalse();
 		assertThat(result.issues()).isNotEmpty();
 	}
+
+	@Test
+	void rejectsACustomerDataRefThatIsADotPathToAFieldThatIsPresentButExplicitlyNull() {
+		// AIW-222: a realistic customer-profile shape (per NullOptionalFieldNormalizer's own
+		// rationale, a model can emit an explicit JSON null for an absent optional field) must not
+		// be treated as "real, present" just because the key itself exists.
+		String customerProfileWithExplicitNullField =
+				"""
+				{"business": {"name": "Green Leaf Cafe"}, "contact": {"fax": null}, "locations": [{"localRef": "cust-1"}]}
+				""";
+		String designProposalSet =
+				"""
+				{"proposals": [
+				  {"localRef": "prop-a", "websitePlan": {"pages": [
+				     {"localRef": "page-1", "sections": [{"localRef": "sec-1", "customerDataRefs": ["contact.fax"], "elements": []}]}
+				  ]}}
+				]}
+				""";
+
+		DesignProposalSetValidationResult result =
+				validator.validate(designProposalSet, customerProfileWithExplicitNullField, WEBSITE_REQUIREMENTS);
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues()).anyMatch(issue -> issue.reason().contains("'contact.fax' is not part of the active customer-profile"));
+	}
+
+	@Test
+	void rejectsACustomerDataRefThatIsADotPathToAWholeContainerRatherThanAScalar() {
+		// "locations" is present, but it's the whole array - not a single deterministically-knowable
+		// fragment the way a specific "locations[].localRef" array item is.
+		String designProposalSet =
+				"""
+				{"proposals": [
+				  {"localRef": "prop-a", "websitePlan": {"pages": [
+				     {"localRef": "page-1", "sections": [{"localRef": "sec-1", "customerDataRefs": ["locations"], "elements": []}]}
+				  ]}}
+				]}
+				""";
+
+		DesignProposalSetValidationResult result = validator.validate(designProposalSet, CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS);
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues()).anyMatch(issue -> issue.reason().contains("'locations' is not part of the active customer-profile"));
+	}
+
+	@Test
+	void rejectsACustomerDataRefThatIsADotPathWithATrailingDot() {
+		// A naive `split("\\.")` (default limit 0) silently drops a trailing empty segment,
+		// treating "business." identically to "business" instead of rejecting the malformed path.
+		String designProposalSet =
+				"""
+				{"proposals": [
+				  {"localRef": "prop-a", "websitePlan": {"pages": [
+				     {"localRef": "page-1", "sections": [{"localRef": "sec-1", "customerDataRefs": ["business."], "elements": []}]}
+				  ]}}
+				]}
+				""";
+
+		DesignProposalSetValidationResult result = validator.validate(designProposalSet, CUSTOMER_PROFILE, WEBSITE_REQUIREMENTS);
+
+		assertThat(result.valid()).isFalse();
+		assertThat(result.issues()).anyMatch(issue -> issue.reason().contains("'business.' is not part of the active customer-profile"));
+	}
 }
