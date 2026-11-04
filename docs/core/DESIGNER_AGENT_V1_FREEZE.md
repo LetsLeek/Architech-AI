@@ -71,3 +71,13 @@ such a revision, not a breach.
   actively contradicts the one reference form that genuinely is a parsed navigation path -
   now scoped explicitly to localRef-style references only. No existing integrity/boundary
   rule changed.
+- 2026-11-04 (AIW-224): reframed `modules/07-design-specification.md`'s Motion section - purposeful
+  motion (entrance/reveal transitions, hover/focus micro-interactions) is now named as an expected
+  mark of premium craft rather than something to default toward minimizing; "proportional to scope"
+  is clarified to not mean "minimal by default". Also added depth/layering/translucent-backdrop
+  treatment as one named example of a modern UI pattern to consider where it fits the direction
+  (not a default). Motivated by a concrete reference-quality bar the project owner supplied
+  (an agency-grade portfolio site) for the next real test run. No existing integrity/boundary rule
+  changed - still describes intended effect only, never implementation code/libraries, and motion
+  still must never imply unscoped content/interactions/navigation. Reviewed and approved by
+  project owner.
