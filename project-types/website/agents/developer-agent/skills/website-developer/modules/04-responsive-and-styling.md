@@ -7,6 +7,9 @@ Realize the Designer's visual and responsive intent using the Runtime Profile's 
 ## Method
 
 - Preserve colors, typography hierarchy, spacing rhythm, density, layout intent, UI patterns, imagery treatment and bounded motion.
+- Realize a translucent/blurred-backdrop surface treatment the Design Specification calls for with native CSS `backdrop-filter` (with a solid-color fallback for browsers/contexts where it is unsupported) - never a third-party glassmorphism component library.
+- Realize entrance/reveal transitions and hover/focus micro-interactions the Design Specification calls for with the `motion` package (already an authorized Runtime Profile dependency - no dependency-policy request needed to use it) or plain CSS transitions/animations for simpler cases; prefer the simplest mechanism that reliably achieves the specified intensity and style.
+- Respect `reducedMotionBehavior` by honoring the `prefers-reduced-motion` media query (directly in CSS, or via the `motion` package's own reduced-motion handling) - never motion that cannot be disabled.
 - Use content-driven responsive rules rather than arbitrary device-specific hacks.
 - Validate at representative wide and narrow viewports during implementation.
 - Avoid fixed heights/truncation that hide canonical content unless explicitly specified.

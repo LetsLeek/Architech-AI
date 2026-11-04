@@ -88,6 +88,12 @@ Describe visualTreatment clearly enough to guide implementation without specifyi
 
 Use interactionBehavior where a reusable interaction treatment is materially relevant.
 
+Consider depth and layering (elevated surfaces, soft shadows, translucent or
+blurred backdrops behind floating content) as one legitimate modern visual
+treatment among others when it genuinely fits the direction - not a default
+every proposal must adopt, and not a substitute for a considered visual
+language of its own.
+
 Patterns are design abstractions, not React components or implementation modules.
 
 ## Pattern Scope
@@ -130,16 +136,28 @@ illustration exists.
 
 ## Motion
 
-Define motion only when it contributes meaningfully to the proposal.
+Purposeful, well-crafted motion - entrance/reveal transitions as content
+enters view, hover and focus micro-interactions, smooth state changes - is
+itself a mark of a premium, professionally-crafted site, not an optional
+extra to minimize. A site with no motion at all, where a confident direction
+would clearly benefit from it, reads as a plain template rather than a
+considered piece of design.
 
-Keep motion proportional to the project scope and design direction.
+Keep motion proportional to the project scope and design direction: tasteful
+and purposeful, never gratuitous or decorative for its own sake. Proportional
+does not mean minimal by default - a high-craft direction may call for more
+motion than a quiet, restrained one, and that is a legitimate differentiator
+between proposals.
 
 Describe intensity, overall style, and reduced-motion behavior.
 
 Do not specify animation libraries, framework APIs, implementation timelines,
-or technical motion code.
+or technical motion code - describe the intended effect and feel, not how it
+is built.
 
-Do not create unsupported feature scope through elaborate motion concepts.
+Do not create unsupported functional scope through motion concepts (for
+example, motion must never imply content, interactions, or navigation that
+the website plan does not already define).
 
 ## Requirement-Driven Design Decisions
 

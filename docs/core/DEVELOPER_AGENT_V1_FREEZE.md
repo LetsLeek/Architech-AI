@@ -77,3 +77,13 @@ such a revision, not a breach.
   - Designer-specified typography is sufficient authority on its own; fonts must be implemented via
   a bundled local package rather than a runtime CDN link. No capability/network/dependency-policy
   change. Reviewed and approved by project owner.
+- 2026-11-04 (AIW-224): added concrete implementation guidance to
+  `modules/04-responsive-and-styling.md` for realizing the Designer's depth/translucency ("glass")
+  surface treatments (native CSS `backdrop-filter`) and motion (the `motion` package - added to
+  `scaffold/package.json`, which is implementation substrate, not part of this frozen handoff's
+  own file list - or plain CSS transitions for simpler cases), plus explicit
+  `prefers-reduced-motion` guidance. Previously the module named "bounded motion" as something to
+  preserve but gave no technical guidance on how, forcing the Developer Agent to improvise or reach
+  for Module 06's dependency-request process on every execution that needed it. No capability/
+  boundary change - CSS and the pre-authorized `motion` package are both already within "React +
+  TypeScript + Vite client/static-build only". Reviewed and approved by project owner.
