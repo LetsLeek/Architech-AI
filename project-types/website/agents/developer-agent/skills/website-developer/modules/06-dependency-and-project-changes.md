@@ -9,7 +9,9 @@
 ## Rules of method
 
 - Use only the Runtime Profile package manager and authorized dependency capability.
-- Keep manifest and lockfile coherent.
+- Keep manifest and lockfile coherent: the install capability itself resolves and updates the
+  lockfile against whatever the manifest currently declares, so simply running it again after
+  editing `package.json` by hand is enough - no separate reconciliation step to remember.
 - Do not opportunistically upgrade unrelated packages.
 - Do not switch router, test runner, build tool or styling mechanism merely by preference.
 - Avoid Git/URL/tarball packages, alternate registries, global installs, manual vendoring/downloads and unauthorized runtime CDNs.

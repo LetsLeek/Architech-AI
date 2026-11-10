@@ -14,7 +14,7 @@ according to its one authorized target Design Proposal.
 
 | Contract          | Command       |
 |--------------------|---------------|
-| `install-frozen`   | `npm ci`      |
+| `install-frozen`   | `npm install` (AIW-229 - was `npm ci`; see `ProjectExecutionCapability.commandFor`'s own comment) |
 | `typecheck`        | `npm run typecheck` |
 | `lint`             | `npm run lint`      |
 | `test`             | `npm run test`      |

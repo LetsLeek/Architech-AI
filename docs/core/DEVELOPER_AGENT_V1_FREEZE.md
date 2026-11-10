@@ -87,3 +87,23 @@ such a revision, not a breach.
   for Module 06's dependency-request process on every execution that needed it. No capability/
   boundary change - CSS and the pre-authorized `motion` package are both already within "React +
   TypeScript + Vite client/static-build only". Reviewed and approved by project owner.
+- 2026-11-04 (AIW-229): found live, against the real API - all 3 siblings of a real Developer run
+  exhausted their tool-loop turn budget without producing a result, each after repeatedly hand-
+  editing `package.json` for a self-hosted font package and then re-running the install task,
+  which failed every time with `EUSAGE`/`Missing: ... from lock file`. A *first* attempt at fixing
+  this purely with modules/06 wording ("run `npm install`, not `npm ci`") was retested live and
+  failed identically a second time, at further real cost, before the structural nature of the real
+  fix was understood: the model never chooses an npm subcommand (`DeveloperToolSchemas` only ever
+  exposes the closed task name "install"), so this could never have been fixed by instructing the
+  model differently. `modules/04`'s font-loading
+  guidance (bundle fonts locally, AIW-218) always implied the Developer Agent would sometimes need
+  to add a dependency after the scaffold's initial install - but the install task it can actually
+  invoke ran `npm ci`, which can only install from an already-coherent lockfile and can never
+  reconcile one, so that legitimate, guidance-sanctioned edit was guaranteed to fail every time.
+  Fixed in implementation (`ProjectExecutionCapability`, not a frozen file) by changing what the
+  Developer-reachable install task runs to `npm install`; a new, separate, non-model-reachable
+  capability method preserves the original strict `npm ci` behavior for `AuthoritativeRunnerVerifier`'s
+  own handoff gate, so AIW-140's final-candidate reproducibility guarantee is unchanged. No change
+  to any frozen file's semantics - `modules/04`'s guidance was always correct; only the capability
+  underneath the task it told the model to use needed to change. Reviewed and approved by project
+  owner.
