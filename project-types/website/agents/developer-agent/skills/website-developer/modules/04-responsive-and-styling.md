@@ -18,6 +18,12 @@ Realize the Designer's visual and responsive intent using the Runtime Profile's 
 - Keep global base styles limited; avoid global CSS that accidentally restyles unrelated regions.
 - The Design Specification's `typography` entries are themselves sufficient authority for which font families to use - no separate Integration Contract or other authorization is required for them.
 - Implement those font families by bundling them locally as a normal authorized-registry dependency (e.g. a self-hosted font package), never via a runtime external font/CDN `<link>` or `@import`. This satisfies both the typography intent and the no-raw-outbound-network boundary.
+- A font family name is not automatically a valid package name: a style/width/weight axis (e.g.
+  "Archivo Expanded", "Fraunces 72pt") is normally published under its base family's package (e.g.
+  `archivo`, `fraunces`), not as its own separate package. Before adding a font package to the
+  manifest, confirm the exact package name actually exists on the authorized registry (e.g. a
+  registry lookup, or installing the base family name first); do not guess a package name from the
+  family name and find out only from an install failure.
 - Do not load any other external assets/CDNs without explicit authority.
 
 ## Accessibility corrections
