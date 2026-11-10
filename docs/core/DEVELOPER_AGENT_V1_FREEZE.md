@@ -87,3 +87,11 @@ such a revision, not a breach.
   for Module 06's dependency-request process on every execution that needed it. No capability/
   boundary change - CSS and the pre-authorized `motion` package are both already within "React +
   TypeScript + Vite client/static-build only". Reviewed and approved by project owner.
+- 2026-11-04 (AIW-228): found live, against the real API - one sibling of a real Developer run
+  guessed an invalid npm package name for a font style/width axis (e.g. a specific weight/width
+  variant that is not published separately from its base family), which the install task then
+  correctly rejected but the model had no guidance for recognizing or avoiding. Added explicit
+  package-name-verification guidance to `modules/04-responsive-and-styling.md`'s font section:
+  confirm the exact package name exists on the authorized registry before adding it to the
+  manifest, rather than guessing from the family name. No capability/boundary change - this is
+  guidance for a model mistake, not a new capability. Reviewed and approved by project owner.

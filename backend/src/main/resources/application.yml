@@ -115,8 +115,16 @@ architech:
       # Developer Agent's own decision. max-turns bounds model round-trips within one execution;
       # max-tool-calls separately bounds the total number of individual tool calls dispatched
       # across every turn.
-      max-turns: 40
-      max-tool-calls: 80
+      # AIW-228: raised from 40/80 after all 3 siblings of a real run against claude-sonnet-5
+      # exhausted the 40-turn budget before producing any result. The dominant cause was a
+      # recurring self-inflicted npm mistake (now fixed at the source - see modules/06 and
+      # modules/04 of the Developer skill), not genuine task complexity: usage was 54-58 tool
+      # calls across ~40 turns, well under the old 80-call ceiling, so turns - not tool calls -
+      # was the binding constraint. This raise is headroom on top of the root-cause fix, not a
+      # substitute for it: an exhausted-budget failure still costs the same per-turn money as
+      # before, it just now takes longer to happen.
+      max-turns: 60
+      max-tool-calls: 120
   qa:
     remediation:
       # Platform-owned bound for Developer remediation cycles per (project, stage, Variant
