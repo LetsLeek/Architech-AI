@@ -20,7 +20,8 @@ class ProjectExecutionCapabilityTests {
 
 	@Test
 	void mapsEveryApprovedTaskToItsExactFixedCommand() {
-		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.INSTALL)).isEqualTo(List.of("npm", "ci"));
+		// AIW-229: npm install, not npm ci - see commandFor's own comment for why ci cannot work here.
+		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.INSTALL)).isEqualTo(List.of("npm", "install"));
 		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.TYPECHECK))
 				.isEqualTo(List.of("npm", "run", "typecheck"));
 		assertThat(ProjectExecutionCapability.commandFor(ProjectExecutionTask.LINT)).isEqualTo(List.of("npm", "run", "lint"));

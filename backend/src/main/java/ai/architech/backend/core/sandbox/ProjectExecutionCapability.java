@@ -35,6 +35,21 @@ public final class ProjectExecutionCapability {
 	}
 
 	/**
+	 * AIW-229: the strict, read-only-with-respect-to-the-lockfile install AIW-140's final
+	 * reproducibility requirement actually needs - deliberately {@code npm ci}, never {@code npm
+	 * install}, and deliberately its own method rather than a {@link ProjectExecutionTask} value:
+	 * {@code ProjectExecutionTask.INSTALL} is reachable from the Developer Agent's own tool calls
+	 * (see {@code DeveloperToolSchemas}), and giving the model any path to this strict behavior
+	 * would reopen exactly the failure {@link #commandFor}'s own comment on {@code INSTALL}
+	 * describes - this call exists only for {@code AuthoritativeRunnerVerifier}'s own handoff gate,
+	 * which must confirm the final candidate installs from exactly its own committed manifest and
+	 * lockfile, no reconciliation allowed.
+	 */
+	public ProcessResult runStrictReproducibilityInstall() {
+		return ProcessRunner.run(workspace, List.of("npm", "ci"), BOUNDED_TASK_TIMEOUT);
+	}
+
+	/**
 	 * Starts the local dev server; the caller owns the returned handle and must stop it itself -
 	 * and must stop its descendants too: {@code npm run dev} forks its own {@code vite} child
 	 * process, so destroying only this returned handle leaves that child running and still bound
@@ -64,7 +79,22 @@ public final class ProjectExecutionCapability {
 
 	static List<String> commandFor(ProjectExecutionTask task) {
 		return switch (task) {
-			case INSTALL -> List.of("npm", "ci");
+			// AIW-229: was `npm ci`, found live to fail deterministically - and unfixably from the
+			// Developer Agent's own side - every single time it legitimately edited package.json
+			// (e.g. adding a self-hosted font package per modules/04-responsive-and-styling.md's own
+			// guidance) and then re-ran this same INSTALL task: `npm ci` only ever installs from an
+			// already-coherent lockfile, it never reconciles one, so it fails with
+			// EUSAGE/"Missing: ... from lock file" against any lockfile it wasn't already in sync
+			// with. The model has no way to ask for a different npm subcommand - DeveloperToolSchemas
+			// only ever exposes the closed task name "install" - so this could never have been fixed
+			// by instructing the model differently, only by changing what this one capability
+			// actually runs. `npm install` reconciles the lockfile to the manifest (a no-op when
+			// nothing changed, exactly a fresh/unedited checkout's own case), so it is a strict
+			// superset of what `npm ci` could do here. The separate reproducibility requirement this
+			// existed to protect (AIW-140: the final candidate must be npm-ci-installable from
+			// exactly what it commits) is unaffected - AuthoritativeRunnerVerifier's own handoff gate
+			// still runs real `npm ci` directly, independently of this capability, as the final check.
+			case INSTALL -> List.of("npm", "install");
 			case TYPECHECK -> List.of("npm", "run", "typecheck");
 			case LINT -> List.of("npm", "run", "lint");
 			case TEST -> List.of("npm", "run", "test");

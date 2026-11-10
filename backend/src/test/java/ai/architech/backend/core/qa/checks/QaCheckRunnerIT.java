@@ -35,12 +35,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Real end-to-end proof of AIW-172's own representative checks against AIW-138's actual
- * Development Base scaffold - real {@code npm ci}, a real {@code npm run dev} server, and a real
- * headless Chromium via {@link QaPlaywrightDriver}, the same infrastructure {@code
+ * Development Base scaffold - real {@code npm install}, a real {@code npm run dev} server, and a
+ * real headless Chromium via {@link QaPlaywrightDriver}, the same infrastructure {@code
  * AuthoritativeRunnerVerifierIT} already uses for Developer's own Runner Verification.
  *
  * <p>The scaffold and dev server are started once for the whole class ({@code @BeforeAll}, not
- * per test) - {@code npm ci} is real work, and nothing about the running server is mutated by any
+ * per test) - {@code npm install} is real work, and nothing about the running server is mutated by any
  * individual check here, so there is no reason to pay for it once per test method.
  */
 @SpringBootTest

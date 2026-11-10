@@ -291,7 +291,7 @@ public class AuthoritativeRunnerVerifier {
 		}
 
 		try {
-			ProcessResult installResult = new ProjectExecutionCapability(workspace).run(ProjectExecutionTask.INSTALL);
+			ProcessResult installResult = new ProjectExecutionCapability(workspace).runStrictReproducibilityInstall();
 			if (!installResult.succeeded()) {
 				return GateResult.fail(gateName, "npm ci exited " + installResult.exitCode() + ": " + installResult.stderr());
 			}
