@@ -3,6 +3,7 @@ package ai.architech.backend.core.repository;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.stream.Stream;
@@ -32,8 +33,19 @@ public class ScaffoldMaterializer {
 
 	public void materializeInto(Path targetRoot) {
 		Path scaffoldRoot = resolveScaffoldRoot();
+		// AIW-231: NOFOLLOW_LINKS on both the walk's own type test and the copy itself - npm's
+		// `node_modules/.bin/*` shims are symlinks (e.g. `vite` -> `../vite/bin/vite.js`); the
+		// default (link-following) behavior of both Files.isRegularFile and Files.copy silently
+		// dereferences them, copying the *target file's content* into place as a plain file
+		// instead of recreating the link. That broke every such shim's own relative imports (e.g.
+		// `vite`'s `../dist/node/cli.js`, now resolved from the wrong directory) - invisible for
+		// years only because every caller happened to run `npm ci` right after, which always
+		// deletes and rebuilds node_modules from scratch regardless, silently "fixing" it every
+		// time. AIW-229's switch to `npm install` for the Developer-reachable path removed that
+		// incidental masking (an already-"up to date" tree is left untouched), surfacing this.
 		try (Stream<Path> files = Files.walk(scaffoldRoot)) {
-			files.filter(Files::isRegularFile).forEach(source -> copyOne(scaffoldRoot, source, targetRoot));
+			files.filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(path))
+					.forEach(source -> copyOne(scaffoldRoot, source, targetRoot));
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to walk scaffold root " + scaffoldRoot, e);
 		}
@@ -44,7 +56,12 @@ public class ScaffoldMaterializer {
 		Path destination = targetRoot.resolve(relative);
 		try {
 			Files.createDirectories(destination.getParent());
-			Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+			Files.deleteIfExists(destination);
+			if (Files.isSymbolicLink(source)) {
+				Files.createSymbolicLink(destination, Files.readSymbolicLink(source));
+			} else {
+				Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING, LinkOption.NOFOLLOW_LINKS);
+			}
 		} catch (IOException e) {
 			throw new UncheckedIOException("Failed to materialize scaffold file " + relative, e);
 		}
