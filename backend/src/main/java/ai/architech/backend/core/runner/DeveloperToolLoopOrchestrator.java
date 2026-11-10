@@ -80,6 +80,20 @@ import tools.jackson.databind.ObjectMapper;
  * ends the execution the same way exhausting {@code max-turns}/{@code max-tool-calls} already
  * does - {@code FAILED}, with every turn's usage up to that point still applied - never an
  * uncaught exception out of an execution already mid-flight with real, costed turns behind it.
+ *
+ * <p>AIW-230: the per-turn re-check above is only as good as what it can see. {@link
+ * AiUsageBudgetGuard} sums already-*persisted* {@link AgentExecution#getCostUsd()} across the
+ * project; a running execution's own in-flight cost otherwise lives only in this orchestrator's
+ * {@code LoopState} and was never written back to its {@link AgentExecution} row until the whole
+ * execution reached a terminal status - so for the entire duration of one execution, every one of
+ * its own per-turn checks saw the exact same (stale) project total every other execution had
+ * already left behind, completely blind to what this execution itself was spending turn by turn.
+ * A single execution could still spend its *entire* own cost past the hard limit before anything
+ * noticed - found live, in production use, when a project's real spend reached 125% of its $5.00
+ * hard cap this way. Each turn's usage is now applied to the {@link AgentExecution} row and
+ * flushed immediately after {@link LoopState#recordUsage}, before the loop's own next per-turn
+ * check - so that check now sees this execution's own cost so far, not only every other
+ * execution's.
  */
 @Component
 public class DeveloperToolLoopOrchestrator {
@@ -206,6 +220,12 @@ public class DeveloperToolLoopOrchestrator {
 						new AiRequest(agentDefinition.modelProfile(), List.copyOf(conversation), agentDefinition.limits().maxOutputTokens(), correlationId, tools);
 				AiResponse response = aiGateway.invoke(request);
 				state.recordUsage(response, costCalculator);
+				// AIW-230: flush this turn's cost immediately so the *next* turn's
+				// checkBeforeInvoking (and any other execution's) actually sees it - see this
+				// class's own javadoc for why leaving this until termination made the hard limit
+				// unenforceable within a single execution's own turns.
+				state.applyTo(execution, costCalculator);
+				agentExecutionRepository.saveAndFlush(execution);
 
 				if (response.requiresToolUse()) {
 					if (!dispatchToolTurn(execution, state, profile, workspace, response, conversation)) {
@@ -390,7 +410,13 @@ public class DeveloperToolLoopOrchestrator {
 		}
 	}
 
-	/** Accumulates token/cost usage across every turn of one execution, applied to the {@link AgentExecution} row exactly once, right before it reaches a terminal status. */
+	/**
+	 * Accumulates token/cost usage across every turn of one execution. {@link #applyTo} is now
+	 * called after every single turn (AIW-230), not only once at termination - each call simply
+	 * overwrites the {@link AgentExecution} row with this object's current running total, so
+	 * calling it repeatedly before the terminal call is harmless idempotent overwriting, never
+	 * double-counting.
+	 */
 	private static final class LoopState {
 		private int turns;
 		private int toolCallsUsed;
