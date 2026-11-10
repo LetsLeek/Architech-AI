@@ -12,7 +12,15 @@ description: >
 modelProfile: design-reasoning
 
 limits:
-  maxOutputTokens: 16000
+  # AIW-227: raised from 16000 after a real run against claude-sonnet-5 truncated mid-JSON
+  # ("output-contract: candidate output is not valid JSON: Unexpected end-of-input... expected
+  # close marker for Array") - three full proposals (pages/sections/elements/design
+  # specification/motion/UI patterns each) already pressed against 16000 before AIW-219/224's
+  # own creative-ambition and motion/depth guidance pushed toward richer, more detailed output.
+  # claude-sonnet-5 supports up to 128000 output tokens, so there is ample headroom; completion
+  # cost is billed per token actually used, not per budget, so raising the ceiling alone does
+  # not raise cost unless a well-behaved model genuinely needs the extra room.
+  maxOutputTokens: 32000
 
 skills:
   - plan-website-design

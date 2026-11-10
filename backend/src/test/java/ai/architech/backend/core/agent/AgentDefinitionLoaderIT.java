@@ -51,7 +51,8 @@ class AgentDefinitionLoaderIT {
 		assertThat(definition.id()).isEqualTo("designer-agent");
 		assertThat(definition.name()).isEqualTo("Website Designer");
 		assertThat(definition.modelProfile()).isEqualTo("design-reasoning");
-		assertThat(definition.limits().maxOutputTokens()).isEqualTo(16000);
+		// AIW-227: raised 16000 -> 32000 after a real 3-proposal Designer run truncated mid-JSON.
+		assertThat(definition.limits().maxOutputTokens()).isEqualTo(32000);
 		assertThat(definition.skills()).containsExactly("plan-website-design");
 		assertThat(definition.rules()).containsExactly("design-integrity");
 		assertThat(definition.roleContent()).contains("# Website Designer");
